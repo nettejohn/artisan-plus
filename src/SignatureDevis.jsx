@@ -7,7 +7,6 @@ const CARD = "#111e35";
 
 export default function SignatureDevis({ token }) {
   const [devis, setDevis] = useState(null);
-  const [client, setClient] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [artisan, setArtisan] = useState(null);
   const [nom, setNom] = useState("");
@@ -15,6 +14,7 @@ export default function SignatureDevis({ token }) {
   const [loading, setLoading] = useState(true);
   const [signe, setSigne] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [signatureId, setSignatureId] = useState(null);
   const canvasRef = useRef(null);
   const [dessin, setDessin] = useState(false);
   const [aDessiné, setADessiné] = useState(false);
@@ -24,50 +24,75 @@ export default function SignatureDevis({ token }) {
   }, [token]);
 
   const chargerDevis = async () => {
-    const { data: sigData } = await supabase
-      .from("signatures")
-      .select("*, devis(*)")
-      .eq("token", token)
-      .single();
+    try {
+      // 1. Trouver la signature par token
+      const { data: sigData, error: sigError } = await supabase
+        .from("signatures")
+        .select("*")
+        .eq("token", token)
+        .single();
 
-    if (!sigData) { setErreur("Lien invalide ou expiré."); setLoading(false); return; }
-    if (sigData.signe_le) { setSigne(true); setLoading(false); return; }
+      if (sigError || !sigData) {
+        setErreur("Lien invalide ou expiré.");
+        setLoading(false);
+        return;
+      }
 
-    const { data: devisData } = await supabase
-      .from("devis")
-      .select("*, clients(*)")
-      .eq("id", sigData.devis_id)
-      .single();
+      if (sigData.signe_le) {
+        setSigne(true);
+        setLoading(false);
+        return;
+      }
 
-    if (!devisData) { setErreur("Devis introuvable."); setLoading(false); return; }
+      setSignatureId(sigData.id);
 
-    const { data: lignesData } = await supabase
-      .from("lignes_devis")
-      .select("*")
-      .eq("devis_id", devisData.id);
+      // 2. Trouver le devis
+      const { data: devisData, error: devisError } = await supabase
+        .from("devis")
+        .select("*, clients(*)")
+        .eq("id", sigData.devis_id)
+        .single();
 
-    const { data: artisanData } = await supabase
-      .from("profils")
-      .select("*")
-      .eq("user_id", devisData.user_id)
-      .single();
+      if (devisError || !devisData) {
+        setErreur("Devis introuvable.");
+        setLoading(false);
+        return;
+      }
 
-    setDevis(devisData);
-    setClient(devisData.clients);
-    setLignes(lignesData || []);
-    setArtisan(artisanData);
-    setLoading(false);
+      // 3. Trouver les lignes
+      const { data: lignesData } = await supabase
+        .from("lignes_devis")
+        .select("*")
+        .eq("devis_id", devisData.id);
+
+      // 4. Trouver le profil artisan
+      const { data: artisanData } = await supabase
+        .from("profils")
+        .select("*")
+        .eq("user_id", devisData.user_id)
+        .single();
+
+      setDevis(devisData);
+      setLignes(lignesData || []);
+      setArtisan(artisanData);
+      setLoading(false);
+
+    } catch (e) {
+      setErreur("Une erreur est survenue.");
+      setLoading(false);
+    }
   };
 
-  // Canvas signature
   const startDraw = (e) => {
     setDessin(true);
     setADessiné(true);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
-    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) * scaleX;
+    const y = ((e.touches ? e.touches[0].clientY : e.clientY) - rect.top) * scaleY;
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
@@ -78,8 +103,10 @@ export default function SignatureDevis({ token }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
-    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) * scaleX;
+    const y = ((e.touches ? e.touches[0].clientY : e.clientY) - rect.top) * scaleY;
     ctx.lineTo(x, y);
     ctx.strokeStyle = "#FF8C00";
     ctx.lineWidth = 2.5;
@@ -111,7 +138,7 @@ export default function SignatureDevis({ token }) {
         nom_signataire: nom,
         signe_le: new Date().toISOString()
       })
-      .eq("token", token);
+      .eq("id", signatureId);
 
     await supabase
       .from("devis")
@@ -141,7 +168,7 @@ export default function SignatureDevis({ token }) {
       <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px", border: "1px solid rgba(76,175,80,0.3)" }}>
         <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
         <div style={{ color: "white", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>Devis signé !</div>
-        <div style={{ color: "#8899aa", fontSize: "14px" }}>Votre accord a bien été enregistré. L'artisan a été notifié.</div>
+        <div style={{ color: "#8899aa", fontSize: "14px" }}>Votre accord a bien été enregistré.</div>
       </div>
     </div>
   );
@@ -149,7 +176,6 @@ export default function SignatureDevis({ token }) {
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "20px" }}>
 
-      {/* HEADER */}
       <div style={{ textAlign: "center", marginBottom: "32px" }}>
         <div style={{ fontSize: "28px", fontWeight: "900", color: "white" }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
@@ -159,7 +185,7 @@ export default function SignatureDevis({ token }) {
 
       <div style={{ maxWidth: "600px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
-        {/* RÉSUMÉ DEVIS */}
+        {/* RÉSUMÉ */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
             <div>
@@ -180,7 +206,6 @@ export default function SignatureDevis({ token }) {
             </div>
           )}
 
-          {/* LIGNES */}
           <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", paddingTop: "16px" }}>
             <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", marginBottom: "8px" }}>PRESTATIONS</div>
             {lignes.map((l, i) => (
