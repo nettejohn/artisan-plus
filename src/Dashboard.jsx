@@ -102,7 +102,6 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const envoyerPourSignature = async (d) => {
-    // Vérifier si un token existe déjà
     const { data: existing } = await supabase
       .from("signatures")
       .select("token")
@@ -118,9 +117,18 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     const lien = `${window.location.origin}/signer/${token}`;
-    navigator.clipboard.writeText(lien).catch(() => {});
-    setLienCopie(d.id);
-    setTimeout(() => setLienCopie(null), 3000);
+
+    if (navigator.share) {
+      await navigator.share({
+        title: "Devis " + d.numero,
+        text: "Bonjour, veuillez signer votre devis ici :",
+        url: lien
+      });
+    } else {
+      navigator.clipboard.writeText(lien).catch(() => {});
+      setLienCopie(d.id);
+      setTimeout(() => setLienCopie(null), 3000);
+    }
   };
 
   const convertirEnFacture = async (d) => {
@@ -371,13 +379,13 @@ export default function Dashboard({ user, onLogout }) {
                           cursor: "pointer", fontSize: "13px", fontWeight: "600"
                         }}>📄 PDF</button>
                         <button onClick={() => envoyerPourSignature(d)} style={{
-                          background: lienCopie === d.id ? "rgba(76,175,80,0.2)" : "rgba(100,149,237,0.1)",
-                          border: `1px solid ${lienCopie === d.id ? "rgba(76,175,80,0.5)" : "rgba(100,149,237,0.3)"}`,
-                          color: lienCopie === d.id ? "#4CAF50" : "#6495ED",
+                          background: "rgba(100,149,237,0.1)",
+                          border: "1px solid rgba(100,149,237,0.3)",
+                          color: "#6495ED",
                           borderRadius: "8px", padding: "8px 12px",
                           cursor: "pointer", fontSize: "13px", fontWeight: "600"
                         }}>
-                          {lienCopie === d.id ? "✅ Lien copié !" : "🔗 Envoyer"}
+                          🔗 Envoyer
                         </button>
                         <button onClick={() => convertirEnFacture(d)} style={{
                           background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
@@ -397,7 +405,7 @@ export default function Dashboard({ user, onLogout }) {
                         borderRadius: "8px", padding: "10px 14px",
                         color: "#4CAF50", fontSize: "13px", fontWeight: "600"
                       }}>
-                        ✅ Lien copié ! Envoyez-le à votre client par SMS, WhatsApp, email ou autre.
+                        ✅ Lien copié ! Envoyez-le par SMS, WhatsApp, email ou autre.
                       </div>
                     )}
                   </div>
