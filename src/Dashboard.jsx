@@ -16,6 +16,7 @@ export default function Dashboard({ user, onLogout }) {
   const [devis, setDevis] = useState([]);
   const [profil, setProfil] = useState(null);
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
+  const [lienCopie, setLienCopie] = useState(null);
 
   useEffect(() => {
     chargerDonnees();
@@ -98,6 +99,28 @@ export default function Dashboard({ user, onLogout }) {
     await supabase.from("lignes_devis").delete().eq("devis_id", id);
     await supabase.from("devis").delete().eq("id", id);
     chargerDonnees();
+  };
+
+  const envoyerPourSignature = async (d) => {
+    // Vérifier si un token existe déjà
+    const { data: existing } = await supabase
+      .from("signatures")
+      .select("token")
+      .eq("devis_id", d.id)
+      .single();
+
+    let token;
+    if (existing) {
+      token = existing.token;
+    } else {
+      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      await supabase.from("signatures").insert({ devis_id: d.id, token });
+    }
+
+    const lien = `${window.location.origin}/signer/${token}`;
+    navigator.clipboard.writeText(lien).catch(() => {});
+    setLienCopie(d.id);
+    setTimeout(() => setLienCopie(null), 3000);
   };
 
   const convertirEnFacture = async (d) => {
@@ -325,39 +348,58 @@ export default function Dashboard({ user, onLogout }) {
                 {devis.map(d => (
                   <div key={d.id} style={{
                     background: CARD, borderRadius: "16px", padding: "20px",
-                    border: "1px solid rgba(255,140,0,0.15)",
-                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                    border: "1px solid rgba(255,140,0,0.15)"
                   }}>
-                    <div>
-                      <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{d.numero}</div>
-                      <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>
-                        {d.clients?.nom} — {new Date(d.created_at).toLocaleDateString("fr-FR")}
-                        {d.date_validite && ` — Valide jusqu'au ${new Date(d.date_validite).toLocaleDateString("fr-FR")}`}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lienCopie === d.id ? "12px" : "0" }}>
+                      <div>
+                        <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{d.numero}</div>
+                        <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>
+                          {d.clients?.nom} — {new Date(d.created_at).toLocaleDateString("fr-FR")}
+                          {d.date_validite && ` — Valide jusqu'au ${new Date(d.date_validite).toLocaleDateString("fr-FR")}`}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <span style={{ color: statutColor(d.statut), fontSize: "13px", fontWeight: "600" }}>
+                          {statutLabel(d.statut)}
+                        </span>
+                        <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>
+                          {d.total_ttc?.toFixed(2)} €
+                        </span>
+                        <button onClick={() => telechargerDevisPDF(d)} style={{
+                          background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                          color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                        }}>📄 PDF</button>
+                        <button onClick={() => envoyerPourSignature(d)} style={{
+                          background: lienCopie === d.id ? "rgba(76,175,80,0.2)" : "rgba(100,149,237,0.1)",
+                          border: `1px solid ${lienCopie === d.id ? "rgba(76,175,80,0.5)" : "rgba(100,149,237,0.3)"}`,
+                          color: lienCopie === d.id ? "#4CAF50" : "#6495ED",
+                          borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                        }}>
+                          {lienCopie === d.id ? "✅ Lien copié !" : "🔗 Envoyer"}
+                        </button>
+                        <button onClick={() => convertirEnFacture(d)} style={{
+                          background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
+                          color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                        }}>✅ Facturer</button>
+                        <button onClick={() => supprimerDevis(d.id)} style={{
+                          background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                          color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px"
+                        }}>🗑️</button>
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <span style={{ color: statutColor(d.statut), fontSize: "13px", fontWeight: "600" }}>
-                        {statutLabel(d.statut)}
-                      </span>
-                      <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>
-                        {d.total_ttc?.toFixed(2)} €
-                      </span>
-                      <button onClick={() => telechargerDevisPDF(d)} style={{
-                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-                        color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
-                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                      }}>📄 PDF</button>
-                      <button onClick={() => convertirEnFacture(d)} style={{
+                    {lienCopie === d.id && (
+                      <div style={{
                         background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
-                        color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
-                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                      }}>✅ Facturer</button>
-                      <button onClick={() => supprimerDevis(d.id)} style={{
-                        background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
-                        color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
-                        cursor: "pointer", fontSize: "13px"
-                      }}>🗑️</button>
-                    </div>
+                        borderRadius: "8px", padding: "10px 14px",
+                        color: "#4CAF50", fontSize: "13px", fontWeight: "600"
+                      }}>
+                        ✅ Lien copié ! Envoyez-le à votre client par SMS, WhatsApp, email ou autre.
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

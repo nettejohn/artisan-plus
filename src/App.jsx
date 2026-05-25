@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Dashboard from "./Dashboard";
+import SignatureDevis from "./SignatureDevis";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -14,8 +15,17 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
+  const [signatureToken, setSignatureToken] = useState(null);
 
   useEffect(() => {
+    // Vérifier si c'est un lien de signature
+    const path = window.location.pathname;
+    if (path.startsWith("/signer/")) {
+      const token = path.replace("/signer/", "");
+      setSignatureToken(token);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
@@ -42,6 +52,9 @@ export default function App() {
     else setMessage("✅ Compte créé ! Vous pouvez vous connecter.");
     setLoading(false);
   };
+
+  // Page de signature
+  if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
   if (user) return <Dashboard user={user} onLogout={() => setUser(null)} />;
 

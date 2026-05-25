@@ -1,0 +1,286 @@
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "./supabase";
+
+const PRIMARY = "#FF8C00";
+const DARK = "#0a1628";
+const CARD = "#111e35";
+
+export default function SignatureDevis({ token }) {
+  const [devis, setDevis] = useState(null);
+  const [client, setClient] = useState(null);
+  const [lignes, setLignes] = useState([]);
+  const [artisan, setArtisan] = useState(null);
+  const [nom, setNom] = useState("");
+  const [accepte, setAccepte] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [signe, setSigne] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const canvasRef = useRef(null);
+  const [dessin, setDessin] = useState(false);
+  const [aDessiné, setADessiné] = useState(false);
+
+  useEffect(() => {
+    chargerDevis();
+  }, [token]);
+
+  const chargerDevis = async () => {
+    const { data: sigData } = await supabase
+      .from("signatures")
+      .select("*, devis(*)")
+      .eq("token", token)
+      .single();
+
+    if (!sigData) { setErreur("Lien invalide ou expiré."); setLoading(false); return; }
+    if (sigData.signe_le) { setSigne(true); setLoading(false); return; }
+
+    const { data: devisData } = await supabase
+      .from("devis")
+      .select("*, clients(*)")
+      .eq("id", sigData.devis_id)
+      .single();
+
+    if (!devisData) { setErreur("Devis introuvable."); setLoading(false); return; }
+
+    const { data: lignesData } = await supabase
+      .from("lignes_devis")
+      .select("*")
+      .eq("devis_id", devisData.id);
+
+    const { data: artisanData } = await supabase
+      .from("profils")
+      .select("*")
+      .eq("user_id", devisData.user_id)
+      .single();
+
+    setDevis(devisData);
+    setClient(devisData.clients);
+    setLignes(lignesData || []);
+    setArtisan(artisanData);
+    setLoading(false);
+  };
+
+  // Canvas signature
+  const startDraw = (e) => {
+    setDessin(true);
+    setADessiné(true);
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e) => {
+    if (!dessin) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = "#FF8C00";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  };
+
+  const stopDraw = () => setDessin(false);
+
+  const effacerSignature = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setADessiné(false);
+  };
+
+  const signer = async () => {
+    if (!nom.trim()) { alert("Veuillez entrer votre nom complet"); return; }
+    if (!accepte) { alert("Veuillez cocher la case d'acceptation"); return; }
+    if (!aDessiné) { alert("Veuillez signer dans la zone de signature"); return; }
+
+    const canvas = canvasRef.current;
+    const signatureData = canvas.toDataURL();
+
+    await supabase
+      .from("signatures")
+      .update({
+        signature_data: signatureData,
+        nom_signataire: nom,
+        signe_le: new Date().toISOString()
+      })
+      .eq("token", token);
+
+    await supabase
+      .from("devis")
+      .update({ statut: "accepte" })
+      .eq("id", devis.id);
+
+    setSigne(true);
+  };
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: "white", fontSize: "18px" }}>Chargement...</div>
+    </div>
+  );
+
+  if (erreur) return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px" }}>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>❌</div>
+        <div style={{ color: "white", fontSize: "18px", fontWeight: "700" }}>{erreur}</div>
+      </div>
+    </div>
+  );
+
+  if (signe) return (
+    <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
+      <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px", border: "1px solid rgba(76,175,80,0.3)" }}>
+        <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
+        <div style={{ color: "white", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>Devis signé !</div>
+        <div style={{ color: "#8899aa", fontSize: "14px" }}>Votre accord a bien été enregistré. L'artisan a été notifié.</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "20px" }}>
+
+      {/* HEADER */}
+      <div style={{ textAlign: "center", marginBottom: "32px" }}>
+        <div style={{ fontSize: "28px", fontWeight: "900", color: "white" }}>
+          Artisan<span style={{ color: PRIMARY }}>+</span>
+        </div>
+        <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>Signature de devis</div>
+      </div>
+
+      <div style={{ maxWidth: "600px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+        {/* RÉSUMÉ DEVIS */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+            <div>
+              <div style={{ color: PRIMARY, fontSize: "12px", fontWeight: "700", marginBottom: "4px" }}>DEVIS</div>
+              <div style={{ color: "white", fontSize: "20px", fontWeight: "800" }}>{devis?.numero}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ color: "#8899aa", fontSize: "12px" }}>Total</div>
+              <div style={{ color: PRIMARY, fontSize: "24px", fontWeight: "800" }}>{devis?.total_ttc?.toFixed(2)} €</div>
+            </div>
+          </div>
+
+          {artisan && (
+            <div style={{ marginBottom: "12px", padding: "12px", background: "#0a1628", borderRadius: "10px" }}>
+              <div style={{ color: "#8899aa", fontSize: "11px", marginBottom: "4px" }}>ARTISAN</div>
+              <div style={{ color: "white", fontWeight: "600" }}>{artisan.nom}</div>
+              {artisan.telephone && <div style={{ color: "#8899aa", fontSize: "12px" }}>{artisan.telephone}</div>}
+            </div>
+          )}
+
+          {/* LIGNES */}
+          <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", paddingTop: "16px" }}>
+            <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", marginBottom: "8px" }}>PRESTATIONS</div>
+            {lignes.map((l, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ color: "white", fontSize: "14px" }}>{l.description}</span>
+                <span style={{ color: PRIMARY, fontSize: "14px", fontWeight: "600" }}>{(l.quantite * l.prix_unitaire).toFixed(2)} €</span>
+              </div>
+            ))}
+          </div>
+
+          {devis?.tva > 0 && (
+            <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", paddingTop: "12px", marginTop: "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "#8899aa" }}>Total HT</span>
+                <span style={{ color: "white" }}>{devis?.total_ht?.toFixed(2)} €</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+                <span style={{ color: "#8899aa" }}>TVA ({devis?.tva}%)</span>
+                <span style={{ color: "white" }}>{(devis?.total_ttc - devis?.total_ht).toFixed(2)} €</span>
+              </div>
+            </div>
+          )}
+
+          {devis?.tva === 0 && (
+            <div style={{ marginTop: "8px", color: "#8899aa", fontSize: "11px", fontStyle: "italic" }}>
+              TVA non applicable, art. 293 B du CGI
+            </div>
+          )}
+        </div>
+
+        {/* ACCEPTATION */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <h3 style={{ color: "white", marginTop: 0 }}>✅ Acceptation</h3>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", padding: "16px", background: "#0a1628", borderRadius: "10px" }}>
+            <input type="checkbox" id="accepte" checked={accepte}
+              onChange={e => setAccepte(e.target.checked)}
+              style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: PRIMARY, marginTop: "2px", flexShrink: 0 }} />
+            <label htmlFor="accepte" style={{ color: "white", fontSize: "14px", cursor: "pointer", lineHeight: "1.5" }}>
+              J'accepte le devis <strong>{devis?.numero}</strong> d'un montant de <strong style={{ color: PRIMARY }}>{devis?.total_ttc?.toFixed(2)} €</strong> et autorise l'artisan à commencer les travaux.
+            </label>
+          </div>
+        </div>
+
+        {/* NOM */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <h3 style={{ color: "white", marginTop: 0 }}>👤 Votre nom complet</h3>
+          <input placeholder="Ex: Jean Dupont" value={nom}
+            onChange={e => setNom(e.target.value)}
+            style={{
+              background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)",
+              borderRadius: "10px", padding: "12px 16px", color: "white",
+              fontSize: "16px", outline: "none", width: "100%", boxSizing: "border-box"
+            }} />
+        </div>
+
+        {/* SIGNATURE */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <h3 style={{ color: "white", margin: 0 }}>🖊️ Votre signature</h3>
+            <button onClick={effacerSignature} style={{
+              background: "transparent", border: "1px solid rgba(255,100,100,0.3)",
+              color: "#ff6b6b", borderRadius: "8px", padding: "6px 12px",
+              cursor: "pointer", fontSize: "12px"
+            }}>Effacer</button>
+          </div>
+          <div style={{ color: "#8899aa", fontSize: "12px", marginBottom: "12px" }}>
+            Signez avec votre doigt ou votre souris
+          </div>
+          <canvas
+            ref={canvasRef}
+            width={560}
+            height={150}
+            onMouseDown={startDraw}
+            onMouseMove={draw}
+            onMouseUp={stopDraw}
+            onMouseLeave={stopDraw}
+            onTouchStart={startDraw}
+            onTouchMove={draw}
+            onTouchEnd={stopDraw}
+            style={{
+              background: "#0a1628",
+              border: `2px solid ${aDessiné ? PRIMARY : "rgba(255,140,0,0.2)"}`,
+              borderRadius: "10px",
+              width: "100%",
+              height: "150px",
+              touchAction: "none",
+              cursor: "crosshair"
+            }}
+          />
+        </div>
+
+        <button onClick={signer} style={{
+          background: PRIMARY, color: "white", border: "none",
+          borderRadius: "12px", padding: "18px",
+          fontSize: "18px", fontWeight: "800", cursor: "pointer",
+          marginBottom: "32px"
+        }}>
+          ✅ Signer et accepter le devis
+        </button>
+      </div>
+    </div>
+  );
+}
