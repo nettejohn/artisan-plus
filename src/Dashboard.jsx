@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import NouvelleFacture from "./NouvelleFacture";
 import { genererFacturePDF } from "./GenerateurPDF";
+import Profil from "./Profil";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -11,11 +12,22 @@ export default function Dashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
   const [factures, setFactures] = useState([]);
+  const [profil, setProfil] = useState(null);
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
 
   useEffect(() => {
     chargerDonnees();
+    chargerProfil();
   }, []);
+
+  const chargerProfil = async () => {
+    const { data } = await supabase
+      .from("profils")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+    if (data) setProfil(data);
+  };
 
   const chargerDonnees = async () => {
     const { data: facturesData } = await supabase
@@ -49,15 +61,20 @@ export default function Dashboard({ user, onLogout }) {
       .select("*")
       .eq("facture_id", facture.id);
 
-    const artisan = {
-      nom: user.email,
-      adresse: "",
-      siret: "",
-      telephone: ""
-    };
-
+    const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     genererFacturePDF(facture, facture.clients, lignes || [], artisan);
   };
+
+  const supprimerFacture = async (id) => {
+    if (!window.confirm("Supprimer cette facture définitivement ?")) return;
+    await supabase.from("lignes_facture").delete().eq("facture_id", id);
+    await supabase.from("factures").delete().eq("id", id);
+    chargerDonnees();
+  };
+
+  if (page === "profil") return (
+    <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
+  );
 
   if (page === "nouvelle-facture") return (
     <NouvelleFacture user={user} onBack={() => { setPage("dashboard"); chargerDonnees(); }} />
@@ -86,8 +103,13 @@ export default function Dashboard({ user, onLogout }) {
         <div style={{ fontSize: "24px", fontWeight: "900", color: "white" }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ color: "#8899aa", fontSize: "14px" }}>{user.email}</span>
+          <button onClick={() => setPage("profil")} style={{
+            background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
+            color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
+            cursor: "pointer", fontSize: "13px", fontWeight: "600"
+          }}>👤 Mon profil</button>
           <button onClick={handleLogout} style={{
             background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
             color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
@@ -120,6 +142,22 @@ export default function Dashboard({ user, onLogout }) {
             <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>
               Bonjour 👋 Bienvenue sur Artisan<span style={{ color: PRIMARY }}>+</span>
             </h2>
+            {!profil?.nom && (
+              <div style={{
+                background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                borderRadius: "12px", padding: "16px", marginBottom: "24px",
+                display: "flex", justifyContent: "space-between", alignItems: "center"
+              }}>
+                <span style={{ color: PRIMARY, fontSize: "14px" }}>
+                  ⚠️ Complétez votre profil pour que vos infos apparaissent sur les factures
+                </span>
+                <button onClick={() => setPage("profil")} style={{
+                  background: PRIMARY, color: "white", border: "none",
+                  borderRadius: "8px", padding: "8px 16px",
+                  cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                }}>Compléter</button>
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               {[
                 { label: "Factures", value: stats.factures, icon: "📄" },
@@ -171,7 +209,7 @@ export default function Dashboard({ user, onLogout }) {
                         {f.clients?.nom} — {new Date(f.created_at).toLocaleDateString("fr-FR")}
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ color: statutColor(f.statut), fontSize: "13px", fontWeight: "600" }}>
                         {statutLabel(f.statut)}
                       </span>
@@ -185,6 +223,13 @@ export default function Dashboard({ user, onLogout }) {
                         padding: "8px 12px", cursor: "pointer",
                         fontSize: "13px", fontWeight: "600"
                       }}>📄 PDF</button>
+                      <button onClick={() => supprimerFacture(f.id)} style={{
+                        background: "rgba(255,100,100,0.1)",
+                        border: "1px solid rgba(255,100,100,0.3)",
+                        color: "#ff6b6b", borderRadius: "8px",
+                        padding: "8px 12px", cursor: "pointer",
+                        fontSize: "13px", fontWeight: "600"
+                      }}>🗑️</button>
                     </div>
                   </div>
                 ))}
@@ -225,7 +270,7 @@ export default function Dashboard({ user, onLogout }) {
         {/* CHANTIERS */}
         {activeTab === "chantiers" && (
           <div>
-            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>🏗️ Mes Chantiers</h2>
+            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>🏗 Mes Chantiers</h2>
             <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏗️</div>
               <div style={{ color: "#8899aa" }}>Aucun chantier pour l'instant</div>
@@ -236,3 +281,4 @@ export default function Dashboard({ user, onLogout }) {
     </div>
   );
 }
+

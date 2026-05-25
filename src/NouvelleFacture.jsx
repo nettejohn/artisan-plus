@@ -17,17 +17,26 @@ const inputStyle = {
   boxSizing: "border-box"
 };
 
+const THEMES = [
+  { id: "classique", label: "📄 Classique", desc: "Sobre et professionnel", color: "#333333" },
+  { id: "moderne", label: "🖤 Moderne", desc: "Élégant et contemporain", color: "#FF8C00" },
+  { id: "couvreur", label: "🏠 Couvreur", desc: "Spécial toiture", color: "#7B5E3A" },
+  { id: "paysagiste", label: "🌿 Paysagiste", desc: "Espaces verts", color: "#2E7D32" },
+  { id: "traitement", label: "🧹 Traitement toiture", desc: "Nettoyage & anti-mousse", color: "#1565C0" },
+];
+
 export default function NouvelleFacture({ user, onBack }) {
   const [client, setClient] = useState({ nom: "", email: "", telephone: "", adresse: "" });
   const [lignes, setLignes] = useState([{ description: "", quantite: 1, prix_unitaire: 0 }]);
   const [tva, setTva] = useState(20);
+  const [appliquerTva, setAppliquerTva] = useState(true);
   const [notes, setNotes] = useState("");
   const [style, setStyle] = useState("classique");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
   const totalHT = lignes.reduce((sum, l) => sum + (parseFloat(l.quantite) * parseFloat(l.prix_unitaire)), 0);
-  const totalTTC = totalHT * (1 + tva / 100);
+  const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
 
   const ajouterLigne = () => setLignes([...lignes, { description: "", quantite: 1, prix_unitaire: 0 }]);
 
@@ -63,9 +72,9 @@ export default function NouvelleFacture({ user, onBack }) {
         client_id: clientData.id,
         numero,
         total_ht: totalHT,
-        tva,
+        tva: appliquerTva ? tva : 0,
         total_ttc: totalTTC,
-        notes,
+        notes: notes,
         style
       })
       .select()
@@ -113,20 +122,23 @@ export default function NouvelleFacture({ user, onBack }) {
 
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
 
-        {/* STYLE */}
+        {/* THÈME */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
-          <h3 style={{ color: "white", marginTop: 0 }}>🎨 Style de la facture</h3>
-          <div style={{ display: "flex", gap: "12px" }}>
-            {["classique", "moderne", "colore"].map(s => (
-              <button key={s} onClick={() => setStyle(s)} style={{
-                flex: 1, padding: "12px",
-                border: `2px solid ${style === s ? PRIMARY : "rgba(255,140,0,0.2)"}`,
-                borderRadius: "10px",
-                background: style === s ? "rgba(255,140,0,0.1)" : "transparent",
-                color: style === s ? PRIMARY : "#8899aa",
-                cursor: "pointer", fontWeight: "600"
+          <h3 style={{ color: "white", marginTop: 0 }}>🎨 Thème de la facture</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
+            {THEMES.map(t => (
+              <button key={t.id} onClick={() => setStyle(t.id)} style={{
+                padding: "16px 12px",
+                border: `2px solid ${style === t.id ? t.color : "rgba(255,255,255,0.1)"}`,
+                borderRadius: "12px",
+                background: style === t.id ? `${t.color}22` : "transparent",
+                color: style === t.id ? t.color : "#8899aa",
+                cursor: "pointer", fontWeight: "600",
+                textAlign: "center", transition: "all 0.2s"
               }}>
-                {s === "classique" ? "📄 Classique" : s === "moderne" ? "🖤 Moderne" : "🎨 Coloré"}
+                <div style={{ fontSize: "24px", marginBottom: "6px" }}>{t.label.split(" ")[0]}</div>
+                <div style={{ fontSize: "12px", fontWeight: "700" }}>{t.label.split(" ").slice(1).join(" ")}</div>
+                <div style={{ fontSize: "10px", marginTop: "4px", opacity: 0.7 }}>{t.desc}</div>
               </button>
             ))}
           </div>
@@ -182,22 +194,52 @@ export default function NouvelleFacture({ user, onBack }) {
         {/* TOTAL */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>💰 Total</h3>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <span style={{ color: "#8899aa" }}>TVA (%)</span>
-            <input type="number" value={tva}
-              onChange={e => setTva(e.target.value)}
-              style={{ background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "8px 12px", color: "white", fontSize: "14px", outline: "none", width: "100px", textAlign: "right" }} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", padding: "16px", background: "#0a1628", borderRadius: "10px" }}>
+            <input type="checkbox" id="tva" checked={appliquerTva}
+              onChange={e => setAppliquerTva(e.target.checked)}
+              style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: PRIMARY }} />
+            <label htmlFor="tva" style={{ color: "white", fontSize: "15px", cursor: "pointer", fontWeight: "600" }}>
+              Appliquer la TVA
+            </label>
           </div>
+
+          {!appliquerTva && (
+            <div style={{
+              background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+              borderRadius: "10px", padding: "12px", marginBottom: "16px"
+            }}>
+              <span style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600" }}>
+                📋 Mention ajoutée automatiquement : "TVA non applicable, art. 293 B du CGI"
+              </span>
+            </div>
+          )}
+
+          {appliquerTva && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <span style={{ color: "#8899aa" }}>Taux TVA (%)</span>
+              <input type="number" value={tva}
+                onChange={e => setTva(e.target.value)}
+                style={{ background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "8px 12px", color: "white", fontSize: "14px", outline: "none", width: "100px", textAlign: "right" }} />
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
             <span style={{ color: "#8899aa" }}>Total HT</span>
             <span style={{ color: "white", fontWeight: "600" }}>{totalHT.toFixed(2)} €</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span style={{ color: "#8899aa" }}>TVA ({tva}%)</span>
-            <span style={{ color: "white", fontWeight: "600" }}>{(totalTTC - totalHT).toFixed(2)} €</span>
-          </div>
+
+          {appliquerTva && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ color: "#8899aa" }}>TVA ({tva}%)</span>
+              <span style={{ color: "white", fontWeight: "600" }}>{(totalTTC - totalHT).toFixed(2)} €</span>
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 0", borderTop: "1px solid rgba(255,140,0,0.2)" }}>
-            <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>Total TTC</span>
+            <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>
+              {appliquerTva ? "Total TTC" : "Total"}
+            </span>
             <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>{totalTTC.toFixed(2)} €</span>
           </div>
         </div>
@@ -211,15 +253,10 @@ export default function NouvelleFacture({ user, onBack }) {
             style={{
               background: "#0a1628",
               border: "1px solid rgba(255,140,0,0.2)",
-              borderRadius: "10px",
-              padding: "12px 16px",
-              color: "white",
-              fontSize: "14px",
-              outline: "none",
-              width: "100%",
-              boxSizing: "border-box",
-              height: "100px",
-              resize: "vertical"
+              borderRadius: "10px", padding: "12px 16px",
+              color: "white", fontSize: "14px", outline: "none",
+              width: "100%", boxSizing: "border-box",
+              height: "100px", resize: "vertical"
             }} />
         </div>
 
