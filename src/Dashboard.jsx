@@ -114,9 +114,10 @@ export default function Dashboard({ user, onLogout }) {
     } else {
       token = Math.random().toString(36).substring(2) + Date.now().toString(36);
       await supabase.from("signatures").insert({ devis_id: d.id, token });
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    const lien = `${window.location.origin}/signer/${token}`;
+    const lien = `https://artisan-plus.vercel.app/signer/${token}`;
 
     if (navigator.share) {
       await navigator.share({
@@ -381,12 +382,9 @@ export default function Dashboard({ user, onLogout }) {
                         <button onClick={() => envoyerPourSignature(d)} style={{
                           background: "rgba(100,149,237,0.1)",
                           border: "1px solid rgba(100,149,237,0.3)",
-                          color: "#6495ED",
-                          borderRadius: "8px", padding: "8px 12px",
+                          color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
                           cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                        }}>
-                          🔗 Envoyer
-                        </button>
+                        }}>🔗 Envoyer</button>
                         <button onClick={() => convertirEnFacture(d)} style={{
                           background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
                           color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
