@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import NouvelleFacture from "./NouvelleFacture";
+import NouveauDevis from "./NouveauDevis";
 import { genererFacturePDF } from "./GenerateurPDF";
 import Profil from "./Profil";
 
@@ -12,6 +13,7 @@ export default function Dashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
   const [factures, setFactures] = useState([]);
+  const [devis, setDevis] = useState([]);
   const [profil, setProfil] = useState(null);
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
 
@@ -42,6 +44,17 @@ export default function Dashboard({ user, onLogout }) {
       setStats(s => ({ ...s, factures: facturesData.length, ca }));
     }
 
+    const { data: devisData } = await supabase
+      .from("devis")
+      .select("*, clients(*)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (devisData) {
+      setDevis(devisData);
+      setStats(s => ({ ...s, devis: devisData.length }));
+    }
+
     const { count: clientCount } = await supabase
       .from("clients")
       .select("*", { count: "exact" })
@@ -60,9 +73,17 @@ export default function Dashboard({ user, onLogout }) {
       .from("lignes_facture")
       .select("*")
       .eq("facture_id", facture.id);
-
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
-    genererFacturePDF(facture, facture.clients, lignes || [], artisan);
+    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false);
+  };
+
+  const telechargerDevisPDF = async (d) => {
+    const { data: lignes } = await supabase
+      .from("lignes_devis")
+      .select("*")
+      .eq("devis_id", d.id);
+    const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
+    genererFacturePDF(d, d.clients, lignes || [], artisan, true);
   };
 
   const supprimerFacture = async (id) => {
@@ -72,12 +93,62 @@ export default function Dashboard({ user, onLogout }) {
     chargerDonnees();
   };
 
+  const supprimerDevis = async (id) => {
+    if (!window.confirm("Supprimer ce devis définitivement ?")) return;
+    await supabase.from("lignes_devis").delete().eq("devis_id", id);
+    await supabase.from("devis").delete().eq("id", id);
+    chargerDonnees();
+  };
+
+  const convertirEnFacture = async (d) => {
+    if (!window.confirm("Convertir ce devis en facture ?")) return;
+
+    const { data: lignes } = await supabase
+      .from("lignes_devis")
+      .select("*")
+      .eq("devis_id", d.id);
+
+    const numero = "FAC-" + Date.now();
+    const { data: factureData, error } = await supabase
+      .from("factures")
+      .insert({
+        user_id: user.id,
+        client_id: d.client_id,
+        numero,
+        total_ht: d.total_ht,
+        tva: d.tva,
+        total_ttc: d.total_ttc,
+        notes: d.notes,
+        style: d.style
+      })
+      .select()
+      .single();
+
+    if (error) { alert("Erreur lors de la conversion"); return; }
+
+    const lignesFacture = lignes.map(l => ({
+      facture_id: factureData.id,
+      description: l.description,
+      quantite: l.quantite,
+      prix_unitaire: l.prix_unitaire,
+      total: l.total
+    }));
+
+    await supabase.from("lignes_facture").insert(lignesFacture);
+    await supabase.from("devis").update({ statut: "accepte" }).eq("id", d.id);
+    chargerDonnees();
+    setActiveTab("factures");
+    alert("✅ Devis converti en facture !");
+  };
+
   if (page === "profil") return (
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
-
   if (page === "nouvelle-facture") return (
     <NouvelleFacture user={user} onBack={() => { setPage("dashboard"); chargerDonnees(); }} />
+  );
+  if (page === "nouveau-devis") return (
+    <NouveauDevis user={user} onBack={() => { setPage("dashboard"); chargerDonnees(); }} />
   );
 
   const tabs = [
@@ -88,8 +159,8 @@ export default function Dashboard({ user, onLogout }) {
     { id: "chantiers", label: "🏗️ Chantiers" },
   ];
 
-  const statutColor = (s) => s === "payee" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
-  const statutLabel = (s) => s === "payee" ? "✅ Payée" : s === "en_attente" ? "⏳ En attente" : "❌ Annulée";
+  const statutColor = (s) => s === "payee" || s === "accepte" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
+  const statutLabel = (s) => s === "payee" ? "✅ Payée" : s === "accepte" ? "✅ Accepté" : s === "en_attente" ? "⏳ En attente" : "❌ Refusé";
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
@@ -189,7 +260,6 @@ export default function Dashboard({ user, onLogout }) {
                 fontSize: "15px", fontWeight: "700", cursor: "pointer"
               }}>+ Créer une facture</button>
             </div>
-
             {factures.length === 0 ? (
               <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
                 <div style={{ fontSize: "48px", marginBottom: "16px" }}>📄</div>
@@ -217,18 +287,14 @@ export default function Dashboard({ user, onLogout }) {
                         {f.total_ttc?.toFixed(2)} €
                       </span>
                       <button onClick={() => telechargerPDF(f)} style={{
-                        background: "rgba(255,140,0,0.1)",
-                        border: "1px solid rgba(255,140,0,0.3)",
-                        color: PRIMARY, borderRadius: "8px",
-                        padding: "8px 12px", cursor: "pointer",
-                        fontSize: "13px", fontWeight: "600"
+                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                        color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>📄 PDF</button>
                       <button onClick={() => supprimerFacture(f.id)} style={{
-                        background: "rgba(255,100,100,0.1)",
-                        border: "1px solid rgba(255,100,100,0.3)",
-                        color: "#ff6b6b", borderRadius: "8px",
-                        padding: "8px 12px", cursor: "pointer",
-                        fontSize: "13px", fontWeight: "600"
+                        background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                        color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px"
                       }}>🗑️</button>
                     </div>
                   </div>
@@ -243,16 +309,59 @@ export default function Dashboard({ user, onLogout }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
               <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>📝 Mes Devis</h2>
-              <button style={{
+              <button onClick={() => setPage("nouveau-devis")} style={{
                 background: PRIMARY, color: "white", border: "none",
                 borderRadius: "10px", padding: "12px 24px",
                 fontSize: "15px", fontWeight: "700", cursor: "pointer"
               }}>+ Créer un devis</button>
             </div>
-            <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📝</div>
-              <div style={{ color: "#8899aa" }}>Aucun devis pour l'instant</div>
-            </div>
+            {devis.length === 0 ? (
+              <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>📝</div>
+                <div style={{ color: "#8899aa" }}>Aucun devis pour l'instant</div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {devis.map(d => (
+                  <div key={d.id} style={{
+                    background: CARD, borderRadius: "16px", padding: "20px",
+                    border: "1px solid rgba(255,140,0,0.15)",
+                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                  }}>
+                    <div>
+                      <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{d.numero}</div>
+                      <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>
+                        {d.clients?.nom} — {new Date(d.created_at).toLocaleDateString("fr-FR")}
+                        {d.date_validite && ` — Valide jusqu'au ${new Date(d.date_validite).toLocaleDateString("fr-FR")}`}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ color: statutColor(d.statut), fontSize: "13px", fontWeight: "600" }}>
+                        {statutLabel(d.statut)}
+                      </span>
+                      <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>
+                        {d.total_ttc?.toFixed(2)} €
+                      </span>
+                      <button onClick={() => telechargerDevisPDF(d)} style={{
+                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                        color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>📄 PDF</button>
+                      <button onClick={() => convertirEnFacture(d)} style={{
+                        background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
+                        color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>✅ Facturer</button>
+                      <button onClick={() => supprimerDevis(d.id)} style={{
+                        background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                        color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px"
+                      }}>🗑️</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -270,7 +379,7 @@ export default function Dashboard({ user, onLogout }) {
         {/* CHANTIERS */}
         {activeTab === "chantiers" && (
           <div>
-            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>🏗 Mes Chantiers</h2>
+            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>🏗️ Mes Chantiers</h2>
             <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
               <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏗️</div>
               <div style={{ color: "#8899aa" }}>Aucun chantier pour l'instant</div>
@@ -281,4 +390,3 @@ export default function Dashboard({ user, onLogout }) {
     </div>
   );
 }
-
