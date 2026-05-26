@@ -59,7 +59,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const ouvrirModalAjout = () => {
     setClientEdite(null);
-    setClientForm({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "" });
+    setClientForm({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "", moyen_paiement: "", moment_appel: "", recommande_par: "", garantie_decennale_expiration: "" });
     setClientMessage("");
     setClientModal(true);
   };
