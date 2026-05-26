@@ -39,8 +39,23 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
   const [style, setStyle] = useState("classique");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [natureOperation, setNatureOperation] = useState("");
+  const [tvaSurDebits, setTvaSurDebits] = useState(false);
 
-  // ── Chargement des clients ─────────────────────────────────────────────────
+  // ── Chargement des clients + paramètres ───────────────────────────────────
+  useEffect(() => {
+    // Charger le paramètre TVA sur les débits
+    supabase
+      .from("parametres")
+      .select("tva_sur_debits, tva_defaut")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.tva_sur_debits) setTvaSurDebits(true);
+        if (data?.tva_defaut)     setTva(data.tva_defaut);
+      });
+  }, [user.id]);
+
   useEffect(() => {
     supabase
       .from("clients")
@@ -112,7 +127,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
     const numero = "FAC-" + Date.now();
     const { data: factureData, error: factureError } = await supabase
       .from("factures")
-      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes, style })
+      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes, style, nature_operation: natureOperation || null, tva_sur_debits: tvaSurDebits })
       .select()
       .single();
     if (factureError) { setMessage("❌ Erreur facture : " + factureError.message); setLoading(false); return; }
@@ -271,6 +286,55 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
           <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 0", borderTop: "1px solid rgba(255,140,0,0.2)" }}>
             <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>{appliquerTva ? "Total TTC" : "Total"}</span>
             <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>{totalTTC.toFixed(2)} €</span>
+          </div>
+        </div>
+
+        {/* INFORMATIONS DU DOCUMENT */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <h3 style={{ color: "white", marginTop: 0 }}>🗂️ Informations du document</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+            {/* Nature de l'opération */}
+            <div>
+              <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Nature de l'opération
+              </label>
+              <select
+                value={natureOperation}
+                onChange={e => setNatureOperation(e.target.value)}
+                style={{ ...inputStyle, cursor: "pointer", color: natureOperation ? "white" : "#8899aa" }}
+              >
+                <option value="">— Non renseigné —</option>
+                <option value="Prestation de services">Prestation de services</option>
+                <option value="Vente de biens">Vente de biens</option>
+                <option value="Vente et prestation">Vente et prestation</option>
+              </select>
+              {natureOperation && (
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", color: PRIMARY, fontSize: "12px", fontWeight: "600" }}>
+                  <span style={{ background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "6px", padding: "3px 10px" }}>
+                    ✓ Apparaîtra sur le PDF
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* TVA sur les débits */}
+            <label style={{
+              display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+              background: tvaSurDebits ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${tvaSurDebits ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+              borderRadius: "12px", padding: "14px 16px", transition: "all 0.15s",
+            }}>
+              <input type="checkbox" checked={tvaSurDebits} onChange={e => setTvaSurDebits(e.target.checked)}
+                style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+              <div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>💳 TVA sur les débits</div>
+                <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px", lineHeight: "1.4" }}>
+                  Ajoute la mention « TVA exigible d'après les débits » sur cette facture
+                  {tvaSurDebits && <span style={{ color: PRIMARY, fontWeight: "600" }}> — activé par défaut dans vos Paramètres</span>}
+                </div>
+              </div>
+            </label>
           </div>
         </div>
 

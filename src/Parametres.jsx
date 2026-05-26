@@ -97,6 +97,7 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
     afficher_tva_intra:       false,
     mention_auto_entrepreneur: false,
     indemnite_recouvrement:   false,
+    tva_sur_debits:           false,
     // Préférences
     langue:          "fr",
     devise:          "€",
@@ -154,6 +155,7 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
       afficher_tva_intra:        pm.afficher_tva_intra        || false,
       mention_auto_entrepreneur: pm.mention_auto_entrepreneur || false,
       indemnite_recouvrement:    pm.indemnite_recouvrement    || false,
+      tva_sur_debits:            pm.tva_sur_debits            || false,
       // Préférences
       langue:          pm.langue          || "fr",
       devise:          pm.devise          || "€",
@@ -622,6 +624,22 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
               </div>
             </label>
 
+            {/* TVA sur les débits */}
+            <label style={{
+              display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+              background: params.tva_sur_debits ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${params.tva_sur_debits ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+              borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+            }}>
+              <input type="checkbox" checked={params.tva_sur_debits}
+                onChange={e => setParams(p => ({ ...p, tva_sur_debits: e.target.checked }))}
+                style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+              <div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>💳 TVA sur les débits</div>
+                <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Ajoute la mention « TVA exigible d'après les débits » sur toutes les nouvelles factures par défaut</div>
+              </div>
+            </label>
+
           </div>
 
           {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
@@ -896,7 +914,13 @@ ALTER TABLE parametres
   ADD COLUMN IF NOT EXISTS indemnite_recouvrement BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS langue TEXT DEFAULT 'fr',
   ADD COLUMN IF NOT EXISTS devise TEXT DEFAULT '€',
-  ADD COLUMN IF NOT EXISTS signature_email TEXT;`}</pre>
+  ADD COLUMN IF NOT EXISTS signature_email TEXT,
+  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false;
+
+-- Colonnes factures (nature opération + TVA sur débits)
+ALTER TABLE factures
+  ADD COLUMN IF NOT EXISTS nature_operation TEXT,
+  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false;`}</pre>
           </div>
         </div>
       )}

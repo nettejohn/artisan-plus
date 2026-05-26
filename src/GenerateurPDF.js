@@ -263,6 +263,20 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.text("TVA non applicable, art. 293 B du CGI", 15, finalY + 18);
   }
 
+  // NATURE DE L'OPÉRATION (boîte à gauche du bloc totaux)
+  if (document.nature_operation) {
+    doc.setFillColor(...theme.tableBg);
+    doc.roundedRect(15, finalY - 5, 90, 20, 3, 3, "F");
+    doc.setTextColor(...theme.grayColor);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("NATURE DE L'OPÉRATION", 20, finalY + 3);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...theme.textColor);
+    doc.setFontSize(9);
+    doc.text(document.nature_operation, 20, finalY + 11);
+  }
+
   // ZONE SIGNATURE pour devis
   if (estDevis) {
     const sigY = finalY + (appliquerTva ? 50 : 35);
@@ -307,13 +321,23 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.text(lignesNotes, estDevis ? 110 : 20, notesY + 9);
   }
 
-  // IBAN
+  // ── MENTIONS LÉGALES & IBAN ────────────────────────────────────────────────
+  let yMentions = finalY + (appliquerTva ? 72 : 62);
+
   if (artisan.iban && !estDevis) {
-    const ibanY = finalY + (appliquerTva ? 70 : 60);
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("Règlement par virement : " + artisan.iban, 15, ibanY);
+    doc.text("Règlement par virement : " + artisan.iban, 15, yMentions);
+    yMentions += 7;
+  }
+
+  if (document.tva_sur_debits && !estDevis) {
+    doc.setTextColor(...theme.grayColor);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("TVA exigible d'après les débits.", 15, yMentions);
+    yMentions += 7;
   }
 
   // FOOTER
