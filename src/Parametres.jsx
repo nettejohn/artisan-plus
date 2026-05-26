@@ -88,7 +88,20 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
     mention_legale: "",
     conditions_paiement: "Paiement à réception de facture",
     penalites_retard: "1,5% par mois",
-    numero_assurance: "",
+    // Mentions optionnelles PDF
+    numero_assurance:         "",
+    afficher_assurance:       false,
+    numero_rcs:               "",
+    afficher_rcs:             false,
+    numero_tva_intra:         "",
+    afficher_tva_intra:       false,
+    mention_auto_entrepreneur: false,
+    indemnite_recouvrement:   false,
+    // Préférences
+    langue:          "fr",
+    devise:          "€",
+    signature_email: "",
+    // Notifications
     notif_emails: false,
     notif_rappels_devis: false,
     notif_rappels_factures: false,
@@ -132,7 +145,20 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
       mention_legale:        pm.mention_legale        || "",
       conditions_paiement:   pm.conditions_paiement   || "Paiement à réception de facture",
       penalites_retard:      pm.penalites_retard      || "1,5% par mois",
-      numero_assurance:      pm.numero_assurance      || "",
+      // Mentions optionnelles PDF
+      numero_assurance:          pm.numero_assurance          || "",
+      afficher_assurance:        pm.afficher_assurance        || false,
+      numero_rcs:                pm.numero_rcs                || "",
+      afficher_rcs:              pm.afficher_rcs              || false,
+      numero_tva_intra:          pm.numero_tva_intra          || "",
+      afficher_tva_intra:        pm.afficher_tva_intra        || false,
+      mention_auto_entrepreneur: pm.mention_auto_entrepreneur || false,
+      indemnite_recouvrement:    pm.indemnite_recouvrement    || false,
+      // Préférences
+      langue:          pm.langue          || "fr",
+      devise:          pm.devise          || "€",
+      signature_email: pm.signature_email || "",
+      // Notifications
       notif_emails:          pm.notif_emails          || false,
       notif_rappels_devis:   pm.notif_rappels_devis   || false,
       notif_rappels_factures: pm.notif_rappels_factures || false,
@@ -325,6 +351,58 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
             <div style={{ ...inp, color: "#8899aa", cursor: "not-allowed", userSelect: "none" }}>{user.email}</div>
             <div style={{ color: "#555", fontSize: "11px", marginTop: "6px" }}>Pour changer d'adresse email, contactez le support.</div>
           </SCard>
+
+          <SCard titre="🌍 Préférences">
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px" }}>
+                {/* Langue */}
+                <div>
+                  <label style={lbl}>🌐 Langue de l'application</label>
+                  <select
+                    value={params.langue}
+                    onChange={e => setParams(p => ({ ...p, langue: e.target.value }))}
+                    style={{ ...inp, cursor: "pointer" }}
+                  >
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="en">🇬🇧 English</option>
+                  </select>
+                </div>
+                {/* Devise */}
+                <div>
+                  <label style={lbl}>💰 Devise par défaut</label>
+                  <select
+                    value={params.devise}
+                    onChange={e => setParams(p => ({ ...p, devise: e.target.value }))}
+                    style={{ ...inp, cursor: "pointer" }}
+                  >
+                    <option value="€">€ — Euro</option>
+                    <option value="CHF">CHF — Franc suisse</option>
+                    <option value="$">$ — Dollar</option>
+                    <option value="£">£ — Livre sterling</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Signature email */}
+              <div>
+                <label style={lbl}>✍️ Signature par défaut des emails</label>
+                <textarea
+                  value={params.signature_email}
+                  onChange={e => setParams(p => ({ ...p, signature_email: e.target.value }))}
+                  rows={3}
+                  placeholder={"Cordialement,\nJohn Nette — Artisan+\nTél. 06 00 00 00 00"}
+                  style={{ ...inp, resize: "vertical", fontFamily: "inherit", lineHeight: "1.55" }}
+                />
+                <div style={{ color: "#555", fontSize: "11px", marginTop: "5px" }}>
+                  Ajoutée automatiquement lors de l'envoi d'un devis par email.
+                </div>
+              </div>
+            </div>
+
+            {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
+            <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les préférences" />
+          </SCard>
         </div>
       )}
 
@@ -425,13 +503,6 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
             </div>
 
             <div>
-              <label style={lbl}>🛡️ Numéro d'assurance décennale</label>
-              <input value={params.numero_assurance}
-                onChange={e => setParams(prev => ({ ...prev, numero_assurance: e.target.value }))}
-                style={inp} placeholder="N° Police : 123456789 — Assureur XYZ" />
-            </div>
-
-            <div>
               <label style={lbl}>📝 Mention légale personnalisée (pied de page des PDF)</label>
               <textarea
                 value={params.mention_legale}
@@ -441,6 +512,116 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
                 style={{ ...inp, resize: "vertical", fontFamily: "inherit", lineHeight: "1.55" }}
               />
             </div>
+
+            {/* ── Séparateur mentions optionnelles ── */}
+            <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid rgba(255,140,0,0.1)", paddingBottom: "8px", marginTop: "6px" }}>
+              Mentions optionnelles — activez pour afficher sur les PDF
+            </div>
+
+            {/* Assurance décennale */}
+            <div>
+              <label style={{
+                display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+                background: params.afficher_assurance ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+                border: `1px solid ${params.afficher_assurance ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+                borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+                marginBottom: params.afficher_assurance ? "8px" : "0",
+              }}>
+                <input type="checkbox" checked={params.afficher_assurance}
+                  onChange={e => setParams(p => ({ ...p, afficher_assurance: e.target.checked }))}
+                  style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>🛡️ Numéro d'assurance décennale</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Afficher sur les devis et factures si activé</div>
+                </div>
+              </label>
+              {params.afficher_assurance && (
+                <input value={params.numero_assurance}
+                  onChange={e => setParams(p => ({ ...p, numero_assurance: e.target.value }))}
+                  style={inp} placeholder="N° Police : 123456789 — Assureur XYZ" />
+              )}
+            </div>
+
+            {/* RCS / Registre des Métiers */}
+            <div>
+              <label style={{
+                display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+                background: params.afficher_rcs ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+                border: `1px solid ${params.afficher_rcs ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+                borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+                marginBottom: params.afficher_rcs ? "8px" : "0",
+              }}>
+                <input type="checkbox" checked={params.afficher_rcs}
+                  onChange={e => setParams(p => ({ ...p, afficher_rcs: e.target.checked }))}
+                  style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>🏛️ Numéro RCS ou Registre des Métiers</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Afficher sur les devis et factures si activé</div>
+                </div>
+              </label>
+              {params.afficher_rcs && (
+                <input value={params.numero_rcs}
+                  onChange={e => setParams(p => ({ ...p, numero_rcs: e.target.value }))}
+                  style={inp} placeholder="RCS Nantes 123 456 789 — ou RM 44 B 12345" />
+              )}
+            </div>
+
+            {/* TVA intracommunautaire */}
+            <div>
+              <label style={{
+                display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+                background: params.afficher_tva_intra ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+                border: `1px solid ${params.afficher_tva_intra ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+                borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+                marginBottom: params.afficher_tva_intra ? "8px" : "0",
+              }}>
+                <input type="checkbox" checked={params.afficher_tva_intra}
+                  onChange={e => setParams(p => ({ ...p, afficher_tva_intra: e.target.checked }))}
+                  style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>🇪🇺 Numéro TVA intracommunautaire</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Afficher sur les devis et factures si activé</div>
+                </div>
+              </label>
+              {params.afficher_tva_intra && (
+                <input value={params.numero_tva_intra}
+                  onChange={e => setParams(p => ({ ...p, numero_tva_intra: e.target.value }))}
+                  style={inp} placeholder="FR 12 345678901" />
+              )}
+            </div>
+
+            {/* Mention auto-entrepreneur */}
+            <label style={{
+              display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+              background: params.mention_auto_entrepreneur ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${params.mention_auto_entrepreneur ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+              borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+            }}>
+              <input type="checkbox" checked={params.mention_auto_entrepreneur}
+                onChange={e => setParams(p => ({ ...p, mention_auto_entrepreneur: e.target.checked }))}
+                style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+              <div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>🧑‍💼 Mention auto-entrepreneur sur les PDF</div>
+                <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Affiche « Auto-entrepreneur » sur les devis et factures si activé</div>
+              </div>
+            </label>
+
+            {/* Indemnité forfaitaire de recouvrement */}
+            <label style={{
+              display: "flex", alignItems: "flex-start", gap: "14px", cursor: "pointer",
+              background: params.indemnite_recouvrement ? "rgba(255,140,0,0.07)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${params.indemnite_recouvrement ? "rgba(255,140,0,0.3)" : "rgba(255,255,255,0.07)"}`,
+              borderRadius: "12px", padding: "13px 16px", transition: "all 0.15s",
+            }}>
+              <input type="checkbox" checked={params.indemnite_recouvrement}
+                onChange={e => setParams(p => ({ ...p, indemnite_recouvrement: e.target.checked }))}
+                style={{ accentColor: PRIMARY, width: "18px", height: "18px", flexShrink: 0, marginTop: "2px", cursor: "pointer" }} />
+              <div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>⚖️ Indemnité forfaitaire de recouvrement 40 €</div>
+                <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Ajoute la mention légale obligatoire (art. D.441-5 C.com.) sur les factures si activé</div>
+              </div>
+            </label>
+
           </div>
 
           {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
@@ -680,10 +861,12 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
             <div style={{ color: "#6495ED", fontSize: "12px", fontWeight: "700", marginBottom: "8px" }}>
               ℹ️ Migration SQL requise pour activer toutes les fonctions
             </div>
-            <pre style={{ color: "#8899aa", fontSize: "11px", margin: 0, overflowX: "auto", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{`ALTER TABLE profils
+            <pre style={{ color: "#8899aa", fontSize: "11px", margin: 0, overflowX: "auto", lineHeight: "1.6", whiteSpace: "pre-wrap" }}>{`-- Table profils
+ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS iban TEXT,
   ADD COLUMN IF NOT EXISTS logo_url TEXT;
 
+-- Table parametres (créer si absente)
 CREATE TABLE IF NOT EXISTS parametres (
   user_id UUID PRIMARY KEY,
   theme_pdf TEXT DEFAULT 'moderne',
@@ -693,14 +876,27 @@ CREATE TABLE IF NOT EXISTS parametres (
   mention_legale TEXT,
   conditions_paiement TEXT,
   penalites_retard TEXT,
-  numero_assurance TEXT,
   notif_emails BOOLEAN DEFAULT false,
   notif_rappels_devis BOOLEAN DEFAULT false,
   notif_rappels_factures BOOLEAN DEFAULT false
 );
 ALTER TABLE parametres ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "own" ON parametres USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());`}</pre>
+  WITH CHECK (user_id = auth.uid());
+
+-- Nouvelles colonnes (ajouter si absentes)
+ALTER TABLE parametres
+  ADD COLUMN IF NOT EXISTS numero_assurance TEXT,
+  ADD COLUMN IF NOT EXISTS afficher_assurance BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS numero_rcs TEXT,
+  ADD COLUMN IF NOT EXISTS afficher_rcs BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS numero_tva_intra TEXT,
+  ADD COLUMN IF NOT EXISTS afficher_tva_intra BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS mention_auto_entrepreneur BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS indemnite_recouvrement BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS langue TEXT DEFAULT 'fr',
+  ADD COLUMN IF NOT EXISTS devise TEXT DEFAULT '€',
+  ADD COLUMN IF NOT EXISTS signature_email TEXT;`}</pre>
           </div>
         </div>
       )}
