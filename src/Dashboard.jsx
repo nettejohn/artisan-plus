@@ -5,6 +5,7 @@ import NouveauDevis from "./NouveauDevis";
 import { genererFacturePDF } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
+import Parametres from "./Parametres";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -331,6 +332,9 @@ export default function Dashboard({ user, onLogout }) {
   if (page === "profil") return (
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
+  if (page === "parametres") return (
+    <Parametres user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
+  );
   if (page === "nouvelle-facture") return (
     <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
@@ -365,20 +369,34 @@ export default function Dashboard({ user, onLogout }) {
         <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px" }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
         </div>
-        <button
-          onClick={() => setPage("profil")}
-          title="Mon profil"
-          style={{
-            background: "rgba(255,140,0,0.12)",
-            border: "1.5px solid rgba(255,140,0,0.3)",
-            color: PRIMARY, borderRadius: "50%",
-            width: "38px", height: "38px",
-            cursor: "pointer", fontSize: "17px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          {profil?.nom ? profil.nom.charAt(0).toUpperCase() : "👤"}
-        </button>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <button
+            onClick={() => setPage("parametres")}
+            title="Paramètres"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1.5px solid rgba(255,255,255,0.1)",
+              color: "#8899aa", borderRadius: "50%",
+              width: "36px", height: "36px",
+              cursor: "pointer", fontSize: "16px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >⚙️</button>
+          <button
+            onClick={() => setPage("profil")}
+            title="Mon profil"
+            style={{
+              background: "rgba(255,140,0,0.12)",
+              border: "1.5px solid rgba(255,140,0,0.3)",
+              color: PRIMARY, borderRadius: "50%",
+              width: "38px", height: "38px",
+              cursor: "pointer", fontSize: "17px",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            {profil?.nom ? profil.nom.charAt(0).toUpperCase() : "👤"}
+          </button>
+        </div>
       </div>
 
       {/* ── CONTENU ─────────────────────────────────────────────── */}
@@ -1178,36 +1196,41 @@ export default function Dashboard({ user, onLogout }) {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}>
         {[
-          { id: "accueil",   icon: "🏠", label: "Accueil"   },
-          { id: "factures",  icon: "📄", label: "Factures"  },
-          { id: "devis",     icon: "📝", label: "Devis"     },
-          { id: "clients",   icon: "👥", label: "Clients"   },
-          { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1, background: "transparent", border: "none",
-              display: "flex", flexDirection: "column", alignItems: "center",
-              justifyContent: "center", gap: "3px", cursor: "pointer",
-              color: activeTab === tab.id ? PRIMARY : "#8899aa",
-              transition: "color 0.15s",
-              position: "relative",
-            }}
-          >
-            <span style={{ fontSize: "22px", lineHeight: 1 }}>{tab.icon}</span>
-            <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.4px" }}>
-              {tab.label}
-            </span>
-            {activeTab === tab.id && (
-              <div style={{
-                position: "absolute", bottom: 0, width: "32px", height: "2px",
-                background: PRIMARY, borderRadius: "1px",
-              }} />
-            )}
-          </button>
-        ))}
+          { id: "accueil",    icon: "🏠",  label: "Accueil"   },
+          { id: "factures",   icon: "📄",  label: "Factures"  },
+          { id: "devis",      icon: "📝",  label: "Devis"     },
+          { id: "clients",    icon: "👥",  label: "Clients"   },
+          { id: "chantiers",  icon: "🏗️", label: "Chantiers" },
+          { id: "parametres", icon: "⚙️",  label: "Réglages"  },
+        ].map(tab => {
+          const isPage = tab.id === "parametres";
+          const isActive = isPage ? page === "parametres" : activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => isPage ? setPage("parametres") : (setPage("dashboard"), setActiveTab(tab.id))}
+              style={{
+                flex: 1, background: "transparent", border: "none",
+                display: "flex", flexDirection: "column", alignItems: "center",
+                justifyContent: "center", gap: "2px", cursor: "pointer",
+                color: isActive ? PRIMARY : "#8899aa",
+                transition: "color 0.15s",
+                position: "relative",
+              }}
+            >
+              <span style={{ fontSize: "20px", lineHeight: 1 }}>{tab.icon}</span>
+              <span style={{ fontSize: "9px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.3px" }}>
+                {tab.label}
+              </span>
+              {isActive && (
+                <div style={{
+                  position: "absolute", bottom: 0, width: "28px", height: "2px",
+                  background: PRIMARY, borderRadius: "1px",
+                }} />
+              )}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );
