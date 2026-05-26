@@ -199,7 +199,7 @@ export default function Dashboard({ user, onLogout }) {
     if (navigator.share) {
       await navigator.share({
         title: "Devis " + d.numero,
-        text: "Bonjour, veuillez signer votre devis ici :",
+        text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis ${d.numero}.\nPour le consulter et le signer en ligne, cliquez ici :`,
         url: lien
       });
     } else {

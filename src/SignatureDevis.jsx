@@ -22,6 +22,7 @@ export default function SignatureDevis({ token }) {
   const signatureDataRef = useRef(null); // stocke la signature après validation pour le PDF signé
   const [dessin, setDessin] = useState(false);
   const [aDessiné, setADessiné] = useState(false);
+  const [voirDetailDevis, setVoirDetailDevis] = useState(false);
 
   useEffect(() => {
     chargerDevis();
@@ -141,14 +142,7 @@ export default function SignatureDevis({ token }) {
     window.open(URL.createObjectURL(blob), "_blank");
   };
 
-  const voirDevis = () => {
-    if (!devis || !artisan) return;
-    try {
-      ouvrirPDF(genererPDFBase64(devis, devis.clients, lignes, artisan, true));
-    } catch (e) {
-      console.error("Erreur génération PDF :", e);
-    }
-  };
+  const voirDevis = () => setVoirDetailDevis(true);
 
   const telechargerDevis = () => {
     if (!devis || !artisan) return;
@@ -449,7 +443,7 @@ export default function SignatureDevis({ token }) {
           )}
         </div>
 
-        {/* BOUTONS PDF (avant signature) */}
+        {/* BOUTONS DEVIS (avant signature) */}
         <div style={{ display: "flex", gap: "12px" }}>
           <button
             onClick={voirDevis}
@@ -463,7 +457,7 @@ export default function SignatureDevis({ token }) {
             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.08)"}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
           >
-            📄 Lire le devis
+            📄 Voir le devis
           </button>
           <button
             onClick={telechargerDevis}
@@ -551,6 +545,129 @@ export default function SignatureDevis({ token }) {
           ✅ Signer et accepter le devis
         </button>
       </div>
+
+      {/* ── MODAL DÉTAIL DEVIS ─────────────────────────────────────────────── */}
+      {voirDetailDevis && (() => {
+        const totalHT = lignes.reduce((s, l) => s + l.quantite * l.prix_unitaire, 0);
+        const tva = devis?.tva || 0;
+        const montantTVA = totalHT * (tva / 100);
+        const totalTTC = totalHT + montantTVA;
+        return (
+          <div
+            onClick={() => setVoirDetailDevis(false)}
+            style={{
+              position: "fixed", inset: 0,
+              background: "rgba(0,0,0,0.75)", zIndex: 1000,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "20px"
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: CARD, borderRadius: "18px",
+                padding: "28px", maxWidth: "540px", width: "100%",
+                maxHeight: "85vh", overflowY: "auto",
+                border: "1px solid rgba(255,140,0,0.2)",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.5)"
+              }}
+            >
+              {/* En-tête */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "22px" }}>
+                <div>
+                  <div style={{ color: PRIMARY, fontSize: "11px", fontWeight: "700", letterSpacing: "0.8px", marginBottom: "4px" }}>DEVIS</div>
+                  <div style={{ color: "white", fontSize: "22px", fontWeight: "800" }}>{devis?.numero}</div>
+                  {artisan && <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "2px" }}>{artisan.nom}</div>}
+                </div>
+                <button
+                  onClick={() => setVoirDetailDevis(false)}
+                  style={{
+                    background: "rgba(255,255,255,0.06)", border: "none",
+                    color: "#8899aa", width: "32px", height: "32px",
+                    borderRadius: "8px", cursor: "pointer", fontSize: "18px",
+                    display: "flex", alignItems: "center", justifyContent: "center"
+                  }}
+                >✕</button>
+              </div>
+
+              {/* Tableau des lignes */}
+              <div style={{ borderRadius: "10px", overflow: "hidden", marginBottom: "16px" }}>
+                {/* Ligne d'en-tête du tableau */}
+                <div style={{
+                  display: "grid", gridTemplateColumns: "1fr 48px 80px 80px",
+                  gap: "8px", padding: "9px 14px", background: DARK
+                }}>
+                  {["DESCRIPTION", "QTÉ", "PU HT", "TOTAL HT"].map((h, i) => (
+                    <span key={i} style={{
+                      color: "#8899aa", fontSize: "10px", fontWeight: "700",
+                      letterSpacing: "0.6px",
+                      textAlign: i >= 2 ? "right" : i === 1 ? "center" : "left"
+                    }}>{h}</span>
+                  ))}
+                </div>
+                {/* Lignes de prestation */}
+                {lignes.map((l, i) => (
+                  <div key={i} style={{
+                    display: "grid", gridTemplateColumns: "1fr 48px 80px 80px",
+                    gap: "8px", padding: "10px 14px",
+                    background: i % 2 === 0 ? "#0d1b31" : "#0a1628"
+                  }}>
+                    <span style={{ color: "white", fontSize: "13px", lineHeight: "1.4" }}>{l.description}</span>
+                    <span style={{ color: "#ccc", fontSize: "13px", textAlign: "center" }}>{l.quantite}</span>
+                    <span style={{ color: "#ccc", fontSize: "13px", textAlign: "right" }}>{l.prix_unitaire.toFixed(2)} €</span>
+                    <span style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600", textAlign: "right" }}>
+                      {(l.quantite * l.prix_unitaire).toFixed(2)} €
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bloc totaux */}
+              <div style={{ background: DARK, borderRadius: "10px", padding: "16px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <span style={{ color: "#8899aa", fontSize: "13px" }}>Total HT</span>
+                  <span style={{ color: "white", fontSize: "13px", fontWeight: "600" }}>{totalHT.toFixed(2)} €</span>
+                </div>
+                {tva > 0 ? (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                      <span style={{ color: "#8899aa", fontSize: "13px" }}>TVA ({tva}%)</span>
+                      <span style={{ color: "white", fontSize: "13px" }}>{montantTVA.toFixed(2)} €</span>
+                    </div>
+                    <div style={{ borderTop: "1px solid rgba(255,140,0,0.2)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "white", fontSize: "15px", fontWeight: "700" }}>Total TTC</span>
+                      <span style={{ color: PRIMARY, fontSize: "22px", fontWeight: "800" }}>{totalTTC.toFixed(2)} €</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ borderTop: "1px solid rgba(255,140,0,0.2)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "white", fontSize: "15px", fontWeight: "700" }}>Total</span>
+                      <span style={{ color: PRIMARY, fontSize: "22px", fontWeight: "800" }}>{totalTTC.toFixed(2)} €</span>
+                    </div>
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontStyle: "italic", marginTop: "8px" }}>
+                      TVA non applicable, art. 293 B du CGI
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setVoirDetailDevis(false)}
+                style={{
+                  marginTop: "20px", width: "100%", background: "rgba(255,140,0,0.12)",
+                  border: "1px solid rgba(255,140,0,0.3)", color: PRIMARY,
+                  borderRadius: "10px", padding: "12px",
+                  fontSize: "14px", fontWeight: "600", cursor: "pointer"
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
