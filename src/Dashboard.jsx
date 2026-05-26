@@ -631,6 +631,48 @@ export default function Dashboard({ user, onLogout }) {
                         {/* Détails dépliables */}
                         {isOpen && (
                           <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "16px 20px" }}>
+
+                            {/* Actions rapides de contact */}
+                            {(c.telephone || c.adresse) && (
+                              <div style={{ display: "flex", gap: "8px", marginBottom: "18px", flexWrap: "wrap" }}>
+                                {c.telephone && (
+                                  <>
+                                    <a
+                                      href={`tel:${c.telephone.replace(/\s/g, "")}`}
+                                      style={{
+                                        display: "inline-flex", alignItems: "center", gap: "6px",
+                                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                                        color: PRIMARY, borderRadius: "8px", padding: "8px 14px",
+                                        fontSize: "13px", fontWeight: "600", textDecoration: "none"
+                                      }}
+                                    >📞 Appeler</a>
+                                    <a
+                                      href={`sms:${c.telephone.replace(/\s/g, "")}`}
+                                      style={{
+                                        display: "inline-flex", alignItems: "center", gap: "6px",
+                                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                                        color: PRIMARY, borderRadius: "8px", padding: "8px 14px",
+                                        fontSize: "13px", fontWeight: "600", textDecoration: "none"
+                                      }}
+                                    >💬 Message</a>
+                                  </>
+                                )}
+                                {c.adresse && (
+                                  <a
+                                    href={`https://maps.google.com/?q=${encodeURIComponent(c.adresse)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                      display: "inline-flex", alignItems: "center", gap: "6px",
+                                      background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                                      color: PRIMARY, borderRadius: "8px", padding: "8px 14px",
+                                      fontSize: "13px", fontWeight: "600", textDecoration: "none"
+                                    }}
+                                  >📍 Localiser</a>
+                                )}
+                              </div>
+                            )}
+
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: c.notes ? "14px" : "0" }}>
                               {[
                                 { label: "📧 Email", value: c.email },
