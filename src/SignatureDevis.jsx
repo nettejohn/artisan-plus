@@ -155,20 +155,38 @@ export default function SignatureDevis({ token }) {
     // 4. Envoyer les emails via la fonction serverless Vercel
     setEmailStatut("envoi");
     try {
+      const payload = {
+        emailArtisan: artisan?.email || null,
+        emailClient: devis.clients?.email || null,
+        nomClient: nom,
+        nomArtisan: artisan?.nom || null,
+        numeroDevis: devis.numero,
+        montantTTC: devis.total_ttc ?? null,
+      };
+
       const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          emailArtisan: artisan?.email || null,
-          emailClient: devis.clients?.email || null,
-          nomClient: nom,
-          nomArtisan: artisan?.nom || null,
-          numeroDevis: devis.numero,
-          montantTTC: devis.total_ttc,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      const resultat = await response.json();
+      // Lire le corps même si la réponse n'est pas ok
+      let resultat = {};
+      try {
+        resultat = await response.json();
+      } catch (_) {
+        // réponse non-JSON (page d'erreur Vercel, etc.)
+        const text = await response.text().catch(() => "");
+        console.error("[SignatureDevis] Réponse non-JSON :", response.status, text.slice(0, 200));
+        setEmailStatut("erreur");
+        return;
+      }
+
+      if (!response.ok && !resultat.artisanEnvoye && !resultat.clientEnvoye) {
+        console.error("[SignatureDevis] Erreur API :", resultat);
+        setEmailStatut("erreur");
+        return;
+      }
 
       setEmailDetail({
         artisan: resultat.artisanEnvoye ?? false,
@@ -183,7 +201,7 @@ export default function SignatureDevis({ token }) {
         setEmailStatut("erreur");
       }
     } catch (err) {
-      console.error("[SignatureDevis] Erreur email :", err);
+      console.error("[SignatureDevis] Erreur fetch :", err);
       setEmailStatut("erreur");
     }
   };
