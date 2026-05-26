@@ -15,6 +15,8 @@ export default function SignatureDevis({ token }) {
   const [signe, setSigne] = useState(false);
   const [erreur, setErreur] = useState("");
   const [signatureId, setSignatureId] = useState(null);
+  const [emailStatut, setEmailStatut] = useState(null); // null | "envoi" | "ok" | "partiel" | "erreur"
+  const [emailDetail, setEmailDetail] = useState({ artisan: false, client: false });
   const canvasRef = useRef(null);
   const [dessin, setDessin] = useState(false);
   const [aDessiné, setADessiné] = useState(false);
@@ -131,6 +133,7 @@ export default function SignatureDevis({ token }) {
     const canvas = canvasRef.current;
     const signatureData = canvas.toDataURL();
 
+    // 1. Enregistrer la signature en base
     await supabase
       .from("signatures")
       .update({
@@ -140,12 +143,49 @@ export default function SignatureDevis({ token }) {
       })
       .eq("id", signatureId);
 
+    // 2. Passer le devis en "accepté"
     await supabase
       .from("devis")
       .update({ statut: "accepte" })
       .eq("id", devis.id);
 
+    // 3. Afficher l'écran de succès immédiatement
     setSigne(true);
+
+    // 4. Envoyer les emails via la fonction serverless Vercel
+    setEmailStatut("envoi");
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emailArtisan: artisan?.email || null,
+          emailClient: devis.clients?.email || null,
+          nomClient: nom,
+          nomArtisan: artisan?.nom || null,
+          numeroDevis: devis.numero,
+          montantTTC: devis.total_ttc,
+        }),
+      });
+
+      const resultat = await response.json();
+
+      setEmailDetail({
+        artisan: resultat.artisanEnvoye ?? false,
+        client: resultat.clientEnvoye ?? false,
+      });
+
+      if (resultat.success) {
+        setEmailStatut("ok");
+      } else if (resultat.artisanEnvoye || resultat.clientEnvoye) {
+        setEmailStatut("partiel");
+      } else {
+        setEmailStatut("erreur");
+      }
+    } catch (err) {
+      console.error("[SignatureDevis] Erreur email :", err);
+      setEmailStatut("erreur");
+    }
   };
 
   if (loading) return (
@@ -165,11 +205,54 @@ export default function SignatureDevis({ token }) {
 
   if (signe) return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", maxWidth: "400px", border: "1px solid rgba(76,175,80,0.3)" }}>
+      <div style={{ background: CARD, borderRadius: "20px", padding: "40px", textAlign: "center", maxWidth: "420px", width: "100%", border: "1px solid rgba(76,175,80,0.3)", boxShadow: "0 0 40px rgba(76,175,80,0.1)" }}>
         <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
         <div style={{ color: "white", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>Devis signé !</div>
-        <div style={{ color: "#8899aa", fontSize: "14px" }}>Votre accord a bien été enregistré.</div>
+        <div style={{ color: "#8899aa", fontSize: "14px", marginBottom: "28px" }}>
+          Votre accord a bien été enregistré.
+        </div>
+
+        {/* Statut des emails */}
+        {emailStatut === "envoi" && (
+          <div style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)", borderRadius: "12px", padding: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: "18px", height: "18px", border: "2px solid " + PRIMARY, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
+            <span style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600" }}>Envoi des confirmations par email…</span>
+          </div>
+        )}
+
+        {emailStatut === "ok" && (
+          <div style={{ background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)", borderRadius: "12px", padding: "16px" }}>
+            <div style={{ color: "#4CAF50", fontSize: "14px", fontWeight: "700", marginBottom: "10px" }}>📧 Emails envoyés</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {emailDetail.artisan && (
+                <div style={{ color: "#ccc", fontSize: "13px" }}>✔ Artisan notifié</div>
+              )}
+              {emailDetail.client && (
+                <div style={{ color: "#ccc", fontSize: "13px" }}>✔ Confirmation envoyée au client</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {emailStatut === "partiel" && (
+          <div style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "12px", padding: "16px" }}>
+            <div style={{ color: PRIMARY, fontSize: "14px", fontWeight: "700", marginBottom: "10px" }}>📧 Envoi partiel</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ color: "#ccc", fontSize: "13px" }}>{emailDetail.artisan ? "✔ Artisan notifié" : "✗ Email artisan non envoyé"}</div>
+              <div style={{ color: "#ccc", fontSize: "13px" }}>{emailDetail.client ? "✔ Client notifié" : "✗ Email client non envoyé (email non renseigné ?)"}</div>
+            </div>
+          </div>
+        )}
+
+        {emailStatut === "erreur" && (
+          <div style={{ background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.25)", borderRadius: "12px", padding: "14px" }}>
+            <div style={{ color: "#ff6b6b", fontSize: "13px" }}>⚠️ Emails non envoyés — votre signature est bien enregistrée.</div>
+          </div>
+        )}
       </div>
+
+      {/* Animation rotation pour le spinner */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 

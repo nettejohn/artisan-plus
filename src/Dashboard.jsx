@@ -18,9 +18,20 @@ export default function Dashboard({ user, onLogout }) {
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
   const [lienCopie, setLienCopie] = useState(null);
 
+  // États clients
+  const [clients, setClients] = useState([]);
+  const [clientModal, setClientModal] = useState(false);
+  const [clientEdite, setClientEdite] = useState(null);
+  const [clientForm, setClientForm] = useState({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "" });
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientLoading, setClientLoading] = useState(false);
+  const [clientMessage, setClientMessage] = useState("");
+  const [clientDetailId, setClientDetailId] = useState(null);
+
   useEffect(() => {
     chargerDonnees();
     chargerProfil();
+    chargerClients();
   }, []);
 
   const chargerProfil = async () => {
@@ -30,6 +41,72 @@ export default function Dashboard({ user, onLogout }) {
       .eq("user_id", user.id)
       .single();
     if (data) setProfil(data);
+  };
+
+  const chargerClients = async () => {
+    const { data } = await supabase
+      .from("clients")
+      .select(`
+        *,
+        factures(id, total_ttc, statut),
+        devis(id, statut)
+      `)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setClients(data);
+  };
+
+  const ouvrirModalAjout = () => {
+    setClientEdite(null);
+    setClientForm({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "" });
+    setClientMessage("");
+    setClientModal(true);
+  };
+
+  const ouvrirModalEdition = (client) => {
+    setClientEdite(client);
+    setClientForm({
+      nom: client.nom || "",
+      email: client.email || "",
+      telephone: client.telephone || "",
+      adresse: client.adresse || "",
+      date_premier_contact: client.date_premier_contact || "",
+      type_prestation: client.type_prestation || "",
+      source: client.source || "",
+      notes: client.notes || "",
+      appreciation: client.appreciation || "",
+    });
+    setClientMessage("");
+    setClientModal(true);
+  };
+
+  const sauvegarderClient = async () => {
+    if (!clientForm.nom.trim()) { setClientMessage("❌ Le nom est obligatoire"); return; }
+    setClientLoading(true);
+    setClientMessage("");
+
+    if (clientEdite) {
+      const { error } = await supabase
+        .from("clients")
+        .update(clientForm)
+        .eq("id", clientEdite.id);
+      if (error) setClientMessage("❌ " + error.message);
+      else { setClientMessage("✅ Client mis à jour !"); setTimeout(() => { setClientModal(false); chargerClients(); chargerDonnees(); }, 800); }
+    } else {
+      const { error } = await supabase
+        .from("clients")
+        .insert({ ...clientForm, user_id: user.id });
+      if (error) setClientMessage("❌ " + error.message);
+      else { setClientMessage("✅ Client ajouté !"); setTimeout(() => { setClientModal(false); chargerClients(); chargerDonnees(); }, 800); }
+    }
+    setClientLoading(false);
+  };
+
+  const supprimerClient = async (id) => {
+    if (!window.confirm("Supprimer ce client ? Ses factures et devis associés resteront en base.")) return;
+    await supabase.from("clients").delete().eq("id", id);
+    chargerClients();
+    chargerDonnees();
   };
 
   const chargerDonnees = async () => {
@@ -416,11 +493,353 @@ export default function Dashboard({ user, onLogout }) {
         {/* CLIENTS */}
         {activeTab === "clients" && (
           <div>
-            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>👥 Mes Clients</h2>
-            <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>👥</div>
-              <div style={{ color: "#8899aa" }}>Aucun client pour l'instant</div>
+            {/* En-tête */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+              <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>👥 Mes Clients</h2>
+              <button onClick={ouvrirModalAjout} style={{
+                background: PRIMARY, color: "white", border: "none",
+                borderRadius: "10px", padding: "12px 24px",
+                fontSize: "15px", fontWeight: "700", cursor: "pointer"
+              }}>+ Ajouter un client</button>
             </div>
+
+            {/* Barre de recherche */}
+            {clients.length > 0 && (
+              <div style={{ marginBottom: "20px" }}>
+                <input
+                  placeholder="🔍 Rechercher un client..."
+                  value={clientSearch}
+                  onChange={e => setClientSearch(e.target.value)}
+                  style={{
+                    background: CARD, border: "1px solid rgba(255,140,0,0.2)",
+                    borderRadius: "10px", padding: "12px 16px", color: "white",
+                    fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box"
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Liste clients */}
+            {clients.length === 0 ? (
+              <div style={{ background: CARD, borderRadius: "16px", padding: "60px 40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
+                <div style={{ fontSize: "56px", marginBottom: "16px" }}>👥</div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "18px", marginBottom: "8px" }}>Aucun client pour l'instant</div>
+                <div style={{ color: "#8899aa", fontSize: "14px", marginBottom: "24px" }}>Ajoutez votre premier client pour commencer</div>
+                <button onClick={ouvrirModalAjout} style={{
+                  background: PRIMARY, color: "white", border: "none",
+                  borderRadius: "10px", padding: "12px 24px",
+                  fontSize: "15px", fontWeight: "700", cursor: "pointer"
+                }}>+ Ajouter un client</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {clients
+                  .filter(c =>
+                    !clientSearch ||
+                    c.nom?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                    c.email?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+                    c.telephone?.includes(clientSearch)
+                  )
+                  .map(c => {
+                    const nbFactures = c.factures?.length || 0;
+                    const nbDevis = c.devis?.length || 0;
+                    const caTotal = c.factures?.reduce((sum, f) => sum + (f.total_ttc || 0), 0) || 0;
+                    const isOpen = clientDetailId === c.id;
+
+                    return (
+                      <div key={c.id} style={{
+                        background: CARD, borderRadius: "16px",
+                        border: `1px solid ${isOpen ? "rgba(255,140,0,0.4)" : "rgba(255,140,0,0.15)"}`,
+                        overflow: "hidden", transition: "border 0.2s"
+                      }}>
+                        {/* Ligne principale */}
+                        <div style={{
+                          padding: "18px 20px", display: "flex",
+                          justifyContent: "space-between", alignItems: "center",
+                          cursor: "pointer", gap: "12px"
+                        }} onClick={() => setClientDetailId(isOpen ? null : c.id)}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
+                            <div style={{
+                              width: "44px", height: "44px", borderRadius: "50%",
+                              background: `rgba(255,140,0,0.15)`, display: "flex",
+                              alignItems: "center", justifyContent: "center",
+                              fontSize: "20px", flexShrink: 0
+                            }}>
+                              {c.nom?.charAt(0)?.toUpperCase() || "?"}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <span style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{c.nom}</span>
+                                {c.appreciation && (
+                                  <span style={{ fontSize: "16px" }} title={c.appreciation}>{
+                                    c.appreciation === "Excellent" ? "⭐" :
+                                    c.appreciation === "Bien" ? "👍" :
+                                    c.appreciation === "Moyen" ? "😐" : "👎"
+                                  }</span>
+                                )}
+                              </div>
+                              <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
+                                {c.type_prestation && (
+                                  <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
+                                    {c.type_prestation}
+                                  </span>
+                                )}
+                                {c.source && (
+                                  <span style={{ background: "rgba(100,149,237,0.15)", color: "#6495ED", fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
+                                    {c.source}
+                                  </span>
+                                )}
+                                <span style={{ color: "#8899aa", fontSize: "12px" }}>
+                                  {[c.email, c.telephone].filter(Boolean).join(" · ") || "Aucune info de contact"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
+                            {/* Stats rapides */}
+                            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                              <div style={{ textAlign: "center" }}>
+                                <div style={{ color: PRIMARY, fontWeight: "800", fontSize: "16px" }}>{nbFactures}</div>
+                                <div style={{ color: "#8899aa", fontSize: "11px" }}>facture{nbFactures !== 1 ? "s" : ""}</div>
+                              </div>
+                              <div style={{ textAlign: "center" }}>
+                                <div style={{ color: "#6495ED", fontWeight: "800", fontSize: "16px" }}>{nbDevis}</div>
+                                <div style={{ color: "#8899aa", fontSize: "11px" }}>devis</div>
+                              </div>
+                              <div style={{ textAlign: "center" }}>
+                                <div style={{ color: "#4CAF50", fontWeight: "800", fontSize: "16px" }}>{caTotal.toFixed(0)} €</div>
+                                <div style={{ color: "#8899aa", fontSize: "11px" }}>CA total</div>
+                              </div>
+                            </div>
+                            {/* Actions */}
+                            <div style={{ display: "flex", gap: "8px" }} onClick={e => e.stopPropagation()}>
+                              <button onClick={() => ouvrirModalEdition(c)} style={{
+                                background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                                color: PRIMARY, borderRadius: "8px", padding: "8px 10px",
+                                cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                              }}>✏️</button>
+                              <button onClick={() => supprimerClient(c.id)} style={{
+                                background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                                color: "#ff6b6b", borderRadius: "8px", padding: "8px 10px",
+                                cursor: "pointer", fontSize: "13px"
+                              }}>🗑️</button>
+                            </div>
+                            <span style={{ color: "#8899aa", fontSize: "18px", transition: "transform 0.2s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+                          </div>
+                        </div>
+
+                        {/* Détails dépliables */}
+                        {isOpen && (
+                          <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "16px 20px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", marginBottom: c.notes ? "14px" : "0" }}>
+                              {[
+                                { label: "📧 Email", value: c.email },
+                                { label: "📞 Téléphone", value: c.telephone },
+                                { label: "📍 Adresse", value: c.adresse },
+                                { label: "🛠️ Prestation", value: c.type_prestation },
+                                { label: "📣 Source", value: c.source },
+                                { label: "📅 1er contact", value: c.date_premier_contact ? new Date(c.date_premier_contact).toLocaleDateString("fr-FR") : null },
+                                { label: "📅 Client depuis", value: new Date(c.created_at).toLocaleDateString("fr-FR") },
+                                { label: "⭐ Appréciation", value: c.appreciation ? ({ Excellent: "⭐ Excellent", Bien: "👍 Bien", Moyen: "😐 Moyen", Difficile: "👎 Difficile" }[c.appreciation] || c.appreciation) : null },
+                              ].map((item, i) => (
+                                <div key={i}>
+                                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", marginBottom: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
+                                  <div style={{ color: item.value ? "white" : "#444", fontSize: "13px" }}>
+                                    {item.value || "—"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {c.notes && (
+                              <div style={{ background: "rgba(255,140,0,0.05)", borderRadius: "8px", padding: "10px 14px", marginTop: "4px" }}>
+                                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>📝 Notes</div>
+                                <div style={{ color: "#ccc", fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>{c.notes}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Historique factures/devis dépliable */}
+                        {isOpen && (nbFactures > 0 || nbDevis > 0) && (
+                          <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "12px 20px 16px" }}>
+                            <div style={{ color: "#8899aa", fontSize: "12px", marginBottom: "10px", fontWeight: "600" }}>HISTORIQUE</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              {factures.filter(f => f.client_id === c.id).map(f => (
+                                <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,140,0,0.05)", borderRadius: "8px", padding: "8px 12px" }}>
+                                  <span style={{ color: "#ccc", fontSize: "13px" }}>📄 {f.numero}</span>
+                                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                                    <span style={{ color: statutColor(f.statut), fontSize: "12px" }}>{statutLabel(f.statut)}</span>
+                                    <span style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px" }}>{f.total_ttc?.toFixed(2)} €</span>
+                                  </div>
+                                </div>
+                              ))}
+                              {devis.filter(d => d.client_id === c.id).map(d => (
+                                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(100,149,237,0.05)", borderRadius: "8px", padding: "8px 12px" }}>
+                                  <span style={{ color: "#ccc", fontSize: "13px" }}>📝 {d.numero}</span>
+                                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                                    <span style={{ color: statutColor(d.statut), fontSize: "12px" }}>{statutLabel(d.statut)}</span>
+                                    <span style={{ color: "#6495ED", fontWeight: "700", fontSize: "13px" }}>{d.total_ttc?.toFixed(2)} €</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* MODAL Ajouter / Éditer client */}
+            {clientModal && (
+              <div style={{
+                position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                zIndex: 1000, padding: "20px"
+              }} onClick={e => { if (e.target === e.currentTarget) setClientModal(false); }}>
+                <div style={{
+                  background: CARD, borderRadius: "20px", padding: "28px 32px",
+                  width: "100%", maxWidth: "540px",
+                  border: "1px solid rgba(255,140,0,0.3)",
+                  boxShadow: "0 0 60px rgba(255,140,0,0.15)",
+                  maxHeight: "92vh", overflowY: "auto"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+                    <h3 style={{ color: "white", margin: 0, fontSize: "20px" }}>
+                      {clientEdite ? "✏️ Modifier le client" : "➕ Nouveau client"}
+                    </h3>
+                    <button onClick={() => setClientModal(false)} style={{
+                      background: "transparent", border: "none", color: "#8899aa",
+                      fontSize: "22px", cursor: "pointer", padding: "4px"
+                    }}>✕</button>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+
+                    {/* Séparateur : Infos de base */}
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid rgba(255,140,0,0.1)", paddingBottom: "6px" }}>
+                      Informations de base
+                    </div>
+
+                    {[
+                      { champ: "nom", label: "Nom *", placeholder: "Nom du client ou de l'entreprise" },
+                      { champ: "email", label: "Email", placeholder: "email@exemple.fr" },
+                      { champ: "telephone", label: "Téléphone", placeholder: "06 00 00 00 00" },
+                      { champ: "adresse", label: "Adresse", placeholder: "123 rue de la Paix, 75001 Paris" },
+                    ].map(({ champ, label, placeholder }) => (
+                      <div key={champ}>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>{label}</label>
+                        <input
+                          placeholder={placeholder}
+                          value={clientForm[champ]}
+                          onChange={e => setClientForm(f => ({ ...f, [champ]: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    ))}
+
+                    {/* Séparateur : Qualification */}
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid rgba(255,140,0,0.1)", paddingBottom: "6px", marginTop: "4px" }}>
+                      Qualification
+                    </div>
+
+                    {/* Ligne : Type prestation + Source */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🛠️ Type de prestation</label>
+                        <select
+                          value={clientForm.type_prestation}
+                          onChange={e => setClientForm(f => ({ ...f, type_prestation: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.type_prestation ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", cursor: "pointer" }}
+                        >
+                          <option value="">— Choisir —</option>
+                          <option value="Couverture">Couverture</option>
+                          <option value="Élagage">Élagage</option>
+                          <option value="Traitement toiture">Traitement toiture</option>
+                          <option value="Paysagisme">Paysagisme</option>
+                          <option value="Autre">Autre</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>📣 Source du client</label>
+                        <select
+                          value={clientForm.source}
+                          onChange={e => setClientForm(f => ({ ...f, source: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.source ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", cursor: "pointer" }}
+                        >
+                          <option value="">— Choisir —</option>
+                          <option value="Bouche à oreille">Bouche à oreille</option>
+                          <option value="Facebook">Facebook</option>
+                          <option value="Chantier">Chantier</option>
+                          <option value="Autre">Autre</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Ligne : Date + Appréciation */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>📅 1er contact</label>
+                        <input
+                          type="date"
+                          value={clientForm.date_premier_contact}
+                          onChange={e => setClientForm(f => ({ ...f, date_premier_contact: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.date_premier_contact ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", colorScheme: "dark" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>⭐ Appréciation</label>
+                        <select
+                          value={clientForm.appreciation}
+                          onChange={e => setClientForm(f => ({ ...f, appreciation: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.appreciation ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", cursor: "pointer" }}
+                        >
+                          <option value="">— Choisir —</option>
+                          <option value="Excellent">⭐ Excellent</option>
+                          <option value="Bien">👍 Bien</option>
+                          <option value="Moyen">😐 Moyen</option>
+                          <option value="Difficile">👎 Difficile</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Notes libres */}
+                    <div>
+                      <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>📝 Notes libres</label>
+                      <textarea
+                        placeholder="Informations complémentaires, historique, remarques..."
+                        value={clientForm.notes}
+                        onChange={e => setClientForm(f => ({ ...f, notes: e.target.value }))}
+                        rows={3}
+                        style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", lineHeight: "1.5" }}
+                      />
+                    </div>
+
+                    {clientMessage && (
+                      <div style={{ color: clientMessage.includes("✅") ? "#4CAF50" : "#ff6b6b", fontSize: "13px", textAlign: "center", fontWeight: "600" }}>
+                        {clientMessage}
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+                      <button onClick={() => setClientModal(false)} style={{
+                        flex: 1, background: "transparent", border: "1px solid rgba(255,140,0,0.2)",
+                        color: "#8899aa", borderRadius: "10px", padding: "13px",
+                        fontSize: "15px", cursor: "pointer", fontWeight: "600"
+                      }}>Annuler</button>
+                      <button onClick={sauvegarderClient} disabled={clientLoading} style={{
+                        flex: 2, background: clientLoading ? "#888" : PRIMARY, color: "white",
+                        border: "none", borderRadius: "10px", padding: "13px",
+                        fontSize: "15px", fontWeight: "700", cursor: clientLoading ? "not-allowed" : "pointer"
+                      }}>
+                        {clientLoading ? "Sauvegarde..." : clientEdite ? "Enregistrer" : "Ajouter le client"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

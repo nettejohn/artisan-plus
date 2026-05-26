@@ -85,7 +85,14 @@ function dessinerDecoration(doc, style) {
   }
 }
 
-export function genererFacturePDF(document, client, lignes, artisan, estDevis = false) {
+/**
+ * Construit le document jsPDF et le retourne sans le sauvegarder.
+ * @param {object} options.signatureImage  – data URI de la signature dessinée (optionnel)
+ * @param {string} options.nomSignataire   – nom du signataire (optionnel)
+ */
+function construireDoc(document, client, lignes, artisan, estDevis = false, options = {}) {
+  const { signatureImage = null, nomSignataire = "" } = options;
+
   const doc = new jsPDF();
   const style = document.style || "classique";
   const theme = THEMES[style] || THEMES.classique;
@@ -261,16 +268,28 @@ export function genererFacturePDF(document, client, lignes, artisan, estDevis = 
     const sigY = finalY + (appliquerTva ? 50 : 35);
     doc.setDrawColor(...theme.accent);
     doc.setLineWidth(0.5);
-    doc.roundedRect(15, sigY, 85, 35, 3, 3, "S");
+    doc.roundedRect(15, sigY, 85, 38, 3, 3, "S");
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text("BON POUR ACCORD — Signature client :", 18, sigY + 7);
     doc.setFont("helvetica", "normal");
-    doc.text("Date : ____________________", 18, sigY + 15);
-    doc.text("Nom : ____________________", 18, sigY + 22);
-    doc.line(18, sigY + 32, 95, sigY + 32);
-    doc.text("Signature", 18, sigY + 30);
+
+    if (signatureImage && nomSignataire) {
+      // Devis signé : on intègre les données réelles
+      const dateSig = new Date().toLocaleDateString("fr-FR");
+      doc.text("Date : " + dateSig, 18, sigY + 15);
+      doc.text("Nom : " + nomSignataire, 18, sigY + 22);
+      try {
+        doc.addImage(signatureImage, "PNG", 18, sigY + 24, 60, 12);
+      } catch (_) { /* ignore si l'image est invalide */ }
+    } else {
+      // Devis non encore signé : cases vides
+      doc.text("Date : ____________________", 18, sigY + 15);
+      doc.text("Nom : ____________________", 18, sigY + 22);
+      doc.line(18, sigY + 35, 95, sigY + 35);
+      doc.text("Signature", 18, sigY + 33);
+    }
   }
 
   // NOTES
@@ -305,5 +324,21 @@ export function genererFacturePDF(document, client, lignes, artisan, estDevis = 
   doc.setFont("helvetica", "normal");
   doc.text("Généré avec Artisan+ — artisan-plus.vercel.app", 105, 290, { align: "center" });
 
+  return doc;
+}
+
+/** Télécharge le PDF directement (comportement original). */
+export function genererFacturePDF(document, client, lignes, artisan, estDevis = false) {
+  const doc = construireDoc(document, client, lignes, artisan, estDevis);
   doc.save(document.numero + ".pdf");
+}
+
+/**
+ * Retourne le PDF en base64 data URI (pour l'envoi email).
+ * @param {object} options.signatureImage  – data URI canvas (optionnel)
+ * @param {string} options.nomSignataire   – nom du signataire (optionnel)
+ */
+export function genererPDFBase64(document, client, lignes, artisan, estDevis = false, options = {}) {
+  const doc = construireDoc(document, client, lignes, artisan, estDevis, options);
+  return doc.output("datauristring"); // "data:application/pdf;base64,..."
 }
