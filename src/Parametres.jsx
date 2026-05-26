@@ -21,6 +21,7 @@ const SECTIONS = [
   { id: "abonnement",    label: "Abonnement",    emoji: "💎" },
   { id: "securite",      label: "Sécurité",      emoji: "🔒" },
   { id: "danger",        label: "Danger",        emoji: "⚠️" },
+  { id: "aide",          label: "Centre d'aide", emoji: "❓" },
 ];
 
 const inp = {
@@ -102,6 +103,9 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
   // ── Danger ───────────────────────────────────────────
   const [deleteStep,        setDeleteStep]        = useState(0);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  // ── Centre d'aide (accordéon) ─────────────────────
+  const [aideOpenId, setAideOpenId] = useState(null);
 
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); }, []);
@@ -224,6 +228,38 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
       Chargement des paramètres…
     </div>
   );
+
+  /* ── Helper accordéon ────────────────────────────────────────── */
+  const faqItem = (id, question, answer) => {
+    const isOpen = aideOpenId === id;
+    return (
+      <div
+        key={id}
+        style={{ borderBottom: "1px solid rgba(255,140,0,0.1)", cursor: "pointer" }}
+        onClick={() => setAideOpenId(isOpen ? null : id)}
+      >
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "14px 0", gap: "12px",
+          color: isOpen ? PRIMARY : "white",
+          fontWeight: "600", fontSize: "14px",
+        }}>
+          <span style={{ flex: 1 }}>{question}</span>
+          <span style={{
+            fontSize: "18px", color: PRIMARY, flexShrink: 0,
+            display: "inline-block",
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s",
+          }}>▾</span>
+        </div>
+        {isOpen && (
+          <div style={{ color: "#aabbcc", fontSize: "13px", lineHeight: "1.7", paddingBottom: "14px" }}>
+            {answer}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   /* ── Contenu de la section active ─────────────────────────────── */
   const sectionContent = (
@@ -666,6 +702,146 @@ ALTER TABLE parametres ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "own" ON parametres USING (user_id = auth.uid())
   WITH CHECK (user_id = auth.uid());`}</pre>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          CENTRE D'AIDE
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "aide" && (
+        <div>
+
+          {/* ── FAQ général ──────────────────────────────── */}
+          <SCard titre="❓ Questions fréquentes">
+            {faqItem("faq-0", "Comment créer mon premier devis ?",
+              "Clique sur l'onglet Devis puis + Nouveau devis, sélectionne ton client, ajoute les lignes et enregistre.")}
+            {faqItem("faq-1", "Comment envoyer un devis à signer ?",
+              "Dans la liste des devis, clique sur Envoyer. L'app génère un lien unique à partager par SMS ou WhatsApp. Ton client clique, lit et signe avec son doigt.")}
+            {faqItem("faq-2", "Comment convertir un devis en facture ?",
+              "Dans la liste des devis, clique sur le devis accepté puis Convertir en facture. Tout se remplit automatiquement.")}
+            {faqItem("faq-3", "Comment ajouter un client ?",
+              "Va dans l'onglet Clients et clique sur + Nouveau client.")}
+            {faqItem("faq-4", "Comment créer un chantier ?",
+              "Va dans l'onglet Chantiers et clique sur + Nouveau chantier. Tu peux lier un client et ajouter les frais matériaux et sous-traitance.")}
+            {faqItem("faq-5", "Le PDF ne se génère pas ?",
+              "Vérifie que ton profil est bien rempli dans Paramètres › Mon profil (nom, SIRET, adresse).")}
+            {faqItem("faq-6", "Mon client n'arrive pas à signer ?",
+              "Vérifie que le lien est complet quand tu le partages. Il doit commencer par https://artisan-plus.vercel.app/signer/…")}
+            {faqItem("faq-7", "Je n'arrive pas à me connecter ?",
+              "Vérifie ton email et mot de passe. Utilise « Mot de passe oublié » sur la page de connexion si besoin.")}
+          </SCard>
+
+          {/* ── Abonnement ───────────────────────────────── */}
+          <SCard titre="💎 Abonnement">
+            {faqItem("abo-0", "Qu'est-ce que le plan Gratuit ?",
+              "3 factures, 3 devis et 2 chantiers par mois — parfait pour commencer et tester l'application sans engagement.")}
+            {faqItem("abo-1", "Qu'est-ce que le plan Pro ?",
+              "Tout illimité (clients, factures, devis, chantiers, photos HD) pour 7,99 €/mois TTC. Sans engagement.")}
+            {faqItem("abo-2", "Puis-je annuler à tout moment ?",
+              "Oui, sans engagement ni frais de résiliation. Tu peux annuler depuis Paramètres › Abonnement à tout moment.")}
+            {faqItem("abo-3", "Que se passe-t-il si je me désabonne ?",
+              "Tu repasses automatiquement sur le plan Gratuit. Toutes tes données (clients, factures, devis, chantiers) sont conservées.")}
+            {faqItem("abo-4", "Mon paiement a échoué, que faire ?",
+              "Vérifie que ta carte est valide et que tu as les fonds suffisants. Si le problème persiste, contacte-nous à contact@artisan-plus.fr.")}
+            {faqItem("abo-5", "Comment obtenir une facture de mon abonnement ?",
+              "Contacte le support à contact@artisan-plus.fr avec ton adresse email. Nous t'enverrons la facture sous 24h.")}
+          </SCard>
+
+          {/* ── Sécurité & confidentialité ───────────────── */}
+          <SCard titre="🔒 Sécurité et confidentialité">
+            {faqItem("sec-0", "Mes données sont-elles sécurisées ?",
+              "Oui. Tes données sont stockées en Europe sur les serveurs Supabase, chiffrées en transit (HTTPS) et sauvegardées automatiquement chaque jour.")}
+            {faqItem("sec-1", "Qui peut voir mes données ?",
+              "Personne d'autre que toi. Chaque compte est isolé par des règles de sécurité strictes (Row Level Security Supabase). Nous ne revendons aucune donnée.")}
+            {faqItem("sec-2", "La signature électronique est-elle légale en France ?",
+              "Oui. La signature électronique est reconnue légalement depuis la loi du 13 mars 2000 et le règlement européen eIDAS du 23 juillet 2014.")}
+          </SCard>
+
+          {/* ── Problèmes techniques ─────────────────────── */}
+          <SCard titre="🔧 Problèmes techniques">
+            {faqItem("tech-0", "L'app ne charge pas ?",
+              "Vérifie ta connexion internet. Vide le cache du navigateur (Ctrl+Maj+R ou Cmd+Maj+R sur Mac) et réessaie. Si le problème persiste, contacte le support.")}
+            {faqItem("tech-1", "Je n'ai pas reçu l'email de confirmation ?",
+              "Vérifie tes spams. L'email vient de contact@artisan-plus.fr. Si tu ne le trouves pas, contacte-nous directement.")}
+          </SCard>
+
+          {/* ── Contacter le support ─────────────────────── */}
+          <SCard titre="📬 Contacter le support">
+            <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
+              Tu n'as pas trouvé la réponse à ta question ? Notre équipe répond en moins de 24h du lundi au vendredi.
+            </p>
+            <a
+              href="mailto:contact@artisan-plus.fr?subject=Support Artisan+"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                background: PRIMARY, color: "white",
+                borderRadius: "12px", padding: "14px 26px",
+                fontSize: "15px", fontWeight: "800",
+                textDecoration: "none", letterSpacing: "0.2px",
+              }}
+            >
+              ✉️ Contacter le support
+            </a>
+            <div style={{ color: "#555", fontSize: "12px", marginTop: "10px" }}>
+              contact@artisan-plus.fr · Réponse sous 24h · Lun–Ven
+            </div>
+          </SCard>
+
+          {/* ── Nouveautés ───────────────────────────────── */}
+          <SCard titre="🚀 Nouveautés & mises à jour">
+            {[
+              {
+                version: "v1.4", date: "Mai 2026", emoji: "❓",
+                titre: "Centre d'aide",
+                items: ["FAQ complète avec accordéon interactif", "Sections Abonnement, Sécurité, Problèmes techniques", "Bouton contact support direct"],
+              },
+              {
+                version: "v1.3", date: "Mai 2026", emoji: "🖥️",
+                titre: "Navigation responsive",
+                items: ["Nav horizontale en haut sur ordinateur", "Bottom nav conservée sur mobile", "Paramètres avec sidebar sur desktop"],
+              },
+              {
+                version: "v1.2", date: "Mai 2026", emoji: "✍️",
+                titre: "Signature électronique",
+                items: ["Envoi de devis par lien unique", "Signature au doigt sur mobile", "Partage natif (SMS, WhatsApp, email)"],
+              },
+              {
+                version: "v1.1", date: "Avril 2026", emoji: "🏗️",
+                titre: "Chantiers & inter-sections",
+                items: ["Module Chantiers complet avec photos", "Liens clients → chantiers → devis → factures", "Onglet Paramètres (profil, TVA, PDF…)"],
+              },
+              {
+                version: "v1.0", date: "Avril 2026", emoji: "🎉",
+                titre: "Lancement d'Artisan+",
+                items: ["Gestion clients avec fiche complète", "Création de factures et devis en PDF", "Tableau de bord avec statistiques"],
+              },
+            ].map((r, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: "14px",
+                padding: "16px 0",
+                borderBottom: i < 4 ? "1px solid rgba(255,140,0,0.08)" : "none",
+              }}>
+                <div style={{
+                  background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)",
+                  borderRadius: "10px", padding: "9px 10px", fontSize: "20px",
+                  flexShrink: 0, textAlign: "center", minWidth: "46px",
+                }}>{r.emoji}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "6px" }}>
+                    <span style={{ color: "white", fontWeight: "800", fontSize: "14px" }}>{r.titre}</span>
+                    <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "11px", fontWeight: "700", borderRadius: "5px", padding: "2px 7px" }}>{r.version}</span>
+                    <span style={{ color: "#555", fontSize: "11px" }}>{r.date}</span>
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                    {r.items.map((item, j) => (
+                      <li key={j} style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.5" }}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </SCard>
+
         </div>
       )}
     </div>
