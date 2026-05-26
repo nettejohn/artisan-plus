@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Corps de requête invalide" });
   }
 
-  const { emailArtisan, emailClient, nomClient, nomArtisan, numeroDevis, montantTTC } = body;
+  const { emailArtisan, emailClient, nomClient, nomArtisan, numeroDevis, montantTTC, pdfBase64 } = body;
 
   // Seul numeroDevis est vraiment requis pour l'objet des emails
   if (!numeroDevis) {
@@ -53,6 +53,15 @@ export default async function handler(req, res) {
       ? (typeof montantTTC === "number" ? montantTTC.toFixed(2) : String(montantTTC))
       : "—";
 
+  // Pièce jointe PDF si fournie
+  const attachments = pdfBase64
+    ? [{ filename: `devis-${numeroDevis}-signe.pdf`, content: pdfBase64 }]
+    : [];
+
+  if (attachments.length > 0) {
+    console.log(`[send-email] PDF signé inclus en pièce jointe (${Math.round(pdfBase64.length * 0.75 / 1024)} Ko)`);
+  }
+
   const resultats = { artisanEnvoye: false, clientEnvoye: false, erreurs: [] };
 
   // ── Email artisan ──────────────────────────────────────────────────────────
@@ -63,6 +72,7 @@ export default async function handler(req, res) {
         to: [emailArtisan],
         subject: `✅ Devis ${numeroDevis} signé — ${nomClient || "votre client"}`,
         html: htmlArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }),
+        ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.artisanEnvoye = true;
       console.log(`[send-email] ✓ Email artisan envoyé à ${emailArtisan}`);
@@ -80,6 +90,7 @@ export default async function handler(req, res) {
         to: [emailClient],
         subject: `Confirmation — Devis ${numeroDevis} signé`,
         html: htmlClient({ nomArtisan, nomClient, numeroDevis, montantFormate }),
+        ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.clientEnvoye = true;
       console.log(`[send-email] ✓ Email client envoyé à ${emailClient}`);
@@ -151,7 +162,7 @@ function htmlArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }) {
           <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Signé le</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">Retrouvez le devis signé dans votre espace Artisan+.</p>
+      <p style="margin:0;color:#777;font-size:13px;">Le devis signé est joint à cet email. Retrouvez-le également dans votre espace Artisan+.</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.vercel.app</span>
@@ -190,7 +201,7 @@ function htmlClient({ nomArtisan, nomClient, numeroDevis, montantFormate }) {
           <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Date de signature</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">L'artisan vous contactera prochainement pour organiser les travaux.</p>
+      <p style="margin:0;color:#777;font-size:13px;">Le devis signé est joint à cet email. L'artisan vous contactera prochainement pour organiser les travaux.</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.vercel.app</span>

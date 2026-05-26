@@ -327,9 +327,13 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   return doc;
 }
 
-/** Télécharge le PDF directement (comportement original). */
-export function genererFacturePDF(document, client, lignes, artisan, estDevis = false) {
-  const doc = construireDoc(document, client, lignes, artisan, estDevis);
+/**
+ * Télécharge le PDF directement.
+ * @param {object} options.signatureImage  – data URI de la signature (optionnel)
+ * @param {string} options.nomSignataire   – nom du signataire (optionnel)
+ */
+export function genererFacturePDF(document, client, lignes, artisan, estDevis = false, options = {}) {
+  const doc = construireDoc(document, client, lignes, artisan, estDevis, options);
   doc.save(document.numero + ".pdf");
 }
 

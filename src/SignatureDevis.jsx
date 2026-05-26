@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
+import { genererFacturePDF, genererPDFBase64 } from "./GenerateurPDF";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -18,6 +19,7 @@ export default function SignatureDevis({ token }) {
   const [emailStatut, setEmailStatut] = useState(null); // null | "envoi" | "ok" | "partiel" | "erreur"
   const [emailDetail, setEmailDetail] = useState({ artisan: false, client: false });
   const canvasRef = useRef(null);
+  const signatureDataRef = useRef(null); // stocke la signature après validation pour le PDF signé
   const [dessin, setDessin] = useState(false);
   const [aDessiné, setADessiné] = useState(false);
 
@@ -85,6 +87,8 @@ export default function SignatureDevis({ token }) {
     }
   };
 
+  // ── Dessin de signature ──────────────────────────────────────────────────────
+
   const startDraw = (e) => {
     setDessin(true);
     setADessiné(true);
@@ -125,6 +129,62 @@ export default function SignatureDevis({ token }) {
     setADessiné(false);
   };
 
+  // ── Génération PDF ───────────────────────────────────────────────────────────
+
+  /** Convertit un data URI PDF en blob URL et l'ouvre dans un nouvel onglet. */
+  const ouvrirPDF = (dataUri) => {
+    const base64 = dataUri.split(",")[1];
+    const bytes = atob(base64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    const blob = new Blob([arr], { type: "application/pdf" });
+    window.open(URL.createObjectURL(blob), "_blank");
+  };
+
+  const voirDevis = () => {
+    if (!devis || !artisan) return;
+    try {
+      ouvrirPDF(genererPDFBase64(devis, devis.clients, lignes, artisan, true));
+    } catch (e) {
+      console.error("Erreur génération PDF :", e);
+    }
+  };
+
+  const telechargerDevis = () => {
+    if (!devis || !artisan) return;
+    try {
+      genererFacturePDF(devis, devis.clients, lignes, artisan, true);
+    } catch (e) {
+      console.error("Erreur téléchargement PDF :", e);
+    }
+  };
+
+  const voirDevisSigne = () => {
+    if (!devis || !artisan) return;
+    try {
+      ouvrirPDF(genererPDFBase64(devis, devis.clients, lignes, artisan, true, {
+        signatureImage: signatureDataRef.current,
+        nomSignataire: nom,
+      }));
+    } catch (e) {
+      console.error("Erreur génération PDF signé :", e);
+    }
+  };
+
+  const telechargerDevisSigne = () => {
+    if (!devis || !artisan) return;
+    try {
+      genererFacturePDF(devis, devis.clients, lignes, artisan, true, {
+        signatureImage: signatureDataRef.current,
+        nomSignataire: nom,
+      });
+    } catch (e) {
+      console.error("Erreur téléchargement PDF signé :", e);
+    }
+  };
+
+  // ── Signature et envoi email ─────────────────────────────────────────────────
+
   const signer = async () => {
     if (!nom.trim()) { alert("Veuillez entrer votre nom complet"); return; }
     if (!accepte) { alert("Veuillez cocher la case d'acceptation"); return; }
@@ -132,6 +192,7 @@ export default function SignatureDevis({ token }) {
 
     const canvas = canvasRef.current;
     const signatureData = canvas.toDataURL();
+    signatureDataRef.current = signatureData; // conserver pour les boutons post-signature
 
     // 1. Enregistrer la signature en base
     await supabase
@@ -152,7 +213,19 @@ export default function SignatureDevis({ token }) {
     // 3. Afficher l'écran de succès immédiatement
     setSigne(true);
 
-    // 4. Envoyer les emails via la fonction serverless Vercel
+    // 4. Générer le PDF signé pour pièce jointe email
+    let pdfBase64 = null;
+    try {
+      const dataUri = genererPDFBase64(devis, devis.clients, lignes, artisan, true, {
+        signatureImage: signatureData,
+        nomSignataire: nom,
+      });
+      pdfBase64 = dataUri.split(",")[1]; // strip "data:application/pdf;base64,"
+    } catch (pdfErr) {
+      console.warn("[SignatureDevis] Génération PDF pour email échouée :", pdfErr.message);
+    }
+
+    // 5. Envoyer les emails via la fonction serverless Vercel
     setEmailStatut("envoi");
     try {
       const payload = {
@@ -162,6 +235,7 @@ export default function SignatureDevis({ token }) {
         nomArtisan: artisan?.nom || null,
         numeroDevis: devis.numero,
         montantTTC: devis.total_ttc ?? null,
+        pdfBase64,
       };
 
       const response = await fetch("/api/send-email", {
@@ -205,6 +279,8 @@ export default function SignatureDevis({ token }) {
       setEmailStatut("erreur");
     }
   };
+
+  // ── Rendus conditionnels ─────────────────────────────────────────────────────
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -267,12 +343,48 @@ export default function SignatureDevis({ token }) {
             <div style={{ color: "#ff6b6b", fontSize: "13px" }}>⚠️ Emails non envoyés — votre signature est bien enregistrée.</div>
           </div>
         )}
+
+        {/* Boutons PDF signé */}
+        {devis && artisan && (
+          <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+            <button
+              onClick={voirDevisSigne}
+              style={{
+                flex: 1, background: "transparent",
+                border: "1px solid rgba(255,140,0,0.45)",
+                color: PRIMARY, borderRadius: "10px", padding: "11px 8px",
+                fontSize: "13px", fontWeight: "600", cursor: "pointer",
+                transition: "background 0.15s"
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              📄 Lire le devis signé
+            </button>
+            <button
+              onClick={telechargerDevisSigne}
+              style={{
+                flex: 1, background: "transparent",
+                border: "1px solid rgba(255,140,0,0.45)",
+                color: PRIMARY, borderRadius: "10px", padding: "11px 8px",
+                fontSize: "13px", fontWeight: "600", cursor: "pointer",
+                transition: "background 0.15s"
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              ⬇️ Télécharger le devis signé
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Animation rotation pour le spinner */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
+
+  // ── Écran principal (avant signature) ────────────────────────────────────────
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "20px" }}>
@@ -335,6 +447,38 @@ export default function SignatureDevis({ token }) {
               TVA non applicable, art. 293 B du CGI
             </div>
           )}
+        </div>
+
+        {/* BOUTONS PDF (avant signature) */}
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button
+            onClick={voirDevis}
+            style={{
+              flex: 1, background: "transparent",
+              border: "1px solid rgba(255,140,0,0.35)",
+              color: PRIMARY, borderRadius: "10px", padding: "12px 8px",
+              fontSize: "14px", fontWeight: "600", cursor: "pointer",
+              transition: "background 0.15s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            📄 Lire le devis
+          </button>
+          <button
+            onClick={telechargerDevis}
+            style={{
+              flex: 1, background: "transparent",
+              border: "1px solid rgba(255,140,0,0.35)",
+              color: PRIMARY, borderRadius: "10px", padding: "12px 8px",
+              fontSize: "14px", fontWeight: "600", cursor: "pointer",
+              transition: "background 0.15s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            ⬇️ Télécharger le devis
+          </button>
         </div>
 
         {/* ACCEPTATION */}
