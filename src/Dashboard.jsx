@@ -22,7 +22,7 @@ export default function Dashboard({ user, onLogout }) {
   const [clients, setClients] = useState([]);
   const [clientModal, setClientModal] = useState(false);
   const [clientEdite, setClientEdite] = useState(null);
-  const [clientForm, setClientForm] = useState({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "" });
+  const [clientForm, setClientForm] = useState({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "", moyen_paiement: "", moment_appel: "", recommande_par: "" });
   const [clientSearch, setClientSearch] = useState("");
   const [clientLoading, setClientLoading] = useState(false);
   const [clientMessage, setClientMessage] = useState("");
@@ -75,6 +75,9 @@ export default function Dashboard({ user, onLogout }) {
       source: client.source || "",
       notes: client.notes || "",
       appreciation: client.appreciation || "",
+      moyen_paiement: client.moyen_paiement || "",
+      moment_appel: client.moment_appel || "",
+      recommande_par: client.recommande_par || "",
     });
     setClientMessage("");
     setClientModal(true);
@@ -683,6 +686,9 @@ export default function Dashboard({ user, onLogout }) {
                                 { label: "📅 1er contact", value: c.date_premier_contact ? new Date(c.date_premier_contact).toLocaleDateString("fr-FR") : null },
                                 { label: "📅 Client depuis", value: new Date(c.created_at).toLocaleDateString("fr-FR") },
                                 { label: "⭐ Appréciation", value: c.appreciation ? ({ Excellent: "⭐ Excellent", Bien: "👍 Bien", Moyen: "😐 Moyen", Difficile: "👎 Difficile" }[c.appreciation] || c.appreciation) : null },
+                                { label: "💳 Paiement préféré", value: c.moyen_paiement },
+                                { label: "⏰ Moment pour appeler", value: c.moment_appel },
+                                { label: "🤝 Recommandé par", value: c.recommande_par },
                               ].map((item, i) => (
                                 <div key={i}>
                                   <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", marginBottom: "3px", textTransform: "uppercase", letterSpacing: "0.5px" }}>{item.label}</div>
@@ -855,6 +861,49 @@ export default function Dashboard({ user, onLogout }) {
                         onChange={e => setClientForm(f => ({ ...f, notes: e.target.value }))}
                         rows={3}
                         style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "inherit", lineHeight: "1.5" }}
+                      />
+                    </div>
+
+                    {/* Séparateur : Informations pratiques */}
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid rgba(255,140,0,0.1)", paddingBottom: "6px", marginTop: "4px" }}>
+                      Informations pratiques
+                    </div>
+
+                    {/* Moyen de paiement + Moment pour appeler */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>💳 Moyen de paiement préféré</label>
+                        <select
+                          value={clientForm.moyen_paiement}
+                          onChange={e => setClientForm(f => ({ ...f, moyen_paiement: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.moyen_paiement ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", cursor: "pointer" }}
+                        >
+                          <option value="">— Choisir —</option>
+                          <option value="Virement">Virement</option>
+                          <option value="Chèque">Chèque</option>
+                          <option value="Espèces">Espèces</option>
+                          <option value="Carte">Carte</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>⏰ Meilleur moment pour appeler</label>
+                        <input
+                          placeholder="Ex : matin, après 18h…"
+                          value={clientForm.moment_appel}
+                          onChange={e => setClientForm(f => ({ ...f, moment_appel: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Recommandé par */}
+                    <div>
+                      <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🤝 Recommandé par</label>
+                      <input
+                        placeholder="Nom de la personne qui a recommandé ce client"
+                        value={clientForm.recommande_par}
+                        onChange={e => setClientForm(f => ({ ...f, recommande_par: e.target.value }))}
+                        style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }}
                       />
                     </div>
 
