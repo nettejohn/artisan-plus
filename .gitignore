@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Variables d'environnement (contiennent des clés secrètes)
+.env
+.env.local
+.env.*.local

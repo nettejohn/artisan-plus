@@ -25,7 +25,7 @@ const THEMES = [
   { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
-export default function NouvelleFacture({ user, onBack }) {
+export default function NouvelleFacture({ user, onBack, clientInitialId }) {
   // ── Clients ────────────────────────────────────────────────────────────────
   const [clientsExistants, setClientsExistants] = useState([]);
   const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
@@ -47,8 +47,19 @@ export default function NouvelleFacture({ user, onBack }) {
       .select("id, nom, email, telephone, adresse")
       .eq("user_id", user.id)
       .order("nom", { ascending: true })
-      .then(({ data }) => setClientsExistants(data || []));
-  }, [user.id]);
+      .then(({ data }) => {
+        const liste = data || [];
+        setClientsExistants(liste);
+        // Pré-sélection depuis un chantier
+        if (clientInitialId) {
+          const c = liste.find(cl => cl.id === clientInitialId);
+          if (c) {
+            setClientSelectionne(clientInitialId);
+            setClient({ nom: c.nom || "", email: c.email || "", telephone: c.telephone || "", adresse: c.adresse || "" });
+          }
+        }
+      });
+  }, [user.id, clientInitialId]);
 
   // ── Sélection client ───────────────────────────────────────────────────────
   const selectionnerClient = (valeur) => {

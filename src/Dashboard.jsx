@@ -4,6 +4,7 @@ import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
 import { genererFacturePDF } from "./GenerateurPDF";
 import Profil from "./Profil";
+import Chantiers from "./Chantiers";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -12,6 +13,7 @@ const CARD = "#111e35";
 export default function Dashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
+  const [clientPreSelectionne, setClientPreSelectionne] = useState(null);
   const [factures, setFactures] = useState([]);
   const [devis, setDevis] = useState([]);
   const [profil, setProfil] = useState(null);
@@ -316,19 +318,11 @@ export default function Dashboard({ user, onLogout }) {
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
   if (page === "nouvelle-facture") return (
-    <NouvelleFacture user={user} onBack={() => { setPage("dashboard"); chargerDonnees(); }} />
+    <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
   if (page === "nouveau-devis") return (
-    <NouveauDevis user={user} onBack={() => { setPage("dashboard"); chargerDonnees(); }} />
+    <NouveauDevis user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
-
-  const tabs = [
-    { id: "accueil", label: "🏠 Accueil" },
-    { id: "factures", label: "📄 Factures" },
-    { id: "devis", label: "📝 Devis" },
-    { id: "clients", label: "👥 Clients" },
-    { id: "chantiers", label: "🏗️ Chantiers" },
-  ];
 
   const statutColor = (s) => s === "payee" || s === "accepte" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
   const statutLabel = (s) => s === "payee" ? "✅ Payée" : s === "accepte" ? "✅ Accepté" : s === "en_attente" ? "⏳ En attente" : "❌ Refusé";
@@ -336,47 +330,38 @@ export default function Dashboard({ user, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
 
-      {/* HEADER */}
+      {/* ── HEADER ─────────────────────────────────────────────── */}
       <div style={{
-        background: CARD, padding: "16px 24px", display: "flex",
-        justifyContent: "space-between", alignItems: "center",
-        borderBottom: "1px solid rgba(255,140,0,0.2)"
+        background: CARD,
+        padding: "0 16px",
+        height: "56px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderBottom: "1px solid rgba(255,140,0,0.15)",
+        position: "sticky", top: 0, zIndex: 100,
       }}>
-        <div style={{ fontSize: "24px", fontWeight: "900", color: "white" }}>
+        <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px" }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <span style={{ color: "#8899aa", fontSize: "14px" }}>{user.email}</span>
-          <button onClick={() => setPage("profil")} style={{
-            background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
-            color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
-            cursor: "pointer", fontSize: "13px", fontWeight: "600"
-          }}>👤 Mon profil</button>
-          <button onClick={handleLogout} style={{
-            background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
-            color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
-            cursor: "pointer", fontSize: "13px", fontWeight: "600"
-          }}>Déconnexion</button>
-        </div>
+        <button
+          onClick={() => setPage("profil")}
+          title="Mon profil"
+          style={{
+            background: "rgba(255,140,0,0.12)",
+            border: "1.5px solid rgba(255,140,0,0.3)",
+            color: PRIMARY, borderRadius: "50%",
+            width: "38px", height: "38px",
+            cursor: "pointer", fontSize: "17px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          {profil?.nom ? profil.nom.charAt(0).toUpperCase() : "👤"}
+        </button>
       </div>
 
-      {/* NAV */}
-      <div style={{
-        background: CARD, display: "flex", gap: "4px",
-        padding: "8px 24px", borderBottom: "1px solid rgba(255,140,0,0.1)"
-      }}>
-        {tabs.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            background: activeTab === tab.id ? PRIMARY : "transparent",
-            color: activeTab === tab.id ? "white" : "#8899aa",
-            border: "none", borderRadius: "8px", padding: "10px 18px",
-            cursor: "pointer", fontSize: "14px", fontWeight: "600", transition: "all 0.2s"
-          }}>{tab.label}</button>
-        ))}
-      </div>
-
-      {/* CONTENU */}
-      <div style={{ padding: "32px 24px" }}>
+      {/* ── CONTENU ─────────────────────────────────────────────── */}
+      <div style={{ padding: "16px 16px 96px 16px" }}>
 
         {/* ACCUEIL */}
         {activeTab === "accueil" && (
@@ -1090,15 +1075,61 @@ export default function Dashboard({ user, onLogout }) {
 
         {/* CHANTIERS */}
         {activeTab === "chantiers" && (
-          <div>
-            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>🏗️ Mes Chantiers</h2>
-            <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏗️</div>
-              <div style={{ color: "#8899aa" }}>Aucun chantier pour l'instant</div>
-            </div>
-          </div>
+          <Chantiers
+            user={user}
+            onCreerDevis={(clientId) => {
+              setClientPreSelectionne(clientId || null);
+              setPage("nouveau-devis");
+            }}
+            onCreerFacture={(clientId) => {
+              setClientPreSelectionne(clientId || null);
+              setPage("nouvelle-facture");
+            }}
+          />
         )}
       </div>
+
+      {/* ── BOTTOM NAV ──────────────────────────────────────────── */}
+      <nav style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
+        background: CARD,
+        borderTop: "1px solid rgba(255,140,0,0.18)",
+        display: "flex",
+        height: "64px",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}>
+        {[
+          { id: "accueil",   icon: "🏠", label: "Accueil"   },
+          { id: "factures",  icon: "📄", label: "Factures"  },
+          { id: "devis",     icon: "📝", label: "Devis"     },
+          { id: "clients",   icon: "👥", label: "Clients"   },
+          { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              flex: 1, background: "transparent", border: "none",
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", gap: "3px", cursor: "pointer",
+              color: activeTab === tab.id ? PRIMARY : "#8899aa",
+              transition: "color 0.15s",
+              position: "relative",
+            }}
+          >
+            <span style={{ fontSize: "22px", lineHeight: 1 }}>{tab.icon}</span>
+            <span style={{ fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.4px" }}>
+              {tab.label}
+            </span>
+            {activeTab === tab.id && (
+              <div style={{
+                position: "absolute", bottom: 0, width: "32px", height: "2px",
+                background: PRIMARY, borderRadius: "1px",
+              }} />
+            )}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
