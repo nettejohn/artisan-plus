@@ -24,6 +24,7 @@ export default function Dashboard({ user, onLogout }) {
   // États chantiers (pour affichage dans la fiche client)
   const [chantiers, setChantiers] = useState([]);
   const [clientChantierPreselect, setClientChantierPreselect] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // États clients
   const [clients, setClients] = useState([]);
@@ -41,6 +42,9 @@ export default function Dashboard({ user, onLogout }) {
     chargerProfil();
     chargerClients();
     chargerChantiers();
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const chargerProfil = async () => {
@@ -332,9 +336,6 @@ export default function Dashboard({ user, onLogout }) {
   if (page === "profil") return (
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
-  if (page === "parametres") return (
-    <Parametres user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
-  );
   if (page === "nouvelle-facture") return (
     <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
@@ -352,36 +353,89 @@ export default function Dashboard({ user, onLogout }) {
     annule:     { label: "Annulé",     color: "#ff6b6b", bg: "rgba(255,107,107,0.15)" },
   };
 
+  const isDesktop = windowWidth >= 768;
+
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <div style={{
         background: CARD,
-        padding: "0 16px",
-        height: "56px",
+        padding: isDesktop ? "0 32px" : "0 16px",
+        height: isDesktop ? "64px" : "56px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         borderBottom: "1px solid rgba(255,140,0,0.15)",
         position: "sticky", top: 0, zIndex: 100,
+        gap: "16px",
       }}>
-        <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px" }}>
+        {/* Logo */}
+        <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px", flexShrink: 0 }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
         </div>
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <button
-            onClick={() => setPage("parametres")}
-            title="Paramètres"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1.5px solid rgba(255,255,255,0.1)",
-              color: "#8899aa", borderRadius: "50%",
-              width: "36px", height: "36px",
-              cursor: "pointer", fontSize: "16px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >⚙️</button>
+
+        {/* Desktop : onglets de navigation centraux */}
+        {isDesktop && (
+          <div style={{ display: "flex", gap: "4px", flex: 1 }}>
+            {[
+              { id: "accueil",   icon: "🏠",  label: "Accueil"   },
+              { id: "factures",  icon: "📄",  label: "Factures"  },
+              { id: "devis",     icon: "📝",  label: "Devis"     },
+              { id: "clients",   icon: "👥",  label: "Clients"   },
+              { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+            ].map(tab => {
+              const isActive = activeTab === tab.id && page !== "parametres";
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => { setPage("dashboard"); setActiveTab(tab.id); }}
+                  style={{
+                    background: isActive ? "rgba(255,140,0,0.12)" : "transparent",
+                    border: `1.5px solid ${isActive ? "rgba(255,140,0,0.35)" : "transparent"}`,
+                    color: isActive ? PRIMARY : "#8899aa",
+                    borderRadius: "9px", padding: "8px 14px",
+                    cursor: "pointer", fontSize: "14px", fontWeight: "700",
+                    transition: "all 0.15s",
+                    display: "flex", alignItems: "center", gap: "6px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Boutons droite */}
+        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+          {isDesktop ? (
+            <button
+              onClick={() => setPage(page === "parametres" ? "dashboard" : "parametres")}
+              style={{
+                background: page === "parametres" ? "rgba(255,140,0,0.12)" : "rgba(255,255,255,0.06)",
+                border: `1.5px solid ${page === "parametres" ? "rgba(255,140,0,0.35)" : "rgba(255,255,255,0.1)"}`,
+                color: page === "parametres" ? PRIMARY : "#8899aa",
+                borderRadius: "9px", padding: "8px 16px",
+                cursor: "pointer", fontSize: "14px", fontWeight: "700",
+                display: "flex", alignItems: "center", gap: "6px",
+              }}
+            >⚙️ Paramètres</button>
+          ) : (
+            <button
+              onClick={() => setPage("parametres")}
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1.5px solid rgba(255,255,255,0.1)",
+                color: "#8899aa", borderRadius: "50%",
+                width: "36px", height: "36px",
+                cursor: "pointer", fontSize: "16px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >⚙️</button>
+          )}
           <button
             onClick={() => setPage("profil")}
             title="Mon profil"
@@ -400,7 +454,19 @@ export default function Dashboard({ user, onLogout }) {
       </div>
 
       {/* ── CONTENU ─────────────────────────────────────────────── */}
-      <div style={{ padding: "16px 16px 96px 16px" }}>
+      <div style={{
+        padding: isDesktop ? "32px 40px 40px" : "16px 16px 96px 16px",
+        maxWidth: isDesktop ? "1100px" : "none",
+        margin: "0 auto",
+      }}>
+
+        {/* PARAMÈTRES */}
+        {page === "parametres" && (
+          <Parametres user={user} isDesktop={isDesktop} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
+        )}
+
+        {/* ONGLETS */}
+        {page !== "parametres" && <>
 
         {/* ACCUEIL */}
         {activeTab === "accueil" && (
@@ -1184,10 +1250,11 @@ export default function Dashboard({ user, onLogout }) {
             }}
           />
         )}
+        </>}
       </div>
 
-      {/* ── BOTTOM NAV ──────────────────────────────────────────── */}
-      <nav style={{
+      {/* ── BOTTOM NAV (mobile uniquement) ─────────────────────── */}
+      {!isDesktop && <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
         background: CARD,
         borderTop: "1px solid rgba(255,140,0,0.18)",
@@ -1231,7 +1298,7 @@ export default function Dashboard({ user, onLogout }) {
             </button>
           );
         })}
-      </nav>
+      </nav>}
     </div>
   );
 }

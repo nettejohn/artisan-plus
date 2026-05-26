@@ -64,7 +64,7 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
   );
 }
 
-export default function Parametres({ user, onBack }) {
+export default function Parametres({ user, onBack, isDesktop = false }) {
   const [activeSection, setActiveSection] = useState("profil");
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
@@ -225,33 +225,9 @@ export default function Parametres({ user, onBack }) {
     </div>
   );
 
-  return (
-    <div style={{ maxWidth: "700px", margin: "0 auto", paddingBottom: "20px" }}>
-
-      {/* ── Header ─────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-        <button onClick={onBack} style={{
-          background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)",
-          color: "white", borderRadius: "8px", padding: "8px 16px",
-          cursor: "pointer", fontSize: "14px", fontWeight: "600"
-        }}>← Retour</button>
-        <h2 style={{ color: "white", margin: 0, fontSize: "22px", fontWeight: "800" }}>⚙️ Paramètres</h2>
-      </div>
-
-      {/* ── Nav sections ──────────────────────────────── */}
-      <div style={{ display: "flex", gap: "6px", marginBottom: "22px", overflowX: "auto", paddingBottom: "4px" }}>
-        {SECTIONS.map(s => (
-          <button key={s.id} onClick={() => setActiveSection(s.id)} style={{
-            background: activeSection === s.id ? "rgba(255,140,0,0.15)" : "rgba(255,255,255,0.04)",
-            border: `1.5px solid ${activeSection === s.id ? PRIMARY : "rgba(255,255,255,0.08)"}`,
-            color: activeSection === s.id ? PRIMARY : "#8899aa",
-            borderRadius: "10px", padding: "8px 14px", fontSize: "12px", fontWeight: "700",
-            cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0,
-          }}>
-            {s.emoji} {s.label}
-          </button>
-        ))}
-      </div>
+  /* ── Contenu de la section active ─────────────────────────────── */
+  const sectionContent = (
+    <div style={{ flex: 1, minWidth: 0 }}>
 
       {/* ══════════════════════════════════════════════════
           MON PROFIL
@@ -692,6 +668,77 @@ CREATE POLICY "own" ON parametres USING (user_id = auth.uid())
           </div>
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div style={isDesktop
+      ? { display: "flex", gap: "32px", alignItems: "flex-start" }
+      : { maxWidth: "700px", margin: "0 auto", paddingBottom: "20px" }
+    }>
+
+      {/* ── SIDEBAR (desktop uniquement) ─────────────────── */}
+      {isDesktop && (
+        <div style={{ width: "210px", flexShrink: 0, position: "sticky", top: "80px" }}>
+          <h2 style={{ color: "white", margin: "0 0 20px", fontSize: "17px", fontWeight: "800" }}>
+            ⚙️ Paramètres
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            {SECTIONS.map(s => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSection(s.id)}
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  background: activeSection === s.id ? "rgba(255,140,0,0.12)" : "transparent",
+                  border: `1.5px solid ${activeSection === s.id ? "rgba(255,140,0,0.3)" : "transparent"}`,
+                  color: activeSection === s.id ? PRIMARY : "#8899aa",
+                  borderRadius: "10px", padding: "11px 14px",
+                  fontSize: "14px", fontWeight: "600",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {s.emoji} {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── HEADER + ONGLETS (mobile uniquement) ────────── */}
+      {!isDesktop && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <button onClick={onBack} style={{
+              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)",
+              color: "white", borderRadius: "8px", padding: "8px 16px",
+              cursor: "pointer", fontSize: "14px", fontWeight: "600",
+            }}>← Retour</button>
+            <h2 style={{ color: "white", margin: 0, fontSize: "20px", fontWeight: "800" }}>⚙️ Paramètres</h2>
+          </div>
+
+          <div style={{
+            display: "flex", gap: "6px", marginBottom: "22px",
+            overflowX: "auto", paddingBottom: "4px",
+            scrollbarWidth: "none", msOverflowStyle: "none",
+          }}>
+            {SECTIONS.map(s => (
+              <button key={s.id} onClick={() => setActiveSection(s.id)} style={{
+                background: activeSection === s.id ? "rgba(255,140,0,0.15)" : "rgba(255,255,255,0.04)",
+                border: `1.5px solid ${activeSection === s.id ? PRIMARY : "rgba(255,255,255,0.08)"}`,
+                color: activeSection === s.id ? PRIMARY : "#8899aa",
+                borderRadius: "10px", padding: "8px 14px", fontSize: "12px", fontWeight: "700",
+                cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0,
+              }}>
+                {s.emoji} {s.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── CONTENU DE LA SECTION ────────────────────────── */}
+      {sectionContent}
     </div>
   );
 }
