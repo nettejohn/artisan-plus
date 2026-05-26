@@ -22,11 +22,12 @@ export default function Dashboard({ user, onLogout }) {
   const [clients, setClients] = useState([]);
   const [clientModal, setClientModal] = useState(false);
   const [clientEdite, setClientEdite] = useState(null);
-  const [clientForm, setClientForm] = useState({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "", moyen_paiement: "", moment_appel: "", recommande_par: "" });
+  const [clientForm, setClientForm] = useState({ nom: "", email: "", telephone: "", adresse: "", date_premier_contact: "", type_prestation: "", source: "", notes: "", appreciation: "", moyen_paiement: "", moment_appel: "", recommande_par: "", garantie_decennale_expiration: "" });
   const [clientSearch, setClientSearch] = useState("");
   const [clientLoading, setClientLoading] = useState(false);
   const [clientMessage, setClientMessage] = useState("");
   const [clientDetailId, setClientDetailId] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(null); // id du client en cours d'upload
 
   useEffect(() => {
     chargerDonnees();
@@ -78,6 +79,7 @@ export default function Dashboard({ user, onLogout }) {
       moyen_paiement: client.moyen_paiement || "",
       moment_appel: client.moment_appel || "",
       recommande_par: client.recommande_par || "",
+      garantie_decennale_expiration: client.garantie_decennale_expiration || "",
     });
     setClientMessage("");
     setClientModal(true);
@@ -110,6 +112,44 @@ export default function Dashboard({ user, onLogout }) {
     await supabase.from("clients").delete().eq("id", id);
     chargerClients();
     chargerDonnees();
+  };
+
+  const uploadPhoto = async (clientId, fichier) => {
+    setPhotoUploading(clientId);
+    try {
+      const ext = fichier.name.split(".").pop().toLowerCase();
+      const chemin = `${clientId}/${Date.now()}.${ext}`;
+      const { error: errUpload } = await supabase.storage
+        .from("photos-chantier")
+        .upload(chemin, fichier, { cacheControl: "3600", upsert: false });
+      if (errUpload) throw errUpload;
+      const { data: urlData } = supabase.storage
+        .from("photos-chantier")
+        .getPublicUrl(chemin);
+      const publicUrl = urlData.publicUrl;
+      const client = clients.find(cl => cl.id === clientId);
+      const photosActuelles = client?.photos_chantier || [];
+      await supabase.from("clients")
+        .update({ photos_chantier: [...photosActuelles, publicUrl] })
+        .eq("id", clientId);
+      chargerClients();
+    } catch (e) {
+      alert("Erreur upload : " + e.message);
+    }
+    setPhotoUploading(null);
+  };
+
+  const supprimerPhoto = async (clientId, photoUrl, photosActuelles) => {
+    if (!window.confirm("Supprimer cette photo ?")) return;
+    const nouvellesPhotos = photosActuelles.filter(p => p !== photoUrl);
+    const parts = photoUrl.split("/photos-chantier/");
+    if (parts.length > 1) {
+      await supabase.storage.from("photos-chantier").remove([decodeURIComponent(parts[1])]);
+    }
+    await supabase.from("clients")
+      .update({ photos_chantier: nouvellesPhotos })
+      .eq("id", clientId);
+    chargerClients();
   };
 
   const chargerDonnees = async () => {
@@ -549,6 +589,14 @@ export default function Dashboard({ user, onLogout }) {
                     const caTotal = c.factures?.reduce((sum, f) => sum + (f.total_ttc || 0), 0) || 0;
                     const isOpen = clientDetailId === c.id;
 
+                    // Garantie décennale
+                    const garantieDate = c.garantie_decennale_expiration ? new Date(c.garantie_decennale_expiration) : null;
+                    const dans3Mois = new Date(); dans3Mois.setMonth(dans3Mois.getMonth() + 3);
+                    const garantieStatut = !garantieDate ? null
+                      : garantieDate < new Date() ? "expire"
+                      : garantieDate < dans3Mois ? "alerte"
+                      : "ok";
+
                     return (
                       <div key={c.id} style={{
                         background: CARD, borderRadius: "16px",
@@ -579,6 +627,12 @@ export default function Dashboard({ user, onLogout }) {
                                     c.appreciation === "Bien" ? "👍" :
                                     c.appreciation === "Moyen" ? "😐" : "👎"
                                   }</span>
+                                )}
+                                {garantieStatut === "expire" && (
+                                  <span style={{ background: "rgba(255,100,100,0.15)", color: "#ff6b6b", fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ Garantie expirée</span>
+                                )}
+                                {garantieStatut === "alerte" && (
+                                  <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ Garantie &lt; 3 mois</span>
                                 )}
                               </div>
                               <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
@@ -704,6 +758,76 @@ export default function Dashboard({ user, onLogout }) {
                                 <div style={{ color: "#ccc", fontSize: "13px", lineHeight: "1.5", whiteSpace: "pre-wrap" }}>{c.notes}</div>
                               </div>
                             )}
+
+                            {/* Garantie décennale */}
+                            {garantieDate && (
+                              <div style={{
+                                marginTop: "14px", borderRadius: "10px", padding: "12px 16px",
+                                display: "flex", justifyContent: "space-between", alignItems: "center",
+                                background: garantieStatut === "expire" ? "rgba(255,100,100,0.07)"
+                                  : garantieStatut === "alerte" ? "rgba(255,140,0,0.07)"
+                                  : "rgba(76,175,80,0.07)",
+                                border: `1px solid ${garantieStatut === "expire" ? "rgba(255,100,100,0.25)"
+                                  : garantieStatut === "alerte" ? "rgba(255,140,0,0.25)"
+                                  : "rgba(76,175,80,0.25)"}`
+                              }}>
+                                <div>
+                                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "3px" }}>🛡️ Garantie décennale</div>
+                                  <div style={{ color: "white", fontSize: "13px" }}>
+                                    Expire le {garantieDate.toLocaleDateString("fr-FR")}
+                                  </div>
+                                </div>
+                                {garantieStatut === "expire" && <span style={{ background: "rgba(255,100,100,0.18)", color: "#ff6b6b", fontSize: "12px", fontWeight: "700", borderRadius: "6px", padding: "4px 10px" }}>⚠️ Expirée</span>}
+                                {garantieStatut === "alerte" && <span style={{ background: "rgba(255,140,0,0.18)", color: PRIMARY, fontSize: "12px", fontWeight: "700", borderRadius: "6px", padding: "4px 10px" }}>⚠️ Expire bientôt</span>}
+                                {garantieStatut === "ok"     && <span style={{ background: "rgba(76,175,80,0.18)",  color: "#4CAF50", fontSize: "12px", fontWeight: "700", borderRadius: "6px", padding: "4px 10px" }}>✓ Valide</span>}
+                              </div>
+                            )}
+
+                            {/* Photos chantier */}
+                            <div style={{ marginTop: "16px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>📸 Photos chantier</div>
+                                <label style={{
+                                  display: "inline-flex", alignItems: "center", gap: "5px",
+                                  background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)",
+                                  color: PRIMARY, borderRadius: "7px", padding: "5px 12px",
+                                  fontSize: "12px", fontWeight: "600", cursor: photoUploading === c.id ? "wait" : "pointer"
+                                }}>
+                                  {photoUploading === c.id ? "⏳ Upload…" : "＋ Ajouter"}
+                                  <input
+                                    type="file" accept="image/*" multiple hidden
+                                    disabled={photoUploading === c.id}
+                                    onChange={e => { Array.from(e.target.files).forEach(f => uploadPhoto(c.id, f)); e.target.value = ""; }}
+                                  />
+                                </label>
+                              </div>
+                              {(c.photos_chantier?.length > 0) ? (
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))", gap: "8px" }}>
+                                  {c.photos_chantier.map((url, i) => (
+                                    <div key={i} style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: "8px", overflow: "hidden", background: "#0a1628" }}>
+                                      <img
+                                        src={url} alt={`chantier ${i + 1}`}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                      />
+                                      <button
+                                        onClick={() => supprimerPhoto(c.id, url, c.photos_chantier)}
+                                        style={{
+                                          position: "absolute", top: "4px", right: "4px",
+                                          background: "rgba(0,0,0,0.65)", border: "none",
+                                          color: "white", borderRadius: "50%",
+                                          width: "22px", height: "22px", fontSize: "13px",
+                                          cursor: "pointer", display: "flex",
+                                          alignItems: "center", justifyContent: "center",
+                                          lineHeight: 1
+                                        }}
+                                      >✕</button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>Aucune photo pour ce chantier</div>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -896,15 +1020,26 @@ export default function Dashboard({ user, onLogout }) {
                       </div>
                     </div>
 
-                    {/* Recommandé par */}
-                    <div>
-                      <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🤝 Recommandé par</label>
-                      <input
-                        placeholder="Nom de la personne qui a recommandé ce client"
-                        value={clientForm.recommande_par}
-                        onChange={e => setClientForm(f => ({ ...f, recommande_par: e.target.value }))}
-                        style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }}
-                      />
+                    {/* Recommandé par + Garantie décennale */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🤝 Recommandé par</label>
+                        <input
+                          placeholder="Nom du prescripteur"
+                          value={clientForm.recommande_par}
+                          onChange={e => setClientForm(f => ({ ...f, recommande_par: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🛡️ Garantie décennale — expiration</label>
+                        <input
+                          type="date"
+                          value={clientForm.garantie_decennale_expiration}
+                          onChange={e => setClientForm(f => ({ ...f, garantie_decennale_expiration: e.target.value }))}
+                          style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: clientForm.garantie_decennale_expiration ? "white" : "#8899aa", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", colorScheme: "dark" }}
+                        />
+                      </div>
                     </div>
 
                     {clientMessage && (
