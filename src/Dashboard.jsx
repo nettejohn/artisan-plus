@@ -20,6 +20,10 @@ export default function Dashboard({ user, onLogout }) {
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
   const [lienCopie, setLienCopie] = useState(null);
 
+  // États chantiers (pour affichage dans la fiche client)
+  const [chantiers, setChantiers] = useState([]);
+  const [clientChantierPreselect, setClientChantierPreselect] = useState(null);
+
   // États clients
   const [clients, setClients] = useState([]);
   const [clientModal, setClientModal] = useState(false);
@@ -35,6 +39,7 @@ export default function Dashboard({ user, onLogout }) {
     chargerDonnees();
     chargerProfil();
     chargerClients();
+    chargerChantiers();
   }, []);
 
   const chargerProfil = async () => {
@@ -44,6 +49,15 @@ export default function Dashboard({ user, onLogout }) {
       .eq("user_id", user.id)
       .single();
     if (data) setProfil(data);
+  };
+
+  const chargerChantiers = async () => {
+    const { data } = await supabase
+      .from("chantiers")
+      .select("id, nom, statut, prix_chantier, client_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setChantiers(data);
   };
 
   const chargerClients = async () => {
@@ -326,6 +340,13 @@ export default function Dashboard({ user, onLogout }) {
 
   const statutColor = (s) => s === "payee" || s === "accepte" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
   const statutLabel = (s) => s === "payee" ? "✅ Payée" : s === "accepte" ? "✅ Accepté" : s === "en_attente" ? "⏳ En attente" : "❌ Refusé";
+
+  const STATUT_CHANTIER = {
+    en_attente: { label: "En attente", color: "#8899aa", bg: "rgba(136,153,170,0.15)" },
+    en_cours:   { label: "En cours",   color: PRIMARY,   bg: "rgba(255,140,0,0.15)"   },
+    termine:    { label: "Terminé",    color: "#4CAF50", bg: "rgba(76,175,80,0.15)"   },
+    annule:     { label: "Annulé",     color: "#ff6b6b", bg: "rgba(255,107,107,0.15)" },
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
@@ -843,8 +864,8 @@ export default function Dashboard({ user, onLogout }) {
 
                         {/* Historique factures/devis dépliable */}
                         {isOpen && (nbFactures > 0 || nbDevis > 0) && (
-                          <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "12px 20px 16px" }}>
-                            <div style={{ color: "#8899aa", fontSize: "12px", marginBottom: "10px", fontWeight: "600" }}>HISTORIQUE</div>
+                          <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "12px 16px 16px" }}>
+                            <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Historique</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               {factures.filter(f => f.client_id === c.id).map(f => (
                                 <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,140,0,0.05)", borderRadius: "8px", padding: "8px 12px" }}>
@@ -867,6 +888,56 @@ export default function Dashboard({ user, onLogout }) {
                             </div>
                           </div>
                         )}
+
+                        {/* ── Chantiers liés ──────────────────────────────── */}
+                        {isOpen && (() => {
+                          const chantiersClient = chantiers.filter(ch => ch.client_id === c.id);
+                          return (
+                            <div style={{ borderTop: "1px solid rgba(255,140,0,0.1)", padding: "12px 16px 16px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                  🏗️ Chantiers ({chantiersClient.length})
+                                </div>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setClientChantierPreselect(c.id); setActiveTab("chantiers"); }}
+                                  style={{
+                                    background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)",
+                                    color: PRIMARY, borderRadius: "7px", padding: "5px 12px",
+                                    fontSize: "12px", fontWeight: "700", cursor: "pointer"
+                                  }}
+                                >＋ Nouveau chantier</button>
+                              </div>
+                              {chantiersClient.length === 0 ? (
+                                <div style={{ color: "#555", fontSize: "12px", fontStyle: "italic" }}>Aucun chantier lié à ce client</div>
+                              ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                  {chantiersClient.map(ch => {
+                                    const st = STATUT_CHANTIER[ch.statut] || { label: ch.statut, color: "#8899aa", bg: "rgba(136,153,170,0.15)" };
+                                    return (
+                                      <div key={ch.id} style={{
+                                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                                        background: "rgba(255,140,0,0.04)", borderRadius: "8px", padding: "9px 12px",
+                                        border: "1px solid rgba(255,140,0,0.1)"
+                                      }}>
+                                        <span style={{ color: "white", fontSize: "13px", fontWeight: "600", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{ch.nom}</span>
+                                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0, marginLeft: "8px" }}>
+                                          <span style={{ background: st.bg, color: st.color, fontSize: "11px", fontWeight: "700", borderRadius: "5px", padding: "2px 7px", whiteSpace: "nowrap" }}>
+                                            {st.label}
+                                          </span>
+                                          {(ch.prix_chantier || 0) > 0 && (
+                                            <span style={{ color: PRIMARY, fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap" }}>
+                                              {(ch.prix_chantier || 0).toFixed(0)} €
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -1083,6 +1154,8 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === "chantiers" && (
           <Chantiers
             user={user}
+            clientInitialId={clientChantierPreselect}
+            onClientInitialIdHandled={() => setClientChantierPreselect(null)}
             onCreerDevis={(clientId) => {
               setClientPreSelectionne(clientId || null);
               setPage("nouveau-devis");

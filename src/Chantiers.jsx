@@ -90,7 +90,7 @@ const subTitre = {
   marginBottom: "8px",
 };
 
-export default function Chantiers({ user, onCreerDevis, onCreerFacture }) {
+export default function Chantiers({ user, onCreerDevis, onCreerFacture, clientInitialId, onClientInitialIdHandled }) {
 
   // ── Liste ──────────────────────────────────────────────────────
   const [chantiers,    setChantiers]    = useState([]);
@@ -135,6 +135,15 @@ export default function Chantiers({ user, onCreerDevis, onCreerFacture }) {
     setChantiers(ch || []);
     setClients(cl || []);
     setLoading(false);
+
+    // Ouvrir le modal "Nouveau chantier" avec un client pré-sélectionné
+    // (déclenché depuis la fiche client du Dashboard)
+    if (clientInitialId) {
+      setNvMsg("");
+      setNvForm({ nom: "", client_id: clientInitialId, adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" });
+      setNvModal(true);
+      onClientInitialIdHandled?.();
+    }
   };
 
   const chargerDocs = async (clientId) => {
@@ -384,7 +393,7 @@ export default function Chantiers({ user, onCreerDevis, onCreerFacture }) {
         />
 
         {/* ── Statut ─────────────────────────────────────────── */}
-        <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
           {Object.entries(STATUTS).map(([id, sv]) => (
             <button key={id} onClick={() => ff("statut", id)} style={{
               background: ficheForm.statut === id ? sv.bg : "transparent",
@@ -395,6 +404,30 @@ export default function Chantiers({ user, onCreerDevis, onCreerFacture }) {
             }}>{sv.label}</button>
           ))}
         </div>
+
+        {/* ── Actions rapides devis / facture ────────────────── */}
+        {ficheForm.client_id && (
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", flexWrap: "wrap" }}>
+            <button onClick={() => onCreerDevis(ficheForm.client_id)} style={{
+              flex: 1, minWidth: "140px",
+              background: "rgba(100,149,237,0.12)", border: "1px solid rgba(100,149,237,0.35)",
+              color: "#6495ED", borderRadius: "10px", padding: "11px 16px",
+              fontSize: "13px", fontWeight: "700", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+            }}>
+              📝 Créer un devis pour ce chantier
+            </button>
+            <button onClick={() => onCreerFacture(ficheForm.client_id)} style={{
+              flex: 1, minWidth: "140px",
+              background: "rgba(76,175,80,0.12)", border: "1px solid rgba(76,175,80,0.35)",
+              color: "#4CAF50", borderRadius: "10px", padding: "11px 16px",
+              fontSize: "13px", fontWeight: "700", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "6px"
+            }}>
+              🧾 Créer une facture pour ce chantier
+            </button>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════
             SECTION : INFOS GÉNÉRALES
