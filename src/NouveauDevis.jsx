@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
 const PRIMARY = "#FF8C00";
@@ -18,15 +18,20 @@ const inputStyle = {
 };
 
 const THEMES = [
-  { id: "classique", label: "📄 Classique", desc: "Sobre et professionnel", color: "#333333" },
-  { id: "moderne", label: "🖤 Moderne", desc: "Élégant et contemporain", color: "#FF8C00" },
-  { id: "couvreur", label: "🏠 Couvreur", desc: "Spécial toiture", color: "#7B5E3A" },
-  { id: "paysagiste", label: "🌿 Paysagiste", desc: "Espaces verts", color: "#2E7D32" },
-  { id: "traitement", label: "🧹 Traitement toiture", desc: "Nettoyage & anti-mousse", color: "#1565C0" },
+  { id: "classique",  label: "📄 Classique",          desc: "Sobre et professionnel",    color: "#333333" },
+  { id: "moderne",    label: "🖤 Moderne",             desc: "Élégant et contemporain",   color: "#FF8C00" },
+  { id: "couvreur",   label: "🏠 Couvreur",            desc: "Spécial toiture",           color: "#7B5E3A" },
+  { id: "paysagiste", label: "🌿 Paysagiste",          desc: "Espaces verts",             color: "#2E7D32" },
+  { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
 export default function NouveauDevis({ user, onBack }) {
+  // ── Clients ────────────────────────────────────────────────────────────────
+  const [clientsExistants, setClientsExistants] = useState([]);
+  const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
   const [client, setClient] = useState({ nom: "", email: "", telephone: "", adresse: "" });
+
+  // ── Document ───────────────────────────────────────────────────────────────
   const [lignes, setLignes] = useState([{ description: "", quantite: 1, prix_unitaire: 0 }]);
   const [tva, setTva] = useState(20);
   const [appliquerTva, setAppliquerTva] = useState(true);
@@ -36,57 +41,71 @@ export default function NouveauDevis({ user, onBack }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const totalHT = lignes.reduce((sum, l) => sum + (parseFloat(l.quantite) * parseFloat(l.prix_unitaire)), 0);
-  const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
+  // ── Chargement des clients ─────────────────────────────────────────────────
+  useEffect(() => {
+    supabase
+      .from("clients")
+      .select("id, nom, email, telephone, adresse")
+      .eq("user_id", user.id)
+      .order("nom", { ascending: true })
+      .then(({ data }) => setClientsExistants(data || []));
+  }, [user.id]);
 
-  const ajouterLigne = () => setLignes([...lignes, { description: "", quantite: 1, prix_unitaire: 0 }]);
-
-  const modifierLigne = (i, champ, valeur) => {
-    const nouvelles = [...lignes];
-    nouvelles[i][champ] = valeur;
-    setLignes(nouvelles);
+  // ── Sélection client ───────────────────────────────────────────────────────
+  const selectionnerClient = (valeur) => {
+    setClientSelectionne(valeur);
+    if (valeur === "nouveau") {
+      setClient({ nom: "", email: "", telephone: "", adresse: "" });
+    } else {
+      const c = clientsExistants.find(c => c.id === valeur);
+      if (c) setClient({
+        nom:       c.nom       || "",
+        email:     c.email     || "",
+        telephone: c.telephone || "",
+        adresse:   c.adresse   || "",
+      });
+    }
   };
 
-  const supprimerLigne = (i) => setLignes(lignes.filter((_, index) => index !== i));
+  // ── Lignes ─────────────────────────────────────────────────────────────────
+  const totalHT  = lignes.reduce((sum, l) => sum + parseFloat(l.quantite) * parseFloat(l.prix_unitaire), 0);
+  const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
 
+  const ajouterLigne   = () => setLignes([...lignes, { description: "", quantite: 1, prix_unitaire: 0 }]);
+  const supprimerLigne = (i) => setLignes(lignes.filter((_, idx) => idx !== i));
+  const modifierLigne  = (i, champ, valeur) => {
+    const nl = [...lignes]; nl[i][champ] = valeur; setLignes(nl);
+  };
+
+  // ── Sauvegarde ─────────────────────────────────────────────────────────────
   const sauvegarder = async () => {
+    if (!client.nom.trim()) { setMessage("❌ Le nom du client est obligatoire"); return; }
     setLoading(true);
     setMessage("");
 
-    const { data: clientData, error: clientError } = await supabase
-      .from("clients")
-      .insert({ ...client, user_id: user.id })
-      .select()
-      .single();
+    let clientId;
 
-    if (clientError) {
-      setMessage("❌ Erreur client: " + clientError.message);
-      setLoading(false);
-      return;
+    if (clientSelectionne !== "nouveau") {
+      // Client existant : on utilise directement son ID, pas de doublon
+      clientId = clientSelectionne;
+    } else {
+      // Nouveau client : on l'insère
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .insert({ nom: client.nom, email: client.email || null, telephone: client.telephone || null, adresse: client.adresse || null, user_id: user.id })
+        .select()
+        .single();
+      if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+      clientId = clientData.id;
     }
 
     const numero = "DEV-" + Date.now();
     const { data: devisData, error: devisError } = await supabase
       .from("devis")
-      .insert({
-        user_id: user.id,
-        client_id: clientData.id,
-        numero,
-        date_validite: dateValidite || null,
-        total_ht: totalHT,
-        tva: appliquerTva ? tva : 0,
-        total_ttc: totalTTC,
-        notes: notes,
-        style
-      })
+      .insert({ user_id: user.id, client_id: clientId, numero, date_validite: dateValidite || null, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes, style })
       .select()
       .single();
-
-    if (devisError) {
-      setMessage("❌ Erreur devis: " + devisError.message);
-      setLoading(false);
-      return;
-    }
+    if (devisError) { setMessage("❌ Erreur devis : " + devisError.message); setLoading(false); return; }
 
     const lignesData = lignes.map(l => ({
       devis_id: devisData.id,
@@ -95,30 +114,21 @@ export default function NouveauDevis({ user, onBack }) {
       prix_unitaire: parseFloat(l.prix_unitaire),
       total: parseFloat(l.quantite) * parseFloat(l.prix_unitaire)
     }));
-
     const { error: lignesError } = await supabase.from("lignes_devis").insert(lignesData);
-
-    if (lignesError) {
-      setMessage("❌ Erreur lignes: " + lignesError.message);
-      setLoading(false);
-      return;
-    }
+    if (lignesError) { setMessage("❌ Erreur lignes : " + lignesError.message); setLoading(false); return; }
 
     setMessage("✅ Devis créé avec succès !");
     setLoading(false);
     setTimeout(() => onBack(), 1500);
   };
 
+  // ── Rendu ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "24px" }}>
 
       {/* HEADER */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
-        <button onClick={onBack} style={{
-          background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
-          color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
-          cursor: "pointer", fontSize: "14px"
-        }}>← Retour</button>
+        <button onClick={onBack} style={{ background: "transparent", border: "1px solid rgba(255,140,0,0.3)", color: PRIMARY, borderRadius: "8px", padding: "8px 16px", cursor: "pointer", fontSize: "14px" }}>← Retour</button>
         <h1 style={{ color: "white", margin: 0, fontSize: "24px" }}>Nouveau Devis</h1>
       </div>
 
@@ -135,8 +145,7 @@ export default function NouveauDevis({ user, onBack }) {
                 borderRadius: "12px",
                 background: style === t.id ? `${t.color}22` : "transparent",
                 color: style === t.id ? t.color : "#8899aa",
-                cursor: "pointer", fontWeight: "600",
-                textAlign: "center", transition: "all 0.2s"
+                cursor: "pointer", fontWeight: "600", textAlign: "center", transition: "all 0.2s"
               }}>
                 <div style={{ fontSize: "24px", marginBottom: "6px" }}>{t.label.split(" ")[0]}</div>
                 <div style={{ fontSize: "12px", fontWeight: "700" }}>{t.label.split(" ").slice(1).join(" ")}</div>
@@ -149,19 +158,55 @@ export default function NouveauDevis({ user, onBack }) {
         {/* DATE VALIDITÉ */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>📅 Validité du devis</h3>
-          <div>
-            <label style={{ color: "#8899aa", fontSize: "12px", marginBottom: "6px", display: "block" }}>
-              Date limite de validité (optionnel)
-            </label>
-            <input type="date" value={dateValidite}
-              onChange={e => setDateValidite(e.target.value)}
-              style={{ ...inputStyle, colorScheme: "dark" }} />
-          </div>
+          <label style={{ color: "#8899aa", fontSize: "12px", marginBottom: "6px", display: "block" }}>
+            Date limite de validité (optionnel)
+          </label>
+          <input type="date" value={dateValidite} onChange={e => setDateValidite(e.target.value)}
+            style={{ ...inputStyle, colorScheme: "dark" }} />
         </div>
 
         {/* CLIENT */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>👤 Informations client</h3>
+
+          {/* Sélecteur client */}
+          <div style={{ marginBottom: "18px" }}>
+            <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Sélectionner un client
+            </label>
+            <select
+              value={clientSelectionne}
+              onChange={e => selectionnerClient(e.target.value)}
+              style={{
+                background: DARK, border: `1px solid ${clientSelectionne !== "nouveau" ? PRIMARY : "rgba(255,140,0,0.3)"}`,
+                borderRadius: "10px", padding: "12px 16px",
+                color: "white", fontSize: "14px", outline: "none",
+                width: "100%", boxSizing: "border-box", cursor: "pointer"
+              }}
+            >
+              <option value="nouveau">➕ Nouveau client (saisie manuelle)</option>
+              {clientsExistants.length > 0 && (
+                <optgroup label="── Clients existants ──" style={{ color: "#8899aa" }}>
+                  {clientsExistants.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nom}{c.telephone ? ` — ${c.telephone}` : ""}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+
+            {clientSelectionne !== "nouveau" && (
+              <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px", color: PRIMARY, fontSize: "12px", fontWeight: "600" }}>
+                <span style={{ background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "6px", padding: "3px 10px" }}>
+                  ✓ Champs pré-remplis depuis votre carnet clients
+                </span>
+                <span style={{ color: "#8899aa", fontWeight: "400" }}>Modifiables si besoin</span>
+              </div>
+            )}
+          </div>
+
+          {/* Champs client */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <input placeholder="Nom du client *" value={client.nom}
               onChange={e => setClient({ ...client, nom: e.target.value })} style={inputStyle} />
@@ -179,82 +224,52 @@ export default function NouveauDevis({ user, onBack }) {
           <h3 style={{ color: "white", marginTop: 0 }}>🔨 Prestations</h3>
           {lignes.map((ligne, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: "12px", marginBottom: "12px" }}>
-              <input placeholder="Description de la prestation"
-                value={ligne.description}
-                onChange={e => modifierLigne(i, "description", e.target.value)}
-                style={inputStyle} />
-              <input placeholder="Qté" type="number"
-                value={ligne.quantite}
-                onChange={e => modifierLigne(i, "quantite", e.target.value)}
-                style={inputStyle} />
-              <input placeholder="Prix HT (€)" type="number"
-                value={ligne.prix_unitaire}
-                onChange={e => modifierLigne(i, "prix_unitaire", e.target.value)}
-                style={inputStyle} />
-              <button onClick={() => supprimerLigne(i)} style={{
-                background: "rgba(255,100,100,0.1)",
-                border: "1px solid rgba(255,100,100,0.3)",
-                color: "#ff6b6b", borderRadius: "8px",
-                padding: "8px 12px", cursor: "pointer"
-              }}>✕</button>
+              <input placeholder="Description de la prestation" value={ligne.description}
+                onChange={e => modifierLigne(i, "description", e.target.value)} style={inputStyle} />
+              <input placeholder="Qté" type="number" value={ligne.quantite}
+                onChange={e => modifierLigne(i, "quantite", e.target.value)} style={inputStyle} />
+              <input placeholder="Prix HT (€)" type="number" value={ligne.prix_unitaire}
+                onChange={e => modifierLigne(i, "prix_unitaire", e.target.value)} style={inputStyle} />
+              <button onClick={() => supprimerLigne(i)} style={{ background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)", color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px", cursor: "pointer" }}>✕</button>
             </div>
           ))}
-          <button onClick={ajouterLigne} style={{
-            background: "transparent", border: `1px dashed ${PRIMARY}`,
-            color: PRIMARY, borderRadius: "10px", padding: "12px 24px",
-            cursor: "pointer", width: "100%", fontSize: "14px", fontWeight: "600"
-          }}>+ Ajouter une prestation</button>
+          <button onClick={ajouterLigne} style={{ background: "transparent", border: `1px dashed ${PRIMARY}`, color: PRIMARY, borderRadius: "10px", padding: "12px 24px", cursor: "pointer", width: "100%", fontSize: "14px", fontWeight: "600" }}>
+            + Ajouter une prestation
+          </button>
         </div>
 
         {/* TOTAL */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>💰 Total</h3>
-
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", padding: "16px", background: "#0a1628", borderRadius: "10px" }}>
-            <input type="checkbox" id="tva" checked={appliquerTva}
-              onChange={e => setAppliquerTva(e.target.checked)}
+            <input type="checkbox" id="tva" checked={appliquerTva} onChange={e => setAppliquerTva(e.target.checked)}
               style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: PRIMARY }} />
-            <label htmlFor="tva" style={{ color: "white", fontSize: "15px", cursor: "pointer", fontWeight: "600" }}>
-              Appliquer la TVA
-            </label>
+            <label htmlFor="tva" style={{ color: "white", fontSize: "15px", cursor: "pointer", fontWeight: "600" }}>Appliquer la TVA</label>
           </div>
-
           {!appliquerTva && (
-            <div style={{
-              background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-              borderRadius: "10px", padding: "12px", marginBottom: "16px"
-            }}>
-              <span style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600" }}>
-                📋 Mention ajoutée automatiquement : "TVA non applicable, art. 293 B du CGI"
-              </span>
+            <div style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "10px", padding: "12px", marginBottom: "16px" }}>
+              <span style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600" }}>📋 Mention ajoutée automatiquement : "TVA non applicable, art. 293 B du CGI"</span>
             </div>
           )}
-
           {appliquerTva && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <span style={{ color: "#8899aa" }}>Taux TVA (%)</span>
-              <input type="number" value={tva}
-                onChange={e => setTva(e.target.value)}
+              <input type="number" value={tva} onChange={e => setTva(e.target.value)}
                 style={{ background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "8px 12px", color: "white", fontSize: "14px", outline: "none", width: "100px", textAlign: "right" }} />
             </div>
           )}
-
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
             <span style={{ color: "#8899aa" }}>Total HT</span>
             <span style={{ color: "white", fontWeight: "600" }}>{totalHT.toFixed(2)} €</span>
           </div>
-
           {appliquerTva && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
               <span style={{ color: "#8899aa" }}>TVA ({tva}%)</span>
               <span style={{ color: "white", fontWeight: "600" }}>{(totalTTC - totalHT).toFixed(2)} €</span>
             </div>
           )}
-
           <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 0", borderTop: "1px solid rgba(255,140,0,0.2)" }}>
-            <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>
-              {appliquerTva ? "Total TTC" : "Total"}
-            </span>
+            <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>{appliquerTva ? "Total TTC" : "Total"}</span>
             <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>{totalTTC.toFixed(2)} €</span>
           </div>
         </div>
@@ -262,32 +277,19 @@ export default function NouveauDevis({ user, onBack }) {
         {/* NOTES */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>📝 Notes</h3>
-          <textarea placeholder="Notes ou conditions particulières..."
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            style={{
-              background: "#0a1628",
-              border: "1px solid rgba(255,140,0,0.2)",
-              borderRadius: "10px", padding: "12px 16px",
-              color: "white", fontSize: "14px", outline: "none",
-              width: "100%", boxSizing: "border-box",
-              height: "100px", resize: "vertical"
-            }} />
+          <textarea placeholder="Notes ou conditions particulières..." value={notes} onChange={e => setNotes(e.target.value)}
+            style={{ background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box", height: "100px", resize: "vertical" }} />
         </div>
 
         {message && (
-          <div style={{
-            color: message.includes("✅") ? "#4CAF50" : "#ff6b6b",
-            textAlign: "center", fontSize: "15px", fontWeight: "600"
-          }}>
+          <div style={{ color: message.includes("✅") ? "#4CAF50" : "#ff6b6b", textAlign: "center", fontSize: "15px", fontWeight: "600" }}>
             {message}
           </div>
         )}
 
         <button onClick={sauvegarder} disabled={loading} style={{
-          background: loading ? "#888" : PRIMARY,
-          color: "white", border: "none", borderRadius: "12px",
-          padding: "16px", fontSize: "17px", fontWeight: "700",
+          background: loading ? "#888" : PRIMARY, color: "white", border: "none",
+          borderRadius: "12px", padding: "16px", fontSize: "17px", fontWeight: "700",
           cursor: loading ? "not-allowed" : "pointer", marginBottom: "32px"
         }}>
           {loading ? "Sauvegarde..." : "💾 Sauvegarder le devis"}
