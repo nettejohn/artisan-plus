@@ -90,17 +90,36 @@ export default function Dashboard({ user, onLogout }) {
     setClientLoading(true);
     setClientMessage("");
 
+    // Payload explicite : seuls les champs qui existent en base sont envoyés.
+    // Évite les erreurs "column not found" si un champ du formulaire n'est pas
+    // encore migré dans Supabase.
+    const payload = {
+      nom:                          clientForm.nom.trim(),
+      email:                        clientForm.email                        || null,
+      telephone:                    clientForm.telephone                    || null,
+      adresse:                      clientForm.adresse                      || null,
+      date_premier_contact:         clientForm.date_premier_contact         || null,
+      type_prestation:              clientForm.type_prestation              || null,
+      source:                       clientForm.source                       || null,
+      notes:                        clientForm.notes                        || null,
+      appreciation:                 clientForm.appreciation                 || null,
+      moyen_paiement:               clientForm.moyen_paiement               || null,
+      moment_appel:                 clientForm.moment_appel                 || null,
+      recommande_par:               clientForm.recommande_par               || null,
+      garantie_decennale_expiration: clientForm.garantie_decennale_expiration || null,
+    };
+
     if (clientEdite) {
       const { error } = await supabase
         .from("clients")
-        .update(clientForm)
+        .update(payload)
         .eq("id", clientEdite.id);
       if (error) setClientMessage("❌ " + error.message);
       else { setClientMessage("✅ Client mis à jour !"); setTimeout(() => { setClientModal(false); chargerClients(); chargerDonnees(); }, 800); }
     } else {
       const { error } = await supabase
         .from("clients")
-        .insert({ ...clientForm, user_id: user.id });
+        .insert({ ...payload, user_id: user.id });
       if (error) setClientMessage("❌ " + error.message);
       else { setClientMessage("✅ Client ajouté !"); setTimeout(() => { setClientModal(false); chargerClients(); chargerDonnees(); }, 800); }
     }
