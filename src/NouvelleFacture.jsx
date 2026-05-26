@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import CataloguePrestations from "./CataloguePrestations";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -41,6 +42,8 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
   const [message, setMessage] = useState("");
   const [natureOperation, setNatureOperation] = useState("");
   const [tvaSurDebits, setTvaSurDebits] = useState(false);
+  const [showCatalogue, setShowCatalogue] = useState(false);
+  const [catalogueLigneIndex, setCatalogueLigneIndex] = useState(null);
 
   // ── Chargement des clients + paramètres ───────────────────────────────────
   useEffect(() => {
@@ -238,20 +241,56 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
           <h3 style={{ color: "white", marginTop: 0 }}>🔨 Prestations</h3>
           {lignes.map((ligne, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: "12px", marginBottom: "12px" }}>
-              <input placeholder="Description de la prestation" value={ligne.description}
-                onChange={e => modifierLigne(i, "description", e.target.value)} style={inputStyle} />
-              <input placeholder="Qté" type="number" value={ligne.quantite}
-                onChange={e => modifierLigne(i, "quantite", e.target.value)} style={inputStyle} />
-              <input placeholder="Prix HT (€)" type="number" value={ligne.prix_unitaire}
-                onChange={e => modifierLigne(i, "prix_unitaire", e.target.value)} style={inputStyle} />
-              <button onClick={() => supprimerLigne(i)} style={{ background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)", color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px", cursor: "pointer" }}>✕</button>
+            <div key={i} style={{ marginBottom: "14px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", padding: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+              {/* Ligne 1 : description + bouton catalogue */}
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                <input
+                  placeholder="Description de la prestation"
+                  value={ligne.description}
+                  onChange={e => modifierLigne(i, "description", e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button
+                  onClick={() => { setCatalogueLigneIndex(i); setShowCatalogue(true); }}
+                  title="Choisir depuis le catalogue"
+                  style={{
+                    background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.35)",
+                    color: PRIMARY, borderRadius: "10px", padding: "8px 14px",
+                    cursor: "pointer", fontSize: "18px", whiteSpace: "nowrap", flexShrink: 0,
+                    transition: "background 0.15s"
+                  }}
+                >
+                  📚
+                </button>
+              </div>
+              {/* Ligne 2 : quantité + prix + supprimer */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "8px" }}>
+                <input placeholder="Qté" type="number" value={ligne.quantite}
+                  onChange={e => modifierLigne(i, "quantite", e.target.value)} style={inputStyle} />
+                <input placeholder="Prix HT (€)" type="number" value={ligne.prix_unitaire}
+                  onChange={e => modifierLigne(i, "prix_unitaire", e.target.value)} style={inputStyle} />
+                <button onClick={() => supprimerLigne(i)} style={{ background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)", color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px", cursor: "pointer" }}>✕</button>
+              </div>
             </div>
           ))}
           <button onClick={ajouterLigne} style={{ background: "transparent", border: `1px dashed ${PRIMARY}`, color: PRIMARY, borderRadius: "10px", padding: "12px 24px", cursor: "pointer", width: "100%", fontSize: "14px", fontWeight: "600" }}>
             + Ajouter une prestation
           </button>
         </div>
+
+        {/* CATALOGUE MODAL */}
+        {showCatalogue && (
+          <CataloguePrestations
+            user={user}
+            onSelectArticle={(desc, prix) => {
+              if (catalogueLigneIndex !== null) {
+                modifierLigne(catalogueLigneIndex, "description", desc);
+                modifierLigne(catalogueLigneIndex, "prix_unitaire", prix);
+              }
+            }}
+            onClose={() => { setShowCatalogue(false); setCatalogueLigneIndex(null); }}
+          />
+        )}
 
         {/* TOTAL */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
