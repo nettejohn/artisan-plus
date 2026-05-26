@@ -408,13 +408,13 @@ export default function Dashboard({ user, onLogout }) {
         {/* FACTURES */}
         {activeTab === "factures" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>📄 Mes Factures</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
+              <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
               <button onClick={() => setPage("nouvelle-facture")} style={{
                 background: PRIMARY, color: "white", border: "none",
-                borderRadius: "10px", padding: "12px 24px",
-                fontSize: "15px", fontWeight: "700", cursor: "pointer"
-              }}>+ Créer une facture</button>
+                borderRadius: "10px", padding: "11px 18px",
+                fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
+              }}>+ Nouvelle facture</button>
             </div>
             {factures.length === 0 ? (
               <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
@@ -425,33 +425,38 @@ export default function Dashboard({ user, onLogout }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {factures.map(f => (
                   <div key={f.id} style={{
-                    background: CARD, borderRadius: "16px", padding: "20px",
-                    border: "1px solid rgba(255,140,0,0.15)",
-                    display: "flex", justifyContent: "space-between", alignItems: "center"
+                    background: CARD, borderRadius: "16px", padding: "16px",
+                    border: "1px solid rgba(255,140,0,0.15)"
                   }}>
-                    <div>
-                      <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{f.numero}</div>
-                      <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>
-                        {f.clients?.nom} — {new Date(f.created_at).toLocaleDateString("fr-FR")}
+                    {/* Ligne 1 : numéro + montant */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{f.numero}</div>
+                        <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "3px" }}>
+                          {f.clients?.nom} — {new Date(f.created_at).toLocaleDateString("fr-FR")}
+                        </div>
                       </div>
+                      <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px", flexShrink: 0, marginLeft: "12px" }}>
+                        {f.total_ttc?.toFixed(2)} €
+                      </span>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    {/* Ligne 2 : statut + actions */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ color: statutColor(f.statut), fontSize: "13px", fontWeight: "600" }}>
                         {statutLabel(f.statut)}
                       </span>
-                      <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>
-                        {f.total_ttc?.toFixed(2)} €
-                      </span>
-                      <button onClick={() => telechargerPDF(f)} style={{
-                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-                        color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
-                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                      }}>📄 PDF</button>
-                      <button onClick={() => supprimerFacture(f.id)} style={{
-                        background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
-                        color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
-                        cursor: "pointer", fontSize: "13px"
-                      }}>🗑️</button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={() => telechargerPDF(f)} style={{
+                          background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                          color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                        }}>📄 PDF</button>
+                        <button onClick={() => supprimerFacture(f.id)} style={{
+                          background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                          color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px"
+                        }}>🗑️</button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -463,13 +468,13 @@ export default function Dashboard({ user, onLogout }) {
         {/* DEVIS */}
         {activeTab === "devis" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-              <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>📝 Mes Devis</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
+              <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
               <button onClick={() => setPage("nouveau-devis")} style={{
                 background: PRIMARY, color: "white", border: "none",
-                borderRadius: "10px", padding: "12px 24px",
-                fontSize: "15px", fontWeight: "700", cursor: "pointer"
-              }}>+ Créer un devis</button>
+                borderRadius: "10px", padding: "11px 18px",
+                fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
+              }}>+ Nouveau devis</button>
             </div>
             {devis.length === 0 ? (
               <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
@@ -480,51 +485,55 @@ export default function Dashboard({ user, onLogout }) {
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 {devis.map(d => (
                   <div key={d.id} style={{
-                    background: CARD, borderRadius: "16px", padding: "20px",
+                    background: CARD, borderRadius: "16px", padding: "16px",
                     border: "1px solid rgba(255,140,0,0.15)"
                   }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: lienCopie === d.id ? "12px" : "0" }}>
-                      <div>
+                    {/* Ligne 1 : numéro + montant */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{d.numero}</div>
-                        <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>
+                        <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "3px" }}>
                           {d.clients?.nom} — {new Date(d.created_at).toLocaleDateString("fr-FR")}
                           {d.date_validite && ` — Valide jusqu'au ${new Date(d.date_validite).toLocaleDateString("fr-FR")}`}
                         </div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <span style={{ color: statutColor(d.statut), fontSize: "13px", fontWeight: "600" }}>
-                          {statutLabel(d.statut)}
-                        </span>
-                        <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>
-                          {d.total_ttc?.toFixed(2)} €
-                        </span>
-                        <button onClick={() => telechargerDevisPDF(d)} style={{
-                          background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-                          color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
-                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                        }}>📄 PDF</button>
-                        <button onClick={() => envoyerPourSignature(d)} style={{
-                          background: "rgba(100,149,237,0.1)",
-                          border: "1px solid rgba(100,149,237,0.3)",
-                          color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
-                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                        }}>🔗 Envoyer</button>
-                        <button onClick={() => convertirEnFacture(d)} style={{
-                          background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
-                          color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
-                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
-                        }}>✅ Facturer</button>
-                        <button onClick={() => supprimerDevis(d.id)} style={{
-                          background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
-                          color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
-                          cursor: "pointer", fontSize: "13px"
-                        }}>🗑️</button>
-                      </div>
+                      <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px", flexShrink: 0, marginLeft: "12px" }}>
+                        {d.total_ttc?.toFixed(2)} €
+                      </span>
+                    </div>
+                    {/* Ligne 2 : statut */}
+                    <div style={{ marginBottom: "10px" }}>
+                      <span style={{ color: statutColor(d.statut), fontSize: "13px", fontWeight: "600" }}>
+                        {statutLabel(d.statut)}
+                      </span>
+                    </div>
+                    {/* Ligne 3 : boutons actions */}
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                      <button onClick={() => telechargerDevisPDF(d)} style={{
+                        background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                        color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>📄 PDF</button>
+                      <button onClick={() => envoyerPourSignature(d)} style={{
+                        background: "rgba(100,149,237,0.1)", border: "1px solid rgba(100,149,237,0.3)",
+                        color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>🔗 Envoyer</button>
+                      <button onClick={() => convertirEnFacture(d)} style={{
+                        background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
+                        color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>✅ Facturer</button>
+                      <button onClick={() => supprimerDevis(d.id)} style={{
+                        background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
+                        color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px"
+                      }}>🗑️</button>
                     </div>
                     {lienCopie === d.id && (
                       <div style={{
                         background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
-                        borderRadius: "8px", padding: "10px 14px",
+                        borderRadius: "8px", padding: "10px 14px", marginTop: "10px",
                         color: "#4CAF50", fontSize: "13px", fontWeight: "600"
                       }}>
                         ✅ Lien copié ! Envoyez-le par SMS, WhatsApp, email ou autre.
@@ -609,83 +618,80 @@ export default function Dashboard({ user, onLogout }) {
                       }}>
                         {/* Ligne principale */}
                         <div style={{
-                          padding: "18px 20px", display: "flex",
-                          justifyContent: "space-between", alignItems: "center",
-                          cursor: "pointer", gap: "12px"
+                          padding: "14px 16px", display: "flex",
+                          alignItems: "flex-start", gap: "12px", cursor: "pointer"
                         }} onClick={() => setClientDetailId(isOpen ? null : c.id)}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "14px", minWidth: 0 }}>
-                            <div style={{
-                              width: "44px", height: "44px", borderRadius: "50%",
-                              background: `rgba(255,140,0,0.15)`, display: "flex",
-                              alignItems: "center", justifyContent: "center",
-                              fontSize: "20px", flexShrink: 0
-                            }}>
-                              {c.nom?.charAt(0)?.toUpperCase() || "?"}
+
+                          {/* Avatar */}
+                          <div style={{
+                            width: "42px", height: "42px", borderRadius: "50%",
+                            background: "rgba(255,140,0,0.15)", display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                            fontSize: "17px", fontWeight: "700", color: PRIMARY, flexShrink: 0
+                          }}>
+                            {c.nom?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+
+                          {/* Contenu central */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {/* Nom + appréc + garantie */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span style={{ color: "white", fontWeight: "700", fontSize: "15px" }}>{c.nom}</span>
+                              {c.appreciation && (
+                                <span style={{ fontSize: "14px" }} title={c.appreciation}>{
+                                  c.appreciation === "Excellent" ? "⭐" :
+                                  c.appreciation === "Bien" ? "👍" :
+                                  c.appreciation === "Moyen" ? "😐" : "👎"
+                                }</span>
+                              )}
+                              {garantieStatut === "expire" && (
+                                <span style={{ background: "rgba(255,100,100,0.15)", color: "#ff6b6b", fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ Expirée</span>
+                              )}
+                              {garantieStatut === "alerte" && (
+                                <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ &lt; 3 mois</span>
+                              )}
                             </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                                <span style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{c.nom}</span>
-                                {c.appreciation && (
-                                  <span style={{ fontSize: "16px" }} title={c.appreciation}>{
-                                    c.appreciation === "Excellent" ? "⭐" :
-                                    c.appreciation === "Bien" ? "👍" :
-                                    c.appreciation === "Moyen" ? "😐" : "👎"
-                                  }</span>
-                                )}
-                                {garantieStatut === "expire" && (
-                                  <span style={{ background: "rgba(255,100,100,0.15)", color: "#ff6b6b", fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ Garantie expirée</span>
-                                )}
-                                {garantieStatut === "alerte" && (
-                                  <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 6px" }}>🛡️ Garantie &lt; 3 mois</span>
-                                )}
-                              </div>
-                              <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
-                                {c.type_prestation && (
-                                  <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
-                                    {c.type_prestation}
-                                  </span>
-                                )}
-                                {c.source && (
-                                  <span style={{ background: "rgba(100,149,237,0.15)", color: "#6495ED", fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
-                                    {c.source}
-                                  </span>
-                                )}
-                                <span style={{ color: "#8899aa", fontSize: "12px" }}>
-                                  {[c.email, c.telephone].filter(Boolean).join(" · ") || "Aucune info de contact"}
+                            {/* Tags + contact */}
+                            <div style={{ display: "flex", gap: "5px", marginTop: "4px", flexWrap: "wrap", alignItems: "center" }}>
+                              {c.type_prestation && (
+                                <span style={{ background: "rgba(255,140,0,0.15)", color: PRIMARY, fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
+                                  {c.type_prestation}
                                 </span>
-                              </div>
+                              )}
+                              {c.source && (
+                                <span style={{ background: "rgba(100,149,237,0.15)", color: "#6495ED", fontSize: "11px", fontWeight: "600", borderRadius: "6px", padding: "2px 7px" }}>
+                                  {c.source}
+                                </span>
+                              )}
+                              {(c.email || c.telephone) && (
+                                <span style={{ color: "#8899aa", fontSize: "12px" }}>
+                                  {[c.telephone, c.email].filter(Boolean).join(" · ")}
+                                </span>
+                              )}
+                            </div>
+                            {/* Stats compactes */}
+                            <div style={{ display: "flex", gap: "12px", marginTop: "7px", flexWrap: "wrap" }}>
+                              <span style={{ color: PRIMARY, fontSize: "12px", fontWeight: "700" }}>📄 {nbFactures} facture{nbFactures !== 1 ? "s" : ""}</span>
+                              <span style={{ color: "#6495ED", fontSize: "12px", fontWeight: "700" }}>📝 {nbDevis} devis</span>
+                              <span style={{ color: "#4CAF50", fontSize: "12px", fontWeight: "700" }}>💰 {caTotal.toFixed(0)} €</span>
                             </div>
                           </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
-                            {/* Stats rapides */}
-                            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                              <div style={{ textAlign: "center" }}>
-                                <div style={{ color: PRIMARY, fontWeight: "800", fontSize: "16px" }}>{nbFactures}</div>
-                                <div style={{ color: "#8899aa", fontSize: "11px" }}>facture{nbFactures !== 1 ? "s" : ""}</div>
-                              </div>
-                              <div style={{ textAlign: "center" }}>
-                                <div style={{ color: "#6495ED", fontWeight: "800", fontSize: "16px" }}>{nbDevis}</div>
-                                <div style={{ color: "#8899aa", fontSize: "11px" }}>devis</div>
-                              </div>
-                              <div style={{ textAlign: "center" }}>
-                                <div style={{ color: "#4CAF50", fontWeight: "800", fontSize: "16px" }}>{caTotal.toFixed(0)} €</div>
-                                <div style={{ color: "#8899aa", fontSize: "11px" }}>CA total</div>
-                              </div>
-                            </div>
-                            {/* Actions */}
-                            <div style={{ display: "flex", gap: "8px" }} onClick={e => e.stopPropagation()}>
+
+                          {/* Droite : boutons + chevron */}
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                            <div style={{ display: "flex", gap: "6px" }} onClick={e => e.stopPropagation()}>
                               <button onClick={() => ouvrirModalEdition(c)} style={{
                                 background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-                                color: PRIMARY, borderRadius: "8px", padding: "8px 10px",
-                                cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                                color: PRIMARY, borderRadius: "8px", padding: "7px 10px",
+                                cursor: "pointer", fontSize: "13px"
                               }}>✏️</button>
                               <button onClick={() => supprimerClient(c.id)} style={{
                                 background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
-                                color: "#ff6b6b", borderRadius: "8px", padding: "8px 10px",
+                                color: "#ff6b6b", borderRadius: "8px", padding: "7px 10px",
                                 cursor: "pointer", fontSize: "13px"
                               }}>🗑️</button>
                             </div>
-                            <span style={{ color: "#8899aa", fontSize: "18px", transition: "transform 0.2s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+                            <span style={{ color: "#8899aa", fontSize: "16px", transition: "transform 0.2s", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
                           </div>
                         </div>
 
@@ -875,7 +881,7 @@ export default function Dashboard({ user, onLogout }) {
                 zIndex: 1000, padding: "20px"
               }} onClick={e => { if (e.target === e.currentTarget) setClientModal(false); }}>
                 <div style={{
-                  background: CARD, borderRadius: "20px", padding: "28px 32px",
+                  background: CARD, borderRadius: "20px", padding: "20px",
                   width: "100%", maxWidth: "540px",
                   border: "1px solid rgba(255,140,0,0.3)",
                   boxShadow: "0 0 60px rgba(255,140,0,0.15)",
@@ -921,7 +927,7 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     {/* Ligne : Type prestation + Source */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                       <div>
                         <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🛠️ Type de prestation</label>
                         <select
@@ -954,7 +960,7 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     {/* Ligne : Date + Appréciation */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                       <div>
                         <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>📅 1er contact</label>
                         <input
@@ -998,7 +1004,7 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     {/* Moyen de paiement + Moment pour appeler */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                       <div>
                         <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>💳 Moyen de paiement préféré</label>
                         <select
@@ -1025,7 +1031,7 @@ export default function Dashboard({ user, onLogout }) {
                     </div>
 
                     {/* Recommandé par + Garantie décennale */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                       <div>
                         <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>🤝 Recommandé par</label>
                         <input
