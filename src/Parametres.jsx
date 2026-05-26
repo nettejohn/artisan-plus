@@ -500,7 +500,7 @@ export default function Parametres({ user, onBack }) {
                   <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "2px" }}>Tout illimité, fonctions avancées</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ color: "white", fontSize: "26px", fontWeight: "800", lineHeight: 1 }}>9,90 €</div>
+                  <div style={{ color: "white", fontSize: "26px", fontWeight: "800", lineHeight: 1 }}>7,99 €</div>
                   <div style={{ color: "#8899aa", fontSize: "12px" }}>/mois TTC</div>
                 </div>
               </div>
@@ -519,7 +519,7 @@ export default function Parametres({ user, onBack }) {
               </div>
 
               <button style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "12px", padding: "14px", fontSize: "15px", fontWeight: "800", cursor: "pointer", width: "100%", letterSpacing: "0.3px" }}>
-                🚀 Passer au Pro — 9,90 €/mois
+                🚀 Passer au Pro — 7,99 €/mois
               </button>
             </div>
 
