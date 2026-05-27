@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Dashboard from "./Dashboard";
 import SignatureDevis from "./SignatureDevis";
+import { usePWA } from "./usePWA";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -16,6 +17,9 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
+
+  // PWA
+  const { isOnline, canInstall, handleInstall, showSyncToast } = usePWA();
 
   useEffect(() => {
     // Vérifier si c'est un lien de signature
@@ -56,7 +60,16 @@ export default function App() {
   // Page de signature
   if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
-  if (user) return <Dashboard user={user} onLogout={() => setUser(null)} />;
+  if (user) return (
+    <Dashboard
+      user={user}
+      onLogout={() => setUser(null)}
+      isOnline={isOnline}
+      canInstall={canInstall}
+      handleInstall={handleInstall}
+      showSyncToast={showSyncToast}
+    />
+  );
 
   return (
     <div style={{
@@ -77,6 +90,24 @@ export default function App() {
           <div style={{ color: "#8899aa", fontSize: "14px", marginTop: "4px" }}>
             Gérez votre activité simplement
           </div>
+
+          {/* Bouton d'installation PWA */}
+          {canInstall && (
+            <button
+              onClick={handleInstall}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                marginTop: "16px", background: "rgba(255,140,0,0.12)",
+                border: "1.5px solid rgba(255,140,0,0.4)",
+                color: PRIMARY, borderRadius: "12px",
+                padding: "10px 20px", cursor: "pointer",
+                fontSize: "14px", fontWeight: "700",
+                transition: "all 0.2s"
+              }}
+            >
+              📲 Installer l'app
+            </button>
+          )}
         </div>
 
         <div style={{ display: "flex", marginBottom: "28px", background: "#0a1628", borderRadius: "10px", padding: "4px" }}>

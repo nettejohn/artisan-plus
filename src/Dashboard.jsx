@@ -11,7 +11,7 @@ const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
-export default function Dashboard({ user, onLogout }) {
+export default function Dashboard({ user, onLogout, isOnline = true, canInstall = false, handleInstall, showSyncToast = false }) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
   const [clientPreSelectionne, setClientPreSelectionne] = useState(null);
@@ -46,6 +46,29 @@ export default function Dashboard({ user, onLogout }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // ── Synchronisation automatique au retour de la connexion ────────
+  useEffect(() => {
+    if (!isOnline) return; // Ne rien faire si hors ligne
+    // Quand isOnline passe de false à true (showSyncToast = true),
+    // on recharge toutes les données depuis Supabase
+    if (showSyncToast) {
+      chargerDonnees();
+      chargerClients();
+      chargerChantiers();
+    }
+  }, [isOnline, showSyncToast]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Écoute les événements de sync du Service Worker ──────────────
+  useEffect(() => {
+    const handleArtisanSync = () => {
+      chargerDonnees();
+      chargerClients();
+      chargerChantiers();
+    };
+    window.addEventListener("artisan-sync", handleArtisanSync);
+    return () => window.removeEventListener("artisan-sync", handleArtisanSync);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const chargerProfil = async () => {
     const { data } = await supabase
@@ -358,6 +381,51 @@ export default function Dashboard({ user, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
 
+      {/* ── BANDEAU HORS CONNEXION ─────────────────────────────── */}
+      {!isOnline && (
+        <div style={{
+          position: "sticky", top: 0, zIndex: 101,
+          background: PRIMARY,
+          color: "white",
+          textAlign: "center",
+          padding: "10px 16px",
+          fontSize: "13px",
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          boxShadow: "0 2px 12px rgba(255,140,0,0.4)",
+        }}>
+          <span>📵</span>
+          <span>Vous êtes hors connexion — certaines fonctions sont limitées</span>
+        </div>
+      )}
+
+      {/* ── TOAST : connexion rétablie + synchro ───────────────── */}
+      {showSyncToast && isOnline && (
+        <div style={{
+          position: "fixed", top: "16px", left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 500,
+          background: "#4CAF50",
+          color: "white",
+          borderRadius: "12px",
+          padding: "12px 20px",
+          fontSize: "13px",
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+          animation: "fadeInDown 0.3s ease",
+          whiteSpace: "nowrap",
+        }}>
+          <span>✅</span>
+          <span>Connexion rétablie — synchronisation en cours...</span>
+        </div>
+      )}
+
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <div style={{
         background: CARD,
@@ -411,6 +479,35 @@ export default function Dashboard({ user, onLogout }) {
 
         {/* Boutons droite */}
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+
+          {/* Bouton d'installation PWA (mobile + desktop) */}
+          {canInstall && (
+            <button
+              onClick={handleInstall}
+              title="Installer Artisan+ sur votre écran d'accueil"
+              style={{
+                background: "rgba(255,140,0,0.12)",
+                border: "1.5px solid rgba(255,140,0,0.4)",
+                color: PRIMARY,
+                borderRadius: "9px",
+                padding: isDesktop ? "8px 14px" : "0",
+                width: isDesktop ? "auto" : "36px",
+                height: isDesktop ? "auto" : "36px",
+                cursor: "pointer",
+                fontSize: isDesktop ? "13px" : "16px",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                flexShrink: 0,
+              }}
+            >
+              <span>📲</span>
+              {isDesktop && <span>Installer</span>}
+            </button>
+          )}
+
           {isDesktop ? (
             <button
               onClick={() => setPage(page === "parametres" ? "dashboard" : "parametres")}
