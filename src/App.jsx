@@ -17,6 +17,7 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null); // 'success' | 'canceled' | null
 
   // PWA — toutes les capabilities
   const {
@@ -32,6 +33,15 @@ export default function App() {
       const token = path.replace("/signer/", "");
       setSignatureToken(token);
       return;
+    }
+
+    // Détecter le retour depuis Stripe Checkout
+    const params = new URLSearchParams(window.location.search);
+    const sub = params.get("subscription");
+    if (sub === "success" || sub === "canceled") {
+      setSubscriptionStatus(sub);
+      // Nettoyer l'URL sans recharger la page
+      window.history.replaceState({}, "", window.location.pathname);
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -77,6 +87,8 @@ export default function App() {
       notifPermission={notifPermission}
       requestNotifPermission={requestNotifPermission}
       checkAndNotify={checkAndNotify}
+      subscriptionStatus={subscriptionStatus}
+      onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
     />
   );
 

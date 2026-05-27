@@ -121,6 +121,11 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
   // ── Centre d'aide (accordéon) ─────────────────────
   const [aideOpenId, setAideOpenId] = useState(null);
 
+  // ── Abonnement Stripe ────────────────────────────
+  const [planInfo,      setPlanInfo]      = useState({ plan: "free", stripe_customer_id: null });
+  const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeMsg,     setStripeMsg]     = useState("");
+
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); }, []);
 
@@ -130,14 +135,20 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
       supabase.from("profils").select("*").eq("user_id", user.id).single(),
       supabase.from("parametres").select("*").eq("user_id", user.id).single(),
     ]);
-    if (p) setProfil({
-      nom:       p.nom       || "",
-      adresse:   p.adresse   || "",
-      siret:     p.siret     || "",
-      telephone: p.telephone || "",
-      iban:      p.iban      || "",
-      logo_url:  p.logo_url  || "",
-    });
+    if (p) {
+      setProfil({
+        nom:       p.nom       || "",
+        adresse:   p.adresse   || "",
+        siret:     p.siret     || "",
+        telephone: p.telephone || "",
+        iban:      p.iban      || "",
+        logo_url:  p.logo_url  || "",
+      });
+      setPlanInfo({
+        plan:               p.plan               || "free",
+        stripe_customer_id: p.stripe_customer_id || null,
+      });
+    }
     if (pm) setParams({
       theme_pdf:             pm.theme_pdf             || "moderne",
       couleur_pdf:           pm.couleur_pdf           || "#FF8C00",
@@ -246,6 +257,50 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
   const supprimerCompte = async () => {
     alert("Pour supprimer définitivement votre compte, contactez le support à support@artisan-plus.fr\nVos données seront effacées dans les 48h.");
     setDeleteStep(0); setDeleteConfirmText("");
+  };
+
+  // ── Stripe : Checkout ────────────────────────────────
+  const passerAuPro = async () => {
+    setStripeLoading(true);
+    setStripeMsg("");
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, email: user.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setStripeMsg("❌ " + (data.error || "Erreur inconnue"));
+      }
+    } catch (e) {
+      setStripeMsg("❌ Impossible de joindre Stripe : " + e.message);
+    }
+    setStripeLoading(false);
+  };
+
+  // ── Stripe : Portail client (gérer / annuler) ────────
+  const gererAbonnement = async () => {
+    setStripeLoading(true);
+    setStripeMsg("");
+    try {
+      const res = await fetch("/api/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setStripeMsg("❌ " + (data.error || "Erreur inconnue"));
+      }
+    } catch (e) {
+      setStripeMsg("❌ " + e.message);
+    }
+    setStripeLoading(false);
   };
 
   // ────────────────────────────────────────────────────
@@ -690,61 +745,150 @@ export default function Parametres({ user, onBack, isDesktop = false }) {
       ══════════════════════════════════════════════════ */}
       {activeSection === "abonnement" && (
         <div>
-          {/* Plan actuel */}
           <SCard titre="💎 Mon abonnement">
-            <div style={{ background: DARK, borderRadius: "12px", padding: "18px", border: "1px solid rgba(255,140,0,0.15)", marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+
+            {/* ── Plan actuel ─────────────────────────────── */}
+            <div style={{
+              background: DARK, borderRadius: "14px", padding: "18px 20px",
+              border: planInfo.plan === "pro"
+                ? "1.5px solid rgba(255,140,0,0.5)"
+                : "1px solid rgba(255,255,255,0.08)",
+              marginBottom: "18px",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              gap: "12px",
+            }}>
               <div>
-                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Plan actuel</div>
-                <div style={{ color: "white", fontSize: "26px", fontWeight: "800" }}>Gratuit</div>
-                <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px" }}>Accès aux fonctions de base</div>
+                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "5px" }}>Plan actuel</div>
+                {planInfo.plan === "pro" ? (
+                  <>
+                    <div style={{ color: PRIMARY, fontSize: "24px", fontWeight: "900" }}>💎 Pro</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px" }}>Accès complet à toutes les fonctions</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ color: "white", fontSize: "24px", fontWeight: "800" }}>Gratuit</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px" }}>3 factures · 3 devis · 2 chantiers</div>
+                  </>
+                )}
               </div>
-              <div style={{ background: "rgba(136,153,170,0.15)", border: "1px solid rgba(136,153,170,0.25)", borderRadius: "10px", padding: "8px 16px" }}>
-                <span style={{ color: "#8899aa", fontWeight: "800", fontSize: "13px", letterSpacing: "1px" }}>FREE</span>
-              </div>
-            </div>
-
-            {/* Offre Pro */}
-            <div style={{ background: "linear-gradient(135deg, rgba(255,140,0,0.13) 0%, rgba(255,140,0,0.04) 100%)", borderRadius: "16px", padding: "20px", border: "1.5px solid rgba(255,140,0,0.35)", marginBottom: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
-                <div>
-                  <div style={{ color: PRIMARY, fontSize: "20px", fontWeight: "800" }}>✨ Plan Pro</div>
-                  <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "2px" }}>Tout illimité, fonctions avancées</div>
+              {planInfo.plan === "pro" ? (
+                <div style={{ background: "rgba(255,140,0,0.15)", border: "1px solid rgba(255,140,0,0.4)", borderRadius: "10px", padding: "8px 18px" }}>
+                  <span style={{ color: PRIMARY, fontWeight: "900", fontSize: "14px", letterSpacing: "1px" }}>PRO ✓</span>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ color: "white", fontSize: "26px", fontWeight: "800", lineHeight: 1 }}>7,99 €</div>
-                  <div style={{ color: "#8899aa", fontSize: "12px" }}>/mois TTC</div>
+              ) : (
+                <div style={{ background: "rgba(136,153,170,0.1)", border: "1px solid rgba(136,153,170,0.2)", borderRadius: "10px", padding: "8px 18px" }}>
+                  <span style={{ color: "#8899aa", fontWeight: "800", fontSize: "13px" }}>FREE</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── CTA selon plan ───────────────────────────── */}
+            {planInfo.plan !== "pro" ? (
+              <>
+                {/* Offre Pro */}
+                <div style={{
+                  background: "linear-gradient(135deg, rgba(255,140,0,0.12) 0%, rgba(255,140,0,0.04) 100%)",
+                  borderRadius: "16px", padding: "22px",
+                  border: "1.5px solid rgba(255,140,0,0.35)", marginBottom: "14px",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+                    <div>
+                      <div style={{ color: PRIMARY, fontSize: "18px", fontWeight: "800" }}>✨ Plan Pro</div>
+                      <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "3px" }}>Tout illimité, fonctions avancées</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ color: "white", fontSize: "28px", fontWeight: "900", lineHeight: 1 }}>7,99 €</div>
+                      <div style={{ color: "#8899aa", fontSize: "12px" }}>/mois TTC</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "7px", marginBottom: "18px" }}>
+                    {[
+                      "✅ Factures & devis illimités",
+                      "✅ Chantiers illimités + photos HD",
+                      "✅ Logo professionnel sur les PDFs",
+                      "✅ Signature électronique des devis",
+                      "✅ Notifications intelligentes",
+                      "✅ Support prioritaire",
+                    ].map((f, i) => (
+                      <div key={i} style={{ color: "#ccc", fontSize: "13px" }}>{f}</div>
+                    ))}
+                  </div>
+
+                  {stripeMsg && (
+                    <div style={{ color: "#ff6b6b", fontSize: "13px", marginBottom: "12px", fontWeight: "600" }}>
+                      {stripeMsg}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={passerAuPro}
+                    disabled={stripeLoading}
+                    style={{
+                      background: stripeLoading ? "#555" : "linear-gradient(135deg, #FF8C00 0%, #e67600 100%)",
+                      color: "white", border: "none",
+                      borderRadius: "12px", padding: "15px",
+                      fontSize: "15px", fontWeight: "800",
+                      cursor: stripeLoading ? "not-allowed" : "pointer",
+                      width: "100%",
+                      boxShadow: stripeLoading ? "none" : "0 4px 20px rgba(255,140,0,0.35)",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                    }}
+                  >
+                    {stripeLoading ? (
+                      <><span>⏳</span><span>Redirection vers Stripe…</span></>
+                    ) : (
+                      <><span>🚀</span><span>Passer au Pro — 7,99 €/mois</span></>
+                    )}
+                  </button>
+                </div>
+
+                <div style={{ color: "#555", fontSize: "12px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                  <span>🔒 Paiement sécurisé Stripe</span>
+                  <span>·</span>
+                  <span>Sans engagement</span>
+                  <span>·</span>
+                  <span>Résiliable à tout moment</span>
+                </div>
+              </>
+            ) : (
+              /* ── Déjà Pro : bouton gestion ──────────────── */
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{
+                  background: "rgba(76,175,80,0.08)", border: "1px solid rgba(76,175,80,0.3)",
+                  borderRadius: "12px", padding: "16px 18px",
+                  display: "flex", alignItems: "center", gap: "12px",
+                }}>
+                  <span style={{ fontSize: "24px" }}>✅</span>
+                  <div>
+                    <div style={{ color: "#4CAF50", fontWeight: "700", fontSize: "14px" }}>Abonnement Pro actif</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Toutes les fonctions sont disponibles sans limite</div>
+                  </div>
+                </div>
+
+                {stripeMsg && (
+                  <div style={{ color: "#ff6b6b", fontSize: "13px", fontWeight: "600" }}>{stripeMsg}</div>
+                )}
+
+                <button
+                  onClick={gererAbonnement}
+                  disabled={stripeLoading}
+                  style={{
+                    background: "rgba(255,255,255,0.06)", color: "white",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: "10px", padding: "12px 18px",
+                    fontSize: "14px", fontWeight: "600",
+                    cursor: stripeLoading ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", gap: "8px",
+                  }}
+                >
+                  {stripeLoading ? "⏳ Chargement…" : "⚙️ Gérer mon abonnement (Stripe)"}
+                </button>
+                <div style={{ color: "#555", fontSize: "12px" }}>
+                  Depuis le portail Stripe vous pouvez modifier votre carte ou résilier votre abonnement.
                 </div>
               </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "6px", marginBottom: "18px" }}>
-                {[
-                  "✅ Clients, factures, devis illimités",
-                  "✅ Chantiers illimités avec photos HD",
-                  "✅ Relances automatiques par email",
-                  "✅ Logo sur toutes les factures",
-                  "✅ Export comptable (CSV, PDF)",
-                  "✅ Support prioritaire 7j/7",
-                ].map((f, i) => (
-                  <div key={i} style={{ color: "#ccc", fontSize: "13px" }}>{f}</div>
-                ))}
-              </div>
-
-              <button style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "12px", padding: "14px", fontSize: "15px", fontWeight: "800", cursor: "pointer", width: "100%", letterSpacing: "0.3px" }}>
-                🚀 Passer au Pro — 7,99 €/mois
-              </button>
-            </div>
-
-            <div style={{ color: "#555", fontSize: "12px", textAlign: "center" }}>
-              Paiement sécurisé par Stripe · Sans engagement · Résiliable à tout moment
-            </div>
-          </SCard>
-
-          {/* Historique */}
-          <SCard titre="📊 Historique des paiements">
-            <div style={{ textAlign: "center", padding: "28px 20px", color: "#555" }}>
-              <div style={{ fontSize: "36px", marginBottom: "10px" }}>📭</div>
-              <div style={{ fontSize: "13px", fontStyle: "italic" }}>Aucun paiement enregistré — vous êtes sur le plan gratuit</div>
-            </div>
+            )}
           </SCard>
         </div>
       )}

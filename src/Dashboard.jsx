@@ -6,6 +6,7 @@ import { genererFacturePDF } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
+import UpgradeModal from "./UpgradeModal";
 import { idbSave, idbLoad } from "./idb";
 
 const PRIMARY = "#FF8C00";
@@ -19,6 +20,7 @@ export default function Dashboard({
   showSyncToast = false,
   updateAvailable = false, handleUpdate,
   notifPermission = 'default', requestNotifPermission, checkAndNotify,
+  subscriptionStatus = null, onSubscriptionStatusCleared,
 }) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
@@ -28,6 +30,9 @@ export default function Dashboard({
   const [profil, setProfil] = useState(null);
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
   const [lienCopie, setLienCopie] = useState(null);
+
+  // Freemium / Upgrade
+  const [upgradeModal, setUpgradeModal] = useState({ open: false, type: "factures" });
 
   // États chantiers (pour affichage dans la fiche client)
   const [chantiers, setChantiers] = useState([]);
@@ -84,6 +89,21 @@ export default function Dashboard({
       checkAndNotify?.(factures, devis);
     }
   }, [factures, devis]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Retour depuis Stripe : recharger le profil pour lire le plan mis à jour
+  useEffect(() => {
+    if (subscriptionStatus === "success") {
+      chargerProfil();
+    }
+    // Auto-clear après 5 s
+    if (subscriptionStatus) {
+      const t = setTimeout(() => onSubscriptionStatusCleared?.(), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [subscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Plan actuel (calculé depuis le profil)
+  const isPro = profil?.plan === "pro";
 
   const chargerProfil = async () => {
     const { data } = await supabase
@@ -480,6 +500,40 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* ── TOAST : retour Stripe Checkout ─────────────────────── */}
+      {subscriptionStatus === "success" && (
+        <div style={{
+          position: "fixed", top: "16px", left: "50%",
+          transform: "translateX(-50%)", zIndex: 600,
+          background: "#1a6f3c", color: "white",
+          borderRadius: "12px", padding: "14px 24px",
+          fontSize: "14px", fontWeight: "700",
+          display: "flex", alignItems: "center", gap: "10px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+        }}>
+          <span>💎</span>
+          <span>Bienvenue dans le plan Pro ! Toutes les limites sont levées.</span>
+          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+        </div>
+      )}
+      {subscriptionStatus === "canceled" && (
+        <div style={{
+          position: "fixed", top: "16px", left: "50%",
+          transform: "translateX(-50%)", zIndex: 600,
+          background: "#8899aa", color: "white",
+          borderRadius: "12px", padding: "14px 24px",
+          fontSize: "14px", fontWeight: "700",
+          display: "flex", alignItems: "center", gap: "10px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+        }}>
+          <span>ℹ️</span>
+          <span>Paiement annulé — vous restez sur le plan gratuit.</span>
+          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+        </div>
+      )}
+
       {/* ── TOAST : connexion rétablie + synchro ───────────────── */}
       {showSyncToast && isOnline && (
         <div style={{
@@ -723,11 +777,20 @@ export default function Dashboard({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
-              <button onClick={() => setPage("nouvelle-facture")} style={{
-                background: PRIMARY, color: "white", border: "none",
-                borderRadius: "10px", padding: "11px 18px",
-                fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
-              }}>+ Nouvelle facture</button>
+              <button
+                onClick={() => {
+                  if (!isPro && factures.length >= 3) {
+                    setUpgradeModal({ open: true, type: "factures" });
+                  } else {
+                    setPage("nouvelle-facture");
+                  }
+                }}
+                style={{
+                  background: PRIMARY, color: "white", border: "none",
+                  borderRadius: "10px", padding: "11px 18px",
+                  fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
+                }}
+              >+ Nouvelle facture</button>
             </div>
             {factures.length === 0 ? (
               <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
@@ -783,11 +846,20 @@ export default function Dashboard({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
-              <button onClick={() => setPage("nouveau-devis")} style={{
-                background: PRIMARY, color: "white", border: "none",
-                borderRadius: "10px", padding: "11px 18px",
-                fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
-              }}>+ Nouveau devis</button>
+              <button
+                onClick={() => {
+                  if (!isPro && devis.length >= 3) {
+                    setUpgradeModal({ open: true, type: "devis" });
+                  } else {
+                    setPage("nouveau-devis");
+                  }
+                }}
+                style={{
+                  background: PRIMARY, color: "white", border: "none",
+                  borderRadius: "10px", padding: "11px 18px",
+                  fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0
+                }}
+              >+ Nouveau devis</button>
             </div>
             {devis.length === 0 ? (
               <div style={{ background: CARD, borderRadius: "16px", padding: "40px", textAlign: "center", border: "1px solid rgba(255,140,0,0.15)" }}>
@@ -1446,6 +1518,8 @@ export default function Dashboard({
         {activeTab === "chantiers" && (
           <Chantiers
             user={user}
+            isPro={isPro}
+            onUpgrade={() => setUpgradeModal({ open: true, type: "chantiers" })}
             clientInitialId={clientChantierPreselect}
             onClientInitialIdHandled={() => setClientChantierPreselect(null)}
             onCreerDevis={(clientId) => {
@@ -1507,6 +1581,18 @@ export default function Dashboard({
           );
         })}
       </nav>}
+
+      {/* ── UPGRADE MODAL ─────────────────────────────────────── */}
+      {upgradeModal.open && (
+        <UpgradeModal
+          limitType={upgradeModal.type}
+          onClose={() => setUpgradeModal({ open: false, type: "factures" })}
+          onUpgrade={() => {
+            setUpgradeModal({ open: false, type: "factures" });
+            setPage("parametres");
+          }}
+        />
+      )}
     </div>
   );
 }

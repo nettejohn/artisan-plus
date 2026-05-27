@@ -90,7 +90,7 @@ const subTitre = {
   marginBottom: "8px",
 };
 
-export default function Chantiers({ user, onCreerDevis, onCreerFacture, clientInitialId, onClientInitialIdHandled }) {
+export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis, onCreerFacture, clientInitialId, onClientInitialIdHandled }) {
 
   // ── Liste ──────────────────────────────────────────────────────
   const [chantiers,    setChantiers]    = useState([]);
@@ -846,7 +846,13 @@ export default function Chantiers({ user, onCreerDevis, onCreerFacture, clientIn
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
         <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>🏗️ Mes Chantiers</h2>
         <button
-          onClick={() => { setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" }); setNvModal(true); }}
+          onClick={() => {
+            if (!isPro && chantiers.length >= 2) {
+              onUpgrade?.();
+            } else {
+              setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" }); setNvModal(true);
+            }
+          }}
           style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "10px 20px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}
         >
           ＋ Nouveau chantier
@@ -873,7 +879,16 @@ export default function Chantiers({ user, onCreerDevis, onCreerFacture, clientIn
             {filtreStatut === "tous" ? "Aucun chantier pour l'instant" : `Aucun chantier « ${STATUTS[filtreStatut]?.label} »`}
           </div>
           {filtreStatut === "tous" && (
-            <button onClick={() => setNvModal(true)} style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "11px 24px", cursor: "pointer", fontWeight: "700", fontSize: "14px" }}>
+            <button
+              onClick={() => {
+                if (!isPro && chantiers.length >= 2) {
+                  onUpgrade?.();
+                } else {
+                  setNvModal(true);
+                }
+              }}
+              style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "11px 24px", cursor: "pointer", fontWeight: "700", fontSize: "14px" }}
+            >
               Créer le premier chantier
             </button>
           )}
