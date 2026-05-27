@@ -18,8 +18,12 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
 
-  // PWA
-  const { isOnline, canInstall, handleInstall, showSyncToast } = usePWA();
+  // PWA — toutes les capabilities
+  const {
+    isOnline, canInstall, handleInstall, showSyncToast,
+    updateAvailable, handleUpdate,
+    notifPermission, requestNotifPermission, checkAndNotify,
+  } = usePWA();
 
   useEffect(() => {
     // Vérifier si c'est un lien de signature
@@ -68,6 +72,11 @@ export default function App() {
       canInstall={canInstall}
       handleInstall={handleInstall}
       showSyncToast={showSyncToast}
+      updateAvailable={updateAvailable}
+      handleUpdate={handleUpdate}
+      notifPermission={notifPermission}
+      requestNotifPermission={requestNotifPermission}
+      checkAndNotify={checkAndNotify}
     />
   );
 

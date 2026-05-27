@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
@@ -6,12 +6,20 @@ import { genererFacturePDF } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
+import { idbSave, idbLoad } from "./idb";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
-export default function Dashboard({ user, onLogout, isOnline = true, canInstall = false, handleInstall, showSyncToast = false }) {
+export default function Dashboard({
+  user, onLogout,
+  isOnline = true,
+  canInstall = false, handleInstall,
+  showSyncToast = false,
+  updateAvailable = false, handleUpdate,
+  notifPermission = 'default', requestNotifPermission, checkAndNotify,
+}) {
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
   const [clientPreSelectionne, setClientPreSelectionne] = useState(null);
@@ -70,6 +78,13 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
     return () => window.removeEventListener("artisan-sync", handleArtisanSync);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Notifications : vérifie les items en retard quand les données arrivent
+  useEffect(() => {
+    if (factures.length > 0 || devis.length > 0) {
+      checkAndNotify?.(factures, devis);
+    }
+  }, [factures, devis]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const chargerProfil = async () => {
     const { data } = await supabase
       .from("profils")
@@ -85,7 +100,14 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
       .select("id, nom, statut, prix_chantier, client_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    if (data) setChantiers(data);
+    if (data) {
+      setChantiers(data);
+      idbSave("chantiers", data); // sauvegarde pour consultation hors ligne
+    } else {
+      // Hors ligne → charge depuis le cache local
+      const cached = await idbLoad("chantiers");
+      if (cached.length > 0) setChantiers(cached);
+    }
   };
 
   const chargerClients = async () => {
@@ -98,7 +120,13 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
       `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    if (data) setClients(data);
+    if (data) {
+      setClients(data);
+      idbSave("clients", data); // sauvegarde pour consultation hors ligne
+    } else {
+      const cached = await idbLoad("clients");
+      if (cached.length > 0) setClients(cached);
+    }
   };
 
   const ouvrirModalAjout = () => {
@@ -226,6 +254,15 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
       setFactures(facturesData);
       const ca = facturesData.reduce((sum, f) => sum + (f.total_ttc || 0), 0);
       setStats(s => ({ ...s, factures: facturesData.length, ca }));
+      idbSave("factures", facturesData); // cache pour consultation hors ligne
+    } else {
+      // Hors ligne → données du cache local
+      const cached = await idbLoad("factures");
+      if (cached.length > 0) {
+        setFactures(cached);
+        const ca = cached.reduce((sum, f) => sum + (f.total_ttc || 0), 0);
+        setStats(s => ({ ...s, factures: cached.length, ca }));
+      }
     }
 
     const { data: devisData } = await supabase
@@ -237,6 +274,13 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
     if (devisData) {
       setDevis(devisData);
       setStats(s => ({ ...s, devis: devisData.length }));
+      idbSave("devis", devisData); // cache pour consultation hors ligne
+    } else {
+      const cached = await idbLoad("devis");
+      if (cached.length > 0) {
+        setDevis(cached);
+        setStats(s => ({ ...s, devis: cached.length }));
+      }
     }
 
     const { count: clientCount } = await supabase
@@ -399,6 +443,40 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
         }}>
           <span>📵</span>
           <span>Vous êtes hors connexion — certaines fonctions sont limitées</span>
+        </div>
+      )}
+
+      {/* ── BANDEAU NOUVELLE VERSION DISPONIBLE ───────────────── */}
+      {updateAvailable && (
+        <div style={{
+          position: "sticky", top: !isOnline ? "41px" : "0", zIndex: 101,
+          background: "#1a6f3c",
+          color: "white",
+          padding: "10px 16px",
+          fontSize: "13px",
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+        }}>
+          <span>🔄 Nouvelle version disponible</span>
+          <button
+            onClick={handleUpdate}
+            style={{
+              background: "white",
+              color: "#1a6f3c",
+              border: "none",
+              borderRadius: "7px",
+              padding: "5px 14px",
+              fontSize: "12px",
+              fontWeight: "800",
+              cursor: "pointer",
+            }}
+          >
+            Actualiser
+          </button>
         </div>
       )}
 
@@ -585,6 +663,39 @@ export default function Dashboard({ user, onLogout, isOnline = true, canInstall 
                   borderRadius: "8px", padding: "8px 16px",
                   cursor: "pointer", fontSize: "13px", fontWeight: "600"
                 }}>Compléter</button>
+              </div>
+            )}
+
+            {/* ── Invite à activer les notifications (si pas encore demandé) ── */}
+            {"Notification" in window && notifPermission === "default" && (
+              <div style={{
+                background: "rgba(100,149,237,0.08)", border: "1px solid rgba(100,149,237,0.3)",
+                borderRadius: "12px", padding: "14px 16px", marginBottom: "24px",
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                gap: "12px", flexWrap: "wrap",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "22px" }}>🔔</span>
+                  <div>
+                    <div style={{ color: "white", fontSize: "14px", fontWeight: "700" }}>
+                      Activer les notifications
+                    </div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>
+                      Recevez des alertes pour vos devis en attente et factures impayées
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={requestNotifPermission}
+                  style={{
+                    background: "#6495ED", color: "white", border: "none",
+                    borderRadius: "8px", padding: "9px 18px",
+                    cursor: "pointer", fontSize: "13px", fontWeight: "700",
+                    flexShrink: 0,
+                  }}
+                >
+                  Activer
+                </button>
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>

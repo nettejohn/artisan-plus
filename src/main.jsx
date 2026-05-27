@@ -3,17 +3,36 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-// ── Enregistrement du Service Worker ──────────────────────────────
-// Activé uniquement en production (Vite injecte import.meta.env.PROD)
+// ── Enregistrement du Service Worker + détection des mises à jour ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((registration) => {
-        console.log('[PWA] Service Worker enregistré :', registration.scope);
+        // Rend la registration accessible globalement (pour handleUpdate)
+        window.__swRegistration = registration;
 
-        // Vérifie les mises à jour du SW toutes les 30 minutes
+        // ── Détecte quand un nouveau SW est en cours d'installation ──
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', () => {
+            // Le nouveau SW est installé ET un SW précédent contrôle la page
+            // → une nouvelle version est disponible, on peut proposer l'update
+            if (
+              newWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
+              window.dispatchEvent(new CustomEvent('sw-update-available'));
+            }
+          });
+        });
+
+        // Vérifie les mises à jour disponibles toutes les 30 minutes
         setInterval(() => registration.update(), 30 * 60 * 1000);
+
+        console.log('[PWA] Service Worker enregistré :', registration.scope);
       })
       .catch((err) => {
         console.warn('[PWA] Échec enregistrement Service Worker :', err);

@@ -130,3 +130,49 @@ self.addEventListener('sync', (event) => {
     );
   }
 });
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────
+// Gère les notifications Web Push (pour future intégration serveur VAPID)
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'Artisan+', body: event.data.text() };
+  }
+
+  const options = {
+    body: payload.body || '',
+    icon: payload.icon || '/icon.svg',
+    badge: '/icon.svg',
+    tag: payload.tag || 'artisan-notif',
+    requireInteraction: false,
+    data: { url: payload.url || '/' },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || 'Artisan+', options)
+  );
+});
+
+// ── NOTIFICATION CLICK ────────────────────────────────────────────
+// Ouvre ou focus l'app quand l'utilisateur clique sur une notification
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Si un onglet Artisan+ est déjà ouvert, on le focus
+        const existing = clientList.find(
+          (c) => new URL(c.url).origin === self.location.origin
+        );
+        if (existing) return existing.focus();
+        // Sinon, ouvrir un nouvel onglet
+        return self.clients.openWindow(targetUrl);
+      })
+  );
+});
