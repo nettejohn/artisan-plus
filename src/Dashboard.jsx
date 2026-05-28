@@ -34,6 +34,10 @@ export default function Dashboard({
   // Freemium / Upgrade
   const [upgradeModal, setUpgradeModal] = useState({ open: false, type: "factures" });
 
+  // Menu hamburger
+  const [hamburgerOpen, setHamburgerOpen]       = useState(false);
+  const [parametresSection, setParametresSection] = useState("profil");
+
   // États chantiers (pour affichage dans la fiche client)
   const [chantiers, setChantiers] = useState([]);
   const [clientChantierPreselect, setClientChantierPreselect] = useState(null);
@@ -640,44 +644,25 @@ export default function Dashboard({
             </button>
           )}
 
-          {isDesktop ? (
-            <button
-              onClick={() => setPage(page === "parametres" ? "dashboard" : "parametres")}
-              style={{
-                background: page === "parametres" ? "rgba(255,140,0,0.12)" : "rgba(255,255,255,0.06)",
-                border: `1.5px solid ${page === "parametres" ? "rgba(255,140,0,0.35)" : "rgba(255,255,255,0.1)"}`,
-                color: page === "parametres" ? PRIMARY : "#8899aa",
-                borderRadius: "9px", padding: "8px 16px",
-                cursor: "pointer", fontSize: "14px", fontWeight: "700",
-                display: "flex", alignItems: "center", gap: "6px",
-              }}
-            >⚙️ Paramètres</button>
-          ) : (
-            <button
-              onClick={() => setPage("parametres")}
-              style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1.5px solid rgba(255,255,255,0.1)",
-                color: "#8899aa", borderRadius: "50%",
-                width: "36px", height: "36px",
-                cursor: "pointer", fontSize: "16px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >⚙️</button>
-          )}
+          {/* ── Bouton hamburger ☰ ──────────────────────── */}
           <button
-            onClick={() => setPage("profil")}
-            title="Mon profil"
+            onClick={() => setHamburgerOpen(o => !o)}
+            title="Menu"
             style={{
-              background: "rgba(255,140,0,0.12)",
-              border: "1.5px solid rgba(255,140,0,0.3)",
-              color: PRIMARY, borderRadius: "50%",
-              width: "38px", height: "38px",
-              cursor: "pointer", fontSize: "17px",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              background: hamburgerOpen ? "rgba(255,140,0,0.12)" : "rgba(255,255,255,0.06)",
+              border: `1.5px solid ${hamburgerOpen ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.1)"}`,
+              color: hamburgerOpen ? PRIMARY : "white",
+              borderRadius: "9px",
+              width: "40px", height: "40px",
+              cursor: "pointer", padding: 0, flexShrink: 0,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: "5px",
+              transition: "all 0.15s",
             }}
           >
-            {profil?.nom ? profil.nom.charAt(0).toUpperCase() : "👤"}
+            <span style={{ display: "block", width: "16px", height: "2px", background: "currentColor", borderRadius: "1px", transition: "all 0.2s" }} />
+            <span style={{ display: "block", width: "16px", height: "2px", background: "currentColor", borderRadius: "1px", transition: "all 0.2s" }} />
+            <span style={{ display: "block", width: "16px", height: "2px", background: "currentColor", borderRadius: "1px", transition: "all 0.2s" }} />
           </button>
         </div>
       </div>
@@ -691,7 +676,12 @@ export default function Dashboard({
 
         {/* PARAMÈTRES */}
         {page === "parametres" && (
-          <Parametres user={user} isDesktop={isDesktop} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
+          <Parametres
+            user={user}
+            isDesktop={isDesktop}
+            initialSection={parametresSection}
+            onBack={() => { setPage("dashboard"); chargerProfil(); setParametresSection("profil"); }}
+          />
         )}
 
         {/* ONGLETS */}
@@ -1535,7 +1525,7 @@ export default function Dashboard({
         </>}
       </div>
 
-      {/* ── BOTTOM NAV (mobile uniquement) ─────────────────────── */}
+      {/* ── BOTTOM NAV mobile : 5 onglets ───────────────────────── */}
       {!isDesktop && <nav style={{
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
         background: CARD,
@@ -1545,19 +1535,17 @@ export default function Dashboard({
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}>
         {[
-          { id: "accueil",    icon: "🏠",  label: "Accueil"   },
-          { id: "factures",   icon: "📄",  label: "Factures"  },
-          { id: "devis",      icon: "📝",  label: "Devis"     },
-          { id: "clients",    icon: "👥",  label: "Clients"   },
-          { id: "chantiers",  icon: "🏗️", label: "Chantiers" },
-          { id: "parametres", icon: "⚙️",  label: "Réglages"  },
+          { id: "accueil",   icon: "🏠",  label: "Accueil"   },
+          { id: "factures",  icon: "📄",  label: "Factures"  },
+          { id: "devis",     icon: "📝",  label: "Devis"     },
+          { id: "clients",   icon: "👥",  label: "Clients"   },
+          { id: "chantiers", icon: "🏗️", label: "Chantiers" },
         ].map(tab => {
-          const isPage = tab.id === "parametres";
-          const isActive = isPage ? page === "parametres" : activeTab === tab.id;
+          const isActive = activeTab === tab.id && page !== "parametres";
           return (
             <button
               key={tab.id}
-              onClick={() => isPage ? setPage("parametres") : (setPage("dashboard"), setActiveTab(tab.id))}
+              onClick={() => { setPage("dashboard"); setActiveTab(tab.id); }}
               style={{
                 flex: 1, background: "transparent", border: "none",
                 display: "flex", flexDirection: "column", alignItems: "center",
@@ -1581,6 +1569,134 @@ export default function Dashboard({
           );
         })}
       </nav>}
+
+      {/* ── MENU HAMBURGER (panneau latéral droit) ───────────────── */}
+      {hamburgerOpen && (
+        <>
+          {/* Overlay fond */}
+          <div
+            style={{
+              position: "fixed", inset: 0, zIndex: 998,
+              background: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(3px)",
+            }}
+            onClick={() => setHamburgerOpen(false)}
+          />
+
+          {/* Panneau */}
+          <div style={{
+            position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 999,
+            width: "min(300px, 88vw)",
+            background: CARD,
+            borderLeft: "1px solid rgba(255,140,0,0.2)",
+            display: "flex", flexDirection: "column",
+            animation: "slideInRight 0.22s ease",
+            boxShadow: "-8px 0 48px rgba(0,0,0,0.5)",
+            overflowY: "auto",
+          }}>
+
+            {/* En-tête utilisateur */}
+            <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div style={{ fontSize: "20px", fontWeight: "900", color: "white" }}>
+                  Artisan<span style={{ color: PRIMARY }}>+</span>
+                </div>
+                <button
+                  onClick={() => setHamburgerOpen(false)}
+                  style={{
+                    background: "rgba(255,255,255,0.06)", border: "none",
+                    color: "#8899aa", cursor: "pointer", fontSize: "15px",
+                    borderRadius: "50%", width: "32px", height: "32px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >✕</button>
+              </div>
+
+              {/* Avatar + nom + email */}
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                <div style={{
+                  width: "44px", height: "44px", borderRadius: "50%",
+                  background: "rgba(255,140,0,0.15)", border: "2px solid rgba(255,140,0,0.35)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: PRIMARY, fontSize: "18px", fontWeight: "800", flexShrink: 0,
+                }}>
+                  {profil?.nom ? profil.nom.charAt(0).toUpperCase() : "👤"}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {profil?.nom || "Mon compte"}
+                  </div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user?.email}
+                  </div>
+                </div>
+              </div>
+
+              {/* Badge plan */}
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                background: isPro ? "rgba(255,140,0,0.1)" : "rgba(136,153,170,0.08)",
+                border: `1px solid ${isPro ? "rgba(255,140,0,0.25)" : "rgba(136,153,170,0.2)"}`,
+                borderRadius: "8px", padding: "5px 12px",
+                color: isPro ? PRIMARY : "#8899aa",
+                fontSize: "12px", fontWeight: "700",
+              }}>
+                {isPro ? "💎 Plan Pro" : "Plan Gratuit"}
+              </div>
+            </div>
+
+            {/* Items de navigation */}
+            <div style={{ flex: 1 }}>
+              {[
+                { icon: "👤", label: "Mon profil",     action: () => { setPage("profil");      setHamburgerOpen(false); } },
+                { icon: "💎", label: "Mon abonnement", action: () => { setParametresSection("abonnement"); setPage("parametres"); setHamburgerOpen(false); } },
+                { icon: "⚙️", label: "Paramètres",     action: () => { setParametresSection("profil");     setPage("parametres"); setHamburgerOpen(false); } },
+                { icon: "❓", label: "Centre d'aide",  action: () => { setParametresSection("aide");        setPage("parametres"); setHamburgerOpen(false); } },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  style={{
+                    width: "100%", background: "transparent", border: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.04)",
+                    color: "white", textAlign: "left",
+                    padding: "15px 20px", fontSize: "15px", fontWeight: "600",
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: "14px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  <span style={{ fontSize: "20px", width: "26px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                  <span style={{ color: "#8899aa", fontSize: "16px" }}>›</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Déconnexion */}
+            <div style={{ padding: "20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <button
+                onClick={() => { handleLogout(); setHamburgerOpen(false); }}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,100,100,0.08)",
+                  border: "1.5px solid rgba(255,100,100,0.2)",
+                  color: "#ff6b6b", borderRadius: "12px", padding: "13px",
+                  fontSize: "14px", fontWeight: "700", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,100,100,0.15)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,100,100,0.08)"}
+              >
+                🚪 Déconnexion
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── UPGRADE MODAL ─────────────────────────────────────── */}
       {upgradeModal.open && (

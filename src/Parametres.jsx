@@ -65,8 +65,8 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
   );
 }
 
-export default function Parametres({ user, onBack, isDesktop = false }) {
-  const [activeSection, setActiveSection] = useState("profil");
+export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil" }) {
+  const [activeSection, setActiveSection] = useState(initialSection);
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
   const [savingParams,  setSavingParams]  = useState(false);

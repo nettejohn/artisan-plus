@@ -90,6 +90,30 @@ const subTitre = {
   marginBottom: "8px",
 };
 
+// ── Helpers météo ─────────────────────────────────────────────────
+
+/** Décode un code WMO en label + emoji */
+function wmoInfo(code) {
+  if (code === 0)            return { label: "Ciel dégagé",         emoji: "☀️"  };
+  if (code === 1)            return { label: "Principalement dégagé",emoji: "🌤️" };
+  if (code === 2)            return { label: "Partiellement nuageux",emoji: "⛅"  };
+  if (code === 3)            return { label: "Couvert",              emoji: "☁️"  };
+  if (code <= 48)            return { label: "Brouillard",           emoji: "🌫️" };
+  if (code <= 57)            return { label: "Bruine",               emoji: "🌦️" };
+  if (code <= 67)            return { label: "Pluie",                emoji: "🌧️" };
+  if (code <= 77)            return { label: "Neige",                emoji: "❄️"  };
+  if (code <= 82)            return { label: "Averses",              emoji: "🌦️" };
+  if (code <= 86)            return { label: "Averses de neige",     emoji: "🌨️" };
+  if (code <= 99)            return { label: "Orage",                emoji: "⛈️" };
+  return                            { label: "Variable",             emoji: "🌡️" };
+}
+
+/** Convertit un angle de vent (°) en direction cardinale */
+function windDir(deg) {
+  const dirs = ["N","NE","E","SE","S","SO","O","NO"];
+  return dirs[Math.round((deg % 360) / 45) % 8];
+}
+
 export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis, onCreerFacture, clientInitialId, onClientInitialIdHandled }) {
 
   // ── Liste ──────────────────────────────────────────────────────
@@ -115,6 +139,11 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const [devisFiche,    setDevisFiche]    = useState([]);
   const [factsFiche,    setFactsFiche]    = useState([]);
   const [delConfirm,    setDelConfirm]    = useState(false);
+
+  // ── Météo ──────────────────────────────────────────────────────
+  const [meteo,        setMeteo]        = useState(null);
+  const [meteoLoading, setMeteoLoading] = useState(false);
+  const [meteoError,   setMeteoError]   = useState(null);
 
   useEffect(() => { chargerTout(); }, [user.id]);
 
@@ -156,6 +185,50 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setFactsFiche(fa || []);
   };
 
+  // ── Météo : géocode l'adresse puis appelle Open-Meteo ──────────
+  const fetchMeteo = async (adresse) => {
+    if (!adresse?.trim()) { setMeteo(null); setMeteoError(null); return; }
+    setMeteoLoading(true);
+    setMeteoError(null);
+    setMeteo(null);
+    try {
+      // 1) Géocodage via Open-Meteo (gratuit, sans clé)
+      const geoRes  = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(adresse)}&count=1&language=fr&format=json`
+      );
+      const geoData = await geoRes.json();
+      if (!geoData.results?.length) {
+        setMeteoError("Adresse introuvable — vérifiez l'adresse du chantier");
+        setMeteoLoading(false);
+        return;
+      }
+      const { latitude, longitude, name, country_code } = geoData.results[0];
+
+      // 2) Météo actuelle via Open-Meteo forecast
+      const wRes  = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,` +
+        `precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m` +
+        `&timezone=auto&wind_speed_unit=kmh`
+      );
+      const wData = await wRes.json();
+      const c = wData.current;
+      setMeteo({
+        temperature:    Math.round(c.temperature_2m),
+        ressenti:       Math.round(c.apparent_temperature),
+        humidite:       c.relative_humidity_2m,
+        pluie_proba:    c.precipitation_probability ?? 0,
+        code:           c.weather_code,
+        vent_vitesse:   Math.round(c.wind_speed_10m),
+        vent_direction: c.wind_direction_10m,
+        lieu:           `${name}${country_code ? " · " + country_code.toUpperCase() : ""}`,
+      });
+    } catch {
+      setMeteoError("Impossible de charger la météo (réseau ou API indisponible)");
+    }
+    setMeteoLoading(false);
+  };
+
   // ── Ouvrir fiche ───────────────────────────────────────────────
 
   const ouvrirFiche = (ch) => {
@@ -190,6 +263,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setFicheMsg("");
     setDelConfirm(false);
     chargerDocs(ch.client_id);
+    fetchMeteo(ch.adresse); // Charge la météo de l'adresse du chantier
   };
 
   // Setter qui marque la fiche comme modifiée
@@ -426,6 +500,99 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             }}>
               🧾 Créer une facture pour ce chantier
             </button>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════
+            WIDGET MÉTÉO
+        ══════════════════════════════════════════════════════ */}
+        {ficheForm.adresse?.trim() && (
+          <div style={{
+            background: CARD, borderRadius: "16px", padding: "16px 18px",
+            marginBottom: "14px",
+            border: "1px solid rgba(100,149,237,0.25)",
+          }}>
+            {/* En-tête widget */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <span style={{ fontSize: "16px" }}>🌤️</span>
+              <span style={{ color: "white", fontSize: "13px", fontWeight: "700", flex: 1 }}>
+                Météo du chantier
+              </span>
+              {meteo && (
+                <span style={{ color: "#8899aa", fontSize: "11px", maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {meteo.lieu}
+                </span>
+              )}
+              <button
+                onClick={() => fetchMeteo(ficheForm.adresse)}
+                disabled={meteoLoading}
+                title="Actualiser la météo"
+                style={{
+                  background: "rgba(255,255,255,0.06)", border: "none",
+                  color: "#8899aa", borderRadius: "6px", padding: "4px 8px",
+                  cursor: meteoLoading ? "default" : "pointer", fontSize: "13px",
+                  transition: "color 0.15s",
+                }}
+              >🔄</button>
+            </div>
+
+            {/* Chargement */}
+            {meteoLoading && (
+              <div style={{ color: "#8899aa", fontSize: "13px", textAlign: "center", padding: "14px 0" }}>
+                ⏳ Chargement de la météo…
+              </div>
+            )}
+
+            {/* Erreur */}
+            {meteoError && !meteoLoading && (
+              <div style={{ color: "#ff6b6b", fontSize: "12px", padding: "6px 0" }}>
+                ⚠️ {meteoError}
+              </div>
+            )}
+
+            {/* Données météo */}
+            {meteo && !meteoLoading && (() => {
+              const { label, emoji } = wmoInfo(meteo.code);
+              return (
+                <>
+                  {/* Température + condition */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "14px" }}>
+                    <div style={{ fontSize: "52px", lineHeight: 1, flexShrink: 0 }}>{emoji}</div>
+                    <div>
+                      <div style={{ color: PRIMARY, fontSize: "38px", fontWeight: "900", lineHeight: 1 }}>
+                        {meteo.temperature}°C
+                      </div>
+                      <div style={{ color: "white", fontSize: "14px", fontWeight: "600", marginTop: "3px" }}>
+                        {label}
+                      </div>
+                      <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>
+                        Ressenti {meteo.ressenti}°C
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Détails : 3 tuiles */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                    {[
+                      { icon: "💧", label: "Humidité",  value: `${meteo.humidite} %` },
+                      { icon: "🌬️", label: "Vent",      value: `${meteo.vent_vitesse} km/h ${windDir(meteo.vent_direction)}` },
+                      { icon: "🌂", label: "Pluie",     value: `${meteo.pluie_proba} %` },
+                    ].map(item => (
+                      <div key={item.label} style={{
+                        background: "rgba(100,149,237,0.06)",
+                        border: "1px solid rgba(100,149,237,0.12)",
+                        borderRadius: "10px", padding: "10px 10px 8px",
+                      }}>
+                        <div style={{ color: "#8899aa", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "5px", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <span>{item.icon}</span><span>{item.label}</span>
+                        </div>
+                        <div style={{ color: "white", fontSize: "14px", fontWeight: "700" }}>{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
