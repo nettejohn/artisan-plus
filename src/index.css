@@ -58,6 +58,20 @@ p {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+/* ── Splash screen ──────────────────────────────────────── */
+@keyframes splashLogoIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+@keyframes splashFadeUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes splashBar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
 /* Évite le "flash" lors de l'ajout à l'écran d'accueil iOS */
 @media (display-mode: standalone) {
   body {

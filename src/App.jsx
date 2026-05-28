@@ -8,6 +8,21 @@ const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
+const SPLASH_PHRASES = [
+  "Calcul du bénéfice... croisons les doigts 🤞",
+  "Préparation de l'app... le café c'est pour vous ☕",
+  "Vos clients attendent... enfin presque 😄",
+  "Vos factures se préparent... elles arrivent plus vite que vos clients 😏",
+  "Chargement... le temps que vous finissiez votre café ☕",
+  "Préparation de l'app... promis c'est plus rapide qu'un devis papier 📝",
+  "On charge vos chantiers... et on espère qu'il fait beau 🌤️",
+  "Artisan+ se réveille... comme vous le matin 😴",
+  "Chargement... pendant ce temps vos concurrents font encore des devis à la main 😄",
+  "Artisan+ démarre... le chantier peut attendre 2 secondes 🏗️",
+  "On organise vos affaires... vous n'avez plus qu'à travailler 🔨",
+  "Artisan+ charge... bientôt vous allez épater vos clients 🚀",
+];
+
 export default function App() {
   const [page, setPage] = useState("login");
   const [email, setEmail] = useState("");
@@ -18,6 +33,21 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null); // 'success' | 'canceled' | null
+
+  // ── Splash screen ─────────────────────────────────────────────
+  const isSplashPage = !window.location.pathname.startsWith("/signer/");
+  const [showSplash, setShowSplash] = useState(isSplashPage);
+  const [splashOut,  setSplashOut]  = useState(false);
+  const [phrase] = useState(
+    () => SPLASH_PHRASES[Math.floor(Math.random() * SPLASH_PHRASES.length)]
+  );
+
+  useEffect(() => {
+    if (!showSplash) return;
+    const t1 = setTimeout(() => setSplashOut(true),  2300); // début du fondu-sortie
+    const t2 = setTimeout(() => setShowSplash(false), 2800); // suppression du DOM
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // PWA — toutes les capabilities
   const {
@@ -71,28 +101,100 @@ export default function App() {
     setLoading(false);
   };
 
-  // Page de signature
+  // ── Splash screen JSX (overlay fixe, zIndex 9999) ─────────────
+  const splashEl = showSplash && (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: DARK,
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      fontFamily: "'Segoe UI', sans-serif",
+      opacity: splashOut ? 0 : 1,
+      transition: "opacity 0.5s ease",
+      pointerEvents: splashOut ? "none" : "all",
+    }}>
+      {/* Logo */}
+      <img
+        src="/logo.png"
+        alt="Artisan+"
+        style={{
+          width: "clamp(130px, 30vw, 190px)",
+          height: "clamp(130px, 30vw, 190px)",
+          borderRadius: "24%",
+          marginBottom: "30px",
+          animation: "splashLogoIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
+        }}
+      />
+
+      {/* Nom */}
+      <div style={{
+        fontSize: "clamp(30px, 7vw, 40px)", fontWeight: "900", color: "white",
+        letterSpacing: "-0.5px", marginBottom: "14px",
+        animation: "splashFadeUp 0.5s ease 0.15s both",
+      }}>
+        Artisan<span style={{ color: PRIMARY }}>+</span>
+      </div>
+
+      {/* Phrase humoristique */}
+      <div style={{
+        color: "#8899aa",
+        fontSize: "clamp(13px, 3.5vw, 15px)",
+        fontStyle: "italic",
+        textAlign: "center",
+        maxWidth: "min(340px, 85vw)",
+        lineHeight: "1.6",
+        padding: "0 20px",
+        animation: "splashFadeUp 0.5s ease 0.3s both",
+      }}>
+        {phrase}
+      </div>
+
+      {/* Barre de progression */}
+      <div style={{
+        marginTop: "52px",
+        width: "min(150px, 40vw)", height: "3px",
+        background: "rgba(255,140,0,0.12)",
+        borderRadius: "2px", overflow: "hidden",
+        animation: "splashFadeUp 0.4s ease 0.4s both",
+      }}>
+        <div style={{
+          height: "100%",
+          background: `linear-gradient(90deg, ${PRIMARY}, #ffb347)`,
+          borderRadius: "2px",
+          transformOrigin: "left",
+          animation: "splashBar 2.3s ease forwards",
+        }} />
+      </div>
+    </div>
+  );
+
+  // Page de signature — pas de splash
   if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
   if (user) return (
-    <Dashboard
-      user={user}
-      onLogout={() => setUser(null)}
-      isOnline={isOnline}
-      canInstall={canInstall}
-      handleInstall={handleInstall}
-      showSyncToast={showSyncToast}
-      updateAvailable={updateAvailable}
-      handleUpdate={handleUpdate}
-      notifPermission={notifPermission}
-      requestNotifPermission={requestNotifPermission}
-      checkAndNotify={checkAndNotify}
-      subscriptionStatus={subscriptionStatus}
-      onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
-    />
+    <>
+      {splashEl}
+      <Dashboard
+        user={user}
+        onLogout={() => setUser(null)}
+        isOnline={isOnline}
+        canInstall={canInstall}
+        handleInstall={handleInstall}
+        showSyncToast={showSyncToast}
+        updateAvailable={updateAvailable}
+        handleUpdate={handleUpdate}
+        notifPermission={notifPermission}
+        requestNotifPermission={requestNotifPermission}
+        checkAndNotify={checkAndNotify}
+        subscriptionStatus={subscriptionStatus}
+        onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
+      />
+    </>
   );
 
   return (
+    <>
+      {splashEl}
     <div style={{
       minHeight: "100vh", background: DARK, display: "flex",
       alignItems: "center", justifyContent: "center",
@@ -187,6 +289,7 @@ export default function App() {
         )}
       </div>
     </div>
+    </>
   );
 }
 
