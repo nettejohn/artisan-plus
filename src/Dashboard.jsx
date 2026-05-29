@@ -110,8 +110,9 @@ export default function Dashboard({
     }
   }, [subscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Plan actuel (calculé depuis le profil)
-  const isPro = profil?.plan === "pro";
+  // Plan actuel (Pro payant OU mois offert via parrainage)
+  const isPro = profil?.plan === "pro" ||
+    (profil?.referral_pro_until && new Date(profil.referral_pro_until) > new Date());
 
   const chargerProfil = async () => {
     const { data } = await supabase
@@ -119,7 +120,25 @@ export default function Dashboard({
       .select("*")
       .eq("user_id", user.id)
       .single();
-    if (data) setProfil(data);
+    if (data) {
+      // Générer le code de parrainage si absent
+      if (!data.referral_code) {
+        const code = "ARTISAN-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Sauvegarder + récupérer le code référent depuis les métadonnées auth
+        const referredBy = user.user_metadata?.referred_by || null;
+        await supabase.from("profils").upsert(
+          {
+            user_id: data.user_id,
+            referral_code: code,
+            ...(referredBy && !data.referred_by ? { referred_by: referredBy } : {}),
+          },
+          { onConflict: "user_id" }
+        );
+        data.referral_code = code;
+        if (referredBy && !data.referred_by) data.referred_by = referredBy;
+      }
+      setProfil(data);
+    }
   };
 
   const chargerChantiers = async () => {

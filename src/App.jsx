@@ -28,6 +28,7 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nom, setNom] = useState("");
+  const [referralInput, setReferralInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
@@ -65,12 +66,18 @@ export default function App() {
       return;
     }
 
-    // Détecter le retour depuis Stripe Checkout
+    // Détecter le retour depuis Stripe Checkout + code parrainage dans l'URL
     const params = new URLSearchParams(window.location.search);
     const sub = params.get("subscription");
     if (sub === "success" || sub === "canceled") {
       setSubscriptionStatus(sub);
-      // Nettoyer l'URL sans recharger la page
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // Pré-remplir le code de parrainage si présent dans l'URL (?ref=CODE)
+    const refCode = params.get("ref");
+    if (refCode) {
+      setReferralInput(refCode.toUpperCase());
+      setPage("register");
       window.history.replaceState({}, "", window.location.pathname);
     }
 
@@ -93,8 +100,14 @@ export default function App() {
   const handleRegister = async () => {
     setLoading(true);
     setMessage("");
-    const { error } = await supabase.auth.signUp({ email, password,
-      options: { data: { full_name: nom } }
+    const { error } = await supabase.auth.signUp({
+      email, password,
+      options: {
+        data: {
+          full_name: nom,
+          referred_by: referralInput.trim().toUpperCase() || null,
+        }
+      }
     });
     if (error) setMessage("❌ " + error.message);
     else setMessage("✅ Compte créé ! Vous pouvez vous connecter.");
@@ -256,7 +269,29 @@ export default function App() {
           <input placeholder="Mot de passe" type="password" value={password}
             onChange={e => setPassword(e.target.value)} style={inputStyle} />
           {page === "register" && (
-            <input placeholder="Confirmer le mot de passe" type="password" style={inputStyle} />
+            <>
+              <input placeholder="Confirmer le mot de passe" type="password" style={inputStyle} />
+              <div style={{ position: "relative" }}>
+                <input
+                  placeholder="Code de parrainage (optionnel)"
+                  value={referralInput}
+                  onChange={e => setReferralInput(e.target.value.toUpperCase())}
+                  style={{
+                    ...inputStyle,
+                    border: referralInput
+                      ? "1px solid rgba(255,140,0,0.5)"
+                      : "1px solid rgba(255,255,255,0.08)",
+                    paddingLeft: referralInput ? "36px" : "16px",
+                  }}
+                />
+                {referralInput && (
+                  <span style={{
+                    position: "absolute", left: "12px", top: "50%",
+                    transform: "translateY(-50%)", fontSize: "15px",
+                  }}>🎁</span>
+                )}
+              </div>
+            </>
           )}
 
           {message && (

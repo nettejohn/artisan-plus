@@ -19,6 +19,7 @@ const SECTIONS = [
   { id: "factures",      label: "Facturation",   emoji: "📄" },
   { id: "notifications", label: "Notifs",        emoji: "🔔" },
   { id: "abonnement",    label: "Abonnement",    emoji: "💎" },
+  { id: "parrainage",    label: "Parrainage",    emoji: "🎁" },
   { id: "securite",      label: "Sécurité",      emoji: "🔒" },
   { id: "danger",        label: "Danger",        emoji: "⚠️" },
   { id: "aide",          label: "Centre d'aide", emoji: "❓" },
@@ -126,6 +127,10 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeMsg,     setStripeMsg]     = useState("");
 
+  // ── Parrainage ───────────────────────────────────
+  const [referralInfo,   setReferralInfo]   = useState({ code: null, referred_by: null, used: false, pro_until: null });
+  const [codeCopie,      setCodeCopie]      = useState(false);
+
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); }, []);
 
@@ -147,6 +152,12 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       setPlanInfo({
         plan:               p.plan               || "free",
         stripe_customer_id: p.stripe_customer_id || null,
+      });
+      setReferralInfo({
+        code:       p.referral_code      || null,
+        referred_by: p.referred_by       || null,
+        used:        p.referral_used     || false,
+        pro_until:   p.referral_pro_until || null,
       });
     }
     if (pm) setParams({
@@ -251,6 +262,26 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     if (!window.confirm("Déconnecter tous les appareils ?")) return;
     await supabase.auth.signOut({ scope: "global" });
     window.location.reload();
+  };
+
+  // ── Parrainage ───────────────────────────────────────
+  const copierCode = () => {
+    if (!referralInfo.code) return;
+    navigator.clipboard.writeText(referralInfo.code).catch(() => {});
+    setCodeCopie(true);
+    setTimeout(() => setCodeCopie(false), 2000);
+  };
+
+  const partagerParrainage = async () => {
+    if (!referralInfo.code) return;
+    const lien = `https://artisan-plus.vercel.app?ref=${referralInfo.code}`;
+    const msg  = `J'utilise Artisan+ pour gérer mes devis et factures, c'est top ! 🚀\nInscris-toi avec mon code ${referralInfo.code} et on gagne tous les deux 1 mois Pro gratuit :\n${lien}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: "Artisan+ — Code parrainage", text: msg }); } catch (_) {}
+    } else {
+      navigator.clipboard.writeText(msg).catch(() => {});
+      alert("Message copié ! Partagez-le par SMS ou WhatsApp.");
+    }
   };
 
   // ── Supprimer compte ─────────────────────────────────
@@ -894,6 +925,171 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       )}
 
       {/* ══════════════════════════════════════════════════
+          PARRAINAGE
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "parrainage" && (() => {
+        const lienRef = referralInfo.code
+          ? `https://artisan-plus.vercel.app?ref=${referralInfo.code}`
+          : null;
+        const proUntilDate = referralInfo.pro_until ? new Date(referralInfo.pro_until) : null;
+        const gainActif = proUntilDate && proUntilDate > new Date();
+
+        return (
+          <div>
+            {/* ── Statut ─────────────────────────────────── */}
+            <div style={{
+              background: referralInfo.used
+                ? "rgba(76,175,80,0.08)"
+                : "rgba(255,140,0,0.06)",
+              border: `1.5px solid ${referralInfo.used ? "rgba(76,175,80,0.3)" : "rgba(255,140,0,0.25)"}`,
+              borderRadius: "16px", padding: "18px 20px", marginBottom: "16px",
+              display: "flex", alignItems: "flex-start", gap: "14px",
+            }}>
+              <span style={{ fontSize: "28px", flexShrink: 0 }}>
+                {referralInfo.used ? "✅" : "🎁"}
+              </span>
+              <div>
+                {referralInfo.used ? (
+                  <>
+                    <div style={{ color: "#4CAF50", fontWeight: "800", fontSize: "15px" }}>
+                      Parrainage utilisé !
+                    </div>
+                    <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px", lineHeight: "1.5" }}>
+                      Quelqu'un s'est inscrit avec ton code et a souscrit l'abonnement Pro.
+                      {gainActif
+                        ? ` Tu bénéficies de 1 mois Pro offert jusqu'au ${proUntilDate.toLocaleDateString("fr-FR")} 🎉`
+                        : " Ton mois Pro offert a été crédité."}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ color: PRIMARY, fontWeight: "800", fontSize: "15px" }}>
+                      Parrainage disponible
+                    </div>
+                    <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px", lineHeight: "1.5" }}>
+                      Partage ton code avec un ami artisan. Quand il souscrit l'abonnement Pro,{" "}
+                      <strong style={{ color: "white" }}>vous gagnez tous les deux 1 mois Pro gratuit</strong>.
+                      {referralInfo.referred_by && (
+                        <span style={{ display: "block", marginTop: "6px", color: "#6495ED" }}>
+                          🎁 Tu as été parrainé avec le code <strong>{referralInfo.referred_by}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── Ton code ───────────────────────────────── */}
+            <SCard titre="🔑 Ton code de parrainage">
+              {referralInfo.code ? (
+                <>
+                  {/* Code affiché en grand */}
+                  <div style={{
+                    background: DARK,
+                    border: "2px dashed rgba(255,140,0,0.4)",
+                    borderRadius: "14px", padding: "20px",
+                    textAlign: "center", marginBottom: "16px",
+                  }}>
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>
+                      Ton code unique
+                    </div>
+                    <div style={{
+                      color: PRIMARY, fontSize: "clamp(20px, 6vw, 28px)",
+                      fontWeight: "900", letterSpacing: "3px", fontFamily: "monospace",
+                    }}>
+                      {referralInfo.code}
+                    </div>
+                    <div style={{ color: "#555", fontSize: "11px", marginTop: "8px" }}>
+                      {lienRef}
+                    </div>
+                  </div>
+
+                  {/* Boutons */}
+                  {!referralInfo.used && (
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                      <button onClick={copierCode} style={{
+                        flex: 1, minWidth: "130px",
+                        background: codeCopie ? "rgba(76,175,80,0.15)" : "rgba(255,140,0,0.12)",
+                        border: `1.5px solid ${codeCopie ? "rgba(76,175,80,0.4)" : "rgba(255,140,0,0.4)"}`,
+                        color: codeCopie ? "#4CAF50" : PRIMARY,
+                        borderRadius: "12px", padding: "13px 16px",
+                        cursor: "pointer", fontSize: "14px", fontWeight: "700",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                        transition: "all 0.2s",
+                      }}>
+                        {codeCopie ? "✅ Copié !" : "📋 Copier le code"}
+                      </button>
+                      <button onClick={partagerParrainage} style={{
+                        flex: 1, minWidth: "130px",
+                        background: "rgba(37,211,102,0.12)",
+                        border: "1.5px solid rgba(37,211,102,0.35)",
+                        color: "#25d366",
+                        borderRadius: "12px", padding: "13px 16px",
+                        cursor: "pointer", fontSize: "14px", fontWeight: "700",
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                      }}>
+                        📤 Partager (SMS / WhatsApp)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Message si déjà utilisé */}
+                  {referralInfo.used && (
+                    <div style={{
+                      background: "rgba(76,175,80,0.07)", border: "1px solid rgba(76,175,80,0.2)",
+                      borderRadius: "12px", padding: "14px 16px",
+                      color: "#4CAF50", fontSize: "13px", fontWeight: "600", textAlign: "center",
+                    }}>
+                      🎉 Tu ne peux parrainer qu'une seule personne. Mission accomplie !
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: "#8899aa", fontSize: "13px", textAlign: "center", padding: "20px" }}>
+                  ⏳ Chargement du code…
+                </div>
+              )}
+            </SCard>
+
+            {/* ── Comment ça marche ──────────────────────── */}
+            <SCard titre="💡 Comment ça marche ?">
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {[
+                  { step: "1", text: "Partage ton code ou lien unique avec un ami artisan" },
+                  { step: "2", text: "Il s'inscrit sur Artisan+ avec ton code" },
+                  { step: "3", text: "Il souscrit l'abonnement Pro (7,99€/mois)" },
+                  { step: "4", text: "Vous gagnez tous les deux 1 mois Pro gratuit 🎉" },
+                ].map(({ step, text }) => (
+                  <div key={step} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+                    <div style={{
+                      width: "28px", height: "28px", borderRadius: "50%",
+                      background: "rgba(255,140,0,0.15)", border: "1.5px solid rgba(255,140,0,0.4)",
+                      color: PRIMARY, fontWeight: "900", fontSize: "13px",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0,
+                    }}>{step}</div>
+                    <div style={{ color: "#ccd6e0", fontSize: "14px", lineHeight: "1.5", paddingTop: "4px" }}>
+                      {text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                marginTop: "16px", background: "rgba(255,140,0,0.05)",
+                border: "1px solid rgba(255,140,0,0.15)",
+                borderRadius: "10px", padding: "10px 14px",
+              }}>
+                <div style={{ color: "#8899aa", fontSize: "11px", lineHeight: "1.6" }}>
+                  ℹ️ Tu ne peux parrainer qu'<strong style={{ color: "white" }}>une seule personne</strong>. Le mois gratuit est crédité automatiquement quand ton filleul souscrit l'abonnement Pro.
+                </div>
+              </div>
+            </SCard>
+          </div>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════
           SÉCURITÉ
       ══════════════════════════════════════════════════ */}
       {activeSection === "securite" && (
@@ -1064,7 +1260,14 @@ ALTER TABLE parametres
 -- Colonnes factures (nature opération + TVA sur débits)
 ALTER TABLE factures
   ADD COLUMN IF NOT EXISTS nature_operation TEXT,
-  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false;`}</pre>
+  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false;
+
+-- Système de parrainage
+ALTER TABLE profils
+  ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS referred_by TEXT,
+  ADD COLUMN IF NOT EXISTS referral_used BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS referral_pro_until TIMESTAMPTZ;`}</pre>
           </div>
         </div>
       )}

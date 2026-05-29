@@ -95,11 +95,11 @@ export default async function handler(req, res) {
   try {
     switch (event.type) {
 
-      // ── Paiement réussi → passage en Pro ──────────────────────────────
+      // ── Paiement réussi → passage en Pro + récompense parrainage ─────
       case "checkout.session.completed": {
-        const session      = event.data.object;
-        const userId       = session.metadata?.user_id;
-        const customerId   = session.customer;
+        const session        = event.data.object;
+        const userId         = session.metadata?.user_id;
+        const customerId     = session.customer;
         const subscriptionId = session.subscription;
 
         if (!userId) {
@@ -107,10 +107,48 @@ export default async function handler(req, res) {
           break;
         }
 
+        // 1. Passer le filleul en Pro
         await setPlan(userId, "pro", {
           stripe_customer_id:     customerId,
           stripe_subscription_id: subscriptionId,
         });
+
+        // 2. Vérifier si le filleul a été parrainé
+        const { data: filleulProfil } = await supabase
+          .from("profils")
+          .select("referred_by")
+          .eq("user_id", userId)
+          .single();
+
+        if (filleulProfil?.referred_by) {
+          // Trouver le parrain via son code
+          const { data: parrain } = await supabase
+            .from("profils")
+            .select("user_id, referral_used, plan")
+            .eq("referral_code", filleulProfil.referred_by)
+            .single();
+
+          if (parrain && !parrain.referral_used) {
+            // Donner 1 mois Pro au parrain
+            const proUntil = new Date();
+            proUntil.setDate(proUntil.getDate() + 30);
+            const { error: errParrain } = await supabase
+              .from("profils")
+              .update({
+                referral_used:      true,
+                referral_pro_until: proUntil.toISOString(),
+                // Si pas encore Pro payant, passer en Pro via parrainage
+                ...(parrain.plan !== "pro" ? { plan: "pro" } : {}),
+              })
+              .eq("user_id", parrain.user_id);
+
+            if (errParrain) {
+              console.error("[webhook] Erreur récompense parrain :", errParrain.message);
+            } else {
+              console.log(`[webhook] Parrainage récompensé : parrain=${parrain.user_id}, filleul=${userId}`);
+            }
+          }
+        }
         break;
       }
 
