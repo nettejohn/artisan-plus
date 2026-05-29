@@ -18,7 +18,8 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+const cleanKey = (k) => (k || "").replace(/^﻿/, "").trim();
+const stripe = new Stripe(cleanKey(process.env.STRIPE_SECRET_KEY), { apiVersion: "2024-04-10" });
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
