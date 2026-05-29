@@ -14,6 +14,54 @@ const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
+// ── Étapes de la visite guidée ────────────────────────────────────────────
+const TOUR_STEPS = [
+  {
+    tab: "accueil",
+    emoji: "🏠",
+    title: "Accueil — vos stats en direct",
+    desc: "Visualisez en temps réel le nombre de factures, devis en cours, votre chiffre d'affaires total et vos clients. Tout ce qui compte, d'un coup d'œil.",
+  },
+  {
+    tab: "factures",
+    emoji: "📄",
+    title: "Factures — pro en 1 minute",
+    desc: "Créez une facture professionnelle en moins d'une minute. Choisissez parmi 5 thèmes (Moderne, Classique, Élégant…), ajoutez vos lignes, téléchargez en PDF. Vous pouvez aussi convertir un devis accepté en facture d'un clic.",
+  },
+  {
+    tab: "devis",
+    emoji: "✍️",
+    title: "Devis — signature digitale",
+    desc: "Créez un devis et envoyez le lien de signature à votre client par SMS, WhatsApp ou email. Il accède au devis sur son téléphone et le signe avec son doigt. Vous recevez la confirmation instantanément.",
+  },
+  {
+    tab: "clients",
+    emoji: "👥",
+    title: "Clients — tout leur historique",
+    desc: "Ajoutez vos clients et appelez-les en 1 clic depuis leur fiche. Consultez l'historique complet — toutes leurs factures, devis et chantiers associés en un seul endroit.",
+  },
+  {
+    tab: "chantiers",
+    emoji: "🏗️",
+    title: "Chantiers — bénéfice en temps réel",
+    desc: "Créez un chantier, saisissez vos dépenses matériaux et heures de travail. Artisan+ calcule automatiquement vos frais et votre bénéfice net. Ajoutez des photos de chantier directement depuis votre téléphone.",
+  },
+  {
+    tab: "factures",
+    emoji: "📦",
+    title: "Catalogue de prestations",
+    desc: "Enregistrez vos articles, fournitures et prestations habituelles avec leurs prix unitaires. Lors de la création d'un devis ou d'une facture, insérez-les en 1 clic — fini de tout ressaisir à chaque fois.",
+    note: "Accessible depuis ➜ Nouveau devis / Nouvelle facture",
+  },
+  {
+    tab: null,
+    emoji: "⚙️",
+    title: "Paramètres — tout personnaliser",
+    desc: "Ajoutez votre logo, SIRET, IBAN, mentions légales et conditions de paiement. Gérez votre abonnement Pro, découvrez le système de parrainage pour gagner des mois gratuits, et accédez au Centre d'aide.",
+    isParams: true,
+  },
+];
+
 export default function Dashboard({
   user, onLogout,
   isOnline = true,
@@ -37,6 +85,10 @@ export default function Dashboard({
 
   // QR Code modal
   const [qrModal, setQrModal] = useState({ open: false, url: "", numero: "", loading: false });
+
+  // Onboarding
+  const [onboardingPhase, setOnboardingPhase] = useState(null); // 'welcome' | 'tour' | null
+  const [tourStep, setTourStep] = useState(0);
 
   // Menu hamburger
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
@@ -109,6 +161,65 @@ export default function Dashboard({
       return () => clearTimeout(t);
     }
   }, [subscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Onboarding : afficher le welcome screen à la première connexion
+  useEffect(() => {
+    const key = `artisan_onboarding_v1_${user.id}`;
+    if (!localStorage.getItem(key)) {
+      // Petite attente pour que le splash soit parti
+      const t = setTimeout(() => setOnboardingPhase("welcome"), 3200);
+      return () => clearTimeout(t);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fonctions onboarding
+  const demarrerVisite = () => {
+    setTourStep(0);
+    setOnboardingPhase("tour");
+    setPage("dashboard");
+    setActiveTab(TOUR_STEPS[0].tab || "accueil");
+  };
+
+  const avancerTour = () => {
+    const next = tourStep + 1;
+    if (next >= TOUR_STEPS.length) {
+      terminerTour();
+    } else {
+      setTourStep(next);
+      const step = TOUR_STEPS[next];
+      if (step.tab && !step.isParams) {
+        setPage("dashboard");
+        setActiveTab(step.tab);
+      }
+    }
+  };
+
+  const reculerTour = () => {
+    const prev = tourStep - 1;
+    if (prev >= 0) {
+      setTourStep(prev);
+      const step = TOUR_STEPS[prev];
+      if (step.tab && !step.isParams) {
+        setPage("dashboard");
+        setActiveTab(step.tab);
+      }
+    }
+  };
+
+  const terminerTour = () => {
+    localStorage.setItem(`artisan_onboarding_v1_${user.id}`, "done");
+    setOnboardingPhase(null);
+    setTourStep(0);
+  };
+
+  const relancerVisite = () => {
+    // Trouver l'étape correspondant au tab actuel
+    const idx = TOUR_STEPS.findIndex(s =>
+      s.tab === activeTab || (s.isParams && page === "parametres")
+    );
+    setTourStep(Math.max(0, idx));
+    setOnboardingPhase("tour");
+  };
 
   // Plan actuel (Pro payant OU mois offert via parrainage)
   const isPro = profil?.plan === "pro" ||
@@ -810,7 +921,7 @@ export default function Dashboard({
                 </button>
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "28px" }}>
               {[
                 { label: "Factures", value: stats.factures, icon: "📄" },
                 { label: "Devis en cours", value: stats.devis, icon: "📝" },
@@ -827,6 +938,105 @@ export default function Dashboard({
                 </div>
               ))}
             </div>
+
+            {/* ── Checklist de démarrage ──────────────────── */}
+            {(() => {
+              const etapes = [
+                {
+                  done: !!(profil?.nom && profil?.siret),
+                  label: "Remplir mon profil (nom & SIRET)",
+                  action: () => { setParametresSection("profil"); setPage("parametres"); },
+                },
+                {
+                  done: clients.length > 0,
+                  label: "Ajouter mon premier client",
+                  action: () => setActiveTab("clients"),
+                },
+                {
+                  done: devis.length > 0,
+                  label: "Créer mon premier devis",
+                  action: () => setActiveTab("devis"),
+                },
+                {
+                  done: chantiers.length > 0,
+                  label: "Créer mon premier chantier",
+                  action: () => setActiveTab("chantiers"),
+                },
+              ];
+              const nbFait = etapes.filter(e => e.done).length;
+              const pct    = Math.round((nbFait / etapes.length) * 100);
+              const tout   = nbFait === etapes.length;
+
+              return (
+                <div style={{
+                  background: CARD, borderRadius: "16px", padding: "20px 22px",
+                  border: "1px solid rgba(255,140,0,0.15)",
+                }}>
+                  {/* En-tête */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <h3 style={{ color: "white", fontSize: "15px", fontWeight: "800", margin: 0 }}>
+                      {tout ? "🎉 Vous êtes prêt !" : "⚡ Pour bien démarrer"}
+                    </h3>
+                    <span style={{ color: tout ? "#4CAF50" : PRIMARY, fontSize: "13px", fontWeight: "700" }}>
+                      {nbFait}/{etapes.length}
+                    </span>
+                  </div>
+
+                  {/* Barre */}
+                  <div style={{ height: "6px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "16px" }}>
+                    <div style={{
+                      height: "100%", borderRadius: "3px", transition: "width 0.6s ease",
+                      width: `${pct}%`,
+                      background: tout
+                        ? "linear-gradient(90deg, #4CAF50, #81C784)"
+                        : `linear-gradient(90deg, ${PRIMARY}, #ffb347)`,
+                    }} />
+                  </div>
+
+                  {/* Étapes */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {etapes.map(({ done, label, action }) => (
+                      <div
+                        key={label}
+                        onClick={done ? undefined : action}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "12px",
+                          padding: "10px 12px", borderRadius: "10px",
+                          cursor: done ? "default" : "pointer",
+                          background: done ? "rgba(76,175,80,0.06)" : "rgba(255,255,255,0.02)",
+                          border: `1px solid ${done ? "rgba(76,175,80,0.18)" : "rgba(255,255,255,0.05)"}`,
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={e => { if (!done) e.currentTarget.style.background = "rgba(255,140,0,0.06)"; }}
+                        onMouseLeave={e => { if (!done) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+                      >
+                        {/* Cercle coché */}
+                        <div style={{
+                          width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0,
+                          background: done ? "rgba(76,175,80,0.2)" : "transparent",
+                          border: `2px solid ${done ? "#4CAF50" : "rgba(255,255,255,0.2)"}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: "11px", color: "#4CAF50", fontWeight: "900",
+                          transition: "all 0.3s",
+                        }}>
+                          {done ? "✓" : ""}
+                        </div>
+                        <span style={{
+                          color: done ? "#4CAF50" : "white",
+                          fontSize: "14px", fontWeight: "500",
+                          textDecoration: done ? "line-through" : "none",
+                          opacity: done ? 0.65 : 1,
+                          flex: 1,
+                        }}>{label}</span>
+                        {!done && (
+                          <span style={{ color: PRIMARY, fontSize: "14px", flexShrink: 0 }}>→</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -1770,6 +1980,226 @@ export default function Dashboard({
           </div>
         </>
       )}
+
+      {/* ── BOUTON "?" relance de la visite ──────────────────────── */}
+      {onboardingPhase === null && (
+        <button
+          onClick={relancerVisite}
+          title="Relancer la visite guidée"
+          style={{
+            position: "fixed",
+            bottom: isDesktop ? "24px" : "88px",
+            right: "16px",
+            zIndex: 900,
+            width: "44px", height: "44px",
+            borderRadius: "50%",
+            background: "rgba(255,140,0,0.15)",
+            border: "1.5px solid rgba(255,140,0,0.45)",
+            color: PRIMARY,
+            fontSize: "20px", fontWeight: "900",
+            cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 4px 20px rgba(255,140,0,0.2)",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,140,0,0.25)"; e.currentTarget.style.transform = "scale(1.08)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,140,0,0.15)"; e.currentTarget.style.transform = "scale(1)"; }}
+        >
+          ?
+        </button>
+      )}
+
+      {/* ── WELCOME SCREEN (première connexion) ──────────────────── */}
+      {onboardingPhase === "welcome" && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2000,
+          background: "rgba(10,22,40,0.97)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          fontFamily: "'Segoe UI', sans-serif",
+          padding: "24px",
+          animation: "splashFadeUp 0.4s ease both",
+        }}>
+          <img
+            src="/logo.png"
+            alt="Artisan+"
+            style={{
+              width: "clamp(100px, 25vw, 140px)",
+              height: "clamp(100px, 25vw, 140px)",
+              borderRadius: "24%",
+              marginBottom: "28px",
+              animation: "splashLogoIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+            }}
+          />
+          <h1 style={{
+            color: "white", fontSize: "clamp(24px, 6vw, 32px)",
+            fontWeight: "900", margin: "0 0 12px", textAlign: "center",
+          }}>
+            Bienvenue sur Artisan<span style={{ color: PRIMARY }}>+</span> 👋
+          </h1>
+          <p style={{
+            color: "#8899aa", fontSize: "clamp(14px, 3.5vw, 16px)",
+            textAlign: "center", maxWidth: "360px",
+            lineHeight: "1.6", margin: "0 0 36px",
+          }}>
+            Votre assistant pour gérer factures, devis, clients et chantiers en quelques clics.
+          </p>
+
+          {/* Aperçu des fonctions */}
+          <div style={{
+            display: "flex", gap: "10px", flexWrap: "wrap",
+            justifyContent: "center", marginBottom: "36px",
+            maxWidth: "400px",
+          }}>
+            {["📄 Factures", "✍️ Devis", "👥 Clients", "🏗️ Chantiers", "📦 Catalogue"].map(f => (
+              <span key={f} style={{
+                background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)",
+                color: PRIMARY, borderRadius: "20px",
+                padding: "6px 14px", fontSize: "13px", fontWeight: "600",
+              }}>{f}</span>
+            ))}
+          </div>
+
+          <button
+            onClick={demarrerVisite}
+            style={{
+              background: PRIMARY, color: "white", border: "none",
+              borderRadius: "14px", padding: "16px 40px",
+              fontSize: "16px", fontWeight: "800",
+              cursor: "pointer",
+              boxShadow: "0 8px 32px rgba(255,140,0,0.35)",
+              marginBottom: "16px",
+              transition: "transform 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.04)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+          >
+            🚀 Commencer la visite guidée
+          </button>
+          <button
+            onClick={terminerTour}
+            style={{
+              background: "transparent", border: "none",
+              color: "#4a5568", fontSize: "13px",
+              cursor: "pointer", padding: "8px",
+            }}
+          >
+            Passer — je connais déjà
+          </button>
+        </div>
+      )}
+
+      {/* ── TOUR GUIDÉ ───────────────────────────────────────────── */}
+      {onboardingPhase === "tour" && (() => {
+        const step  = TOUR_STEPS[tourStep];
+        const total = TOUR_STEPS.length;
+        return (
+          <>
+            {/* Backdrop semi-transparent */}
+            <div
+              onClick={terminerTour}
+              style={{
+                position: "fixed", inset: 0, zIndex: 1050,
+                background: "rgba(5,12,25,0.6)",
+                backdropFilter: "blur(2px)",
+              }}
+            />
+
+            {/* Bulle */}
+            <div style={{
+              position: "fixed",
+              bottom: isDesktop ? "32px" : "82px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "min(460px, 93vw)",
+              background: CARD,
+              borderRadius: "22px",
+              padding: "24px 22px 20px",
+              border: "1.5px solid rgba(255,140,0,0.35)",
+              boxShadow: "0 16px 60px rgba(0,0,0,0.7)",
+              zIndex: 1100,
+              animation: "popIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both",
+            }}>
+              {/* Dots de progression */}
+              <div style={{ display: "flex", gap: "5px", justifyContent: "center", marginBottom: "18px" }}>
+                {TOUR_STEPS.map((_, i) => (
+                  <div key={i} style={{
+                    height: "5px", borderRadius: "3px", transition: "all 0.3s",
+                    width: i === tourStep ? "22px" : "5px",
+                    background: i === tourStep ? PRIMARY : "rgba(255,255,255,0.15)",
+                  }} />
+                ))}
+              </div>
+
+              {/* Compteur */}
+              <div style={{ textAlign: "center", color: "#556070", fontSize: "11px", fontWeight: "700", letterSpacing: "0.5px", marginBottom: "12px" }}>
+                ÉTAPE {tourStep + 1} / {total}
+              </div>
+
+              {/* Emoji + titre */}
+              <div style={{ textAlign: "center", marginBottom: "14px" }}>
+                <div style={{ fontSize: "40px", marginBottom: "10px" }}>{step.emoji}</div>
+                <div style={{ color: "white", fontWeight: "900", fontSize: "18px" }}>{step.title}</div>
+                {step.note && (
+                  <div style={{
+                    display: "inline-block", marginTop: "6px",
+                    background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)",
+                    color: PRIMARY, borderRadius: "10px",
+                    padding: "3px 10px", fontSize: "11px", fontWeight: "600",
+                  }}>{step.note}</div>
+                )}
+              </div>
+
+              {/* Description */}
+              <p style={{
+                color: "#c5d0dd", fontSize: "14px",
+                lineHeight: "1.75", textAlign: "center",
+                margin: "0 0 22px",
+              }}>
+                {step.desc}
+              </p>
+
+              {/* Boutons */}
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                {tourStep > 0 && (
+                  <button
+                    onClick={reculerTour}
+                    style={{
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#8899aa", borderRadius: "10px",
+                      padding: "11px 14px", cursor: "pointer",
+                      fontSize: "13px", fontWeight: "600",
+                      flexShrink: 0,
+                    }}
+                  >‹ Retour</button>
+                )}
+                <button
+                  onClick={avancerTour}
+                  style={{
+                    flex: 1, background: PRIMARY, color: "white",
+                    border: "none", borderRadius: "12px",
+                    padding: "13px", cursor: "pointer",
+                    fontSize: "15px", fontWeight: "800",
+                    boxShadow: "0 4px 18px rgba(255,140,0,0.3)",
+                  }}
+                >
+                  {tourStep < total - 1 ? "Suivant →" : "🎉 Terminer la visite !"}
+                </button>
+                <button
+                  onClick={terminerTour}
+                  style={{
+                    background: "transparent", border: "none",
+                    color: "#3a4555", fontSize: "12px",
+                    cursor: "pointer", padding: "8px 4px",
+                    flexShrink: 0,
+                  }}
+                >Passer</button>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── QR CODE MODAL ─────────────────────────────────────── */}
       {qrModal.open && (
