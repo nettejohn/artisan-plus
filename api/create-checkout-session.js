@@ -9,8 +9,11 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-// Nettoyage défensif : supprime BOM et espaces parasites
-const cleanKey = (k) => (k || "").replace(/^﻿/, "").trim();
+// Nettoyage défensif : supprime BOM, espaces et corrige 1 → l dans le préfixe Stripe
+const cleanKey = (k) => (k || "")
+  .replace(/^﻿/, "")          // BOM U+FEFF
+  .trim()
+  .replace(/^sk_1ive_/, "sk_live_"); // police : '1' confondu avec 'l'
 
 const stripe = new Stripe(cleanKey(process.env.STRIPE_SECRET_KEY), { apiVersion: "2024-04-10" });
 
