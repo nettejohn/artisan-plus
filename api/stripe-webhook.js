@@ -93,20 +93,20 @@ export default async function handler(req, res) {
   const sig     = req.headers["stripe-signature"];
   let event;
 
-  // ── Vérification de signature (si STRIPE_WEBHOOK_SECRET est configuré) ──
-  if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
+  // ── Vérification de signature ─────────────────────────────────────────
+  const webhookSecret = cleanKey(process.env.STRIPE_WEBHOOK_SECRET); // nettoyage BOM/espaces
+  if (webhookSecret && sig) {
     try {
-      event = stripe.webhooks.constructEvent(
-        rawBody,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
+      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+      console.log("[webhook] Signature vérifiée ✅");
     } catch (err) {
-      console.error("[webhook] Signature invalide :", err.message);
+      console.error("[webhook] ❌ Signature invalide :", err.message,
+        "| secret length:", webhookSecret.length,
+        "| secret prefix:", webhookSecret.slice(0, 6));
       return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
   } else {
-    // Fallback sans vérification (configuration initiale)
+    console.warn("[webhook] ⚠️ Pas de STRIPE_WEBHOOK_SECRET ou pas de signature — fallback JSON");
     try {
       event = JSON.parse(rawBody.toString("utf8"));
     } catch {
