@@ -74,13 +74,18 @@ export default async function handler(req, res) {
     }
 
     // ── Créer la session Checkout ───────────────────────────────────────────
+    // user_id transmis sur 3 vecteurs (triple redondance) :
+    //  1. session.metadata.user_id         → lu dans checkout.session.completed
+    //  2. session.client_reference_id      → champ dédié Stripe, toujours présent
+    //  3. subscription_data.metadata       → propagé sur l'abonnement et ses invoices
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: PRICE_ID, quantity: 1 }],
       success_url: SUCCESS_URL,
-      cancel_url: CANCEL_URL,
+      cancel_url:  CANCEL_URL,
       allow_promotion_codes: true,
+      client_reference_id: userId,           // ← champ dédié Stripe (le plus fiable)
       metadata: { user_id: userId },
       subscription_data: {
         metadata: { user_id: userId },

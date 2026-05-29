@@ -48,7 +48,7 @@ async function setPlan(userId, plan, extra = {}) {
     { onConflict: "user_id" }
   );
   if (error) console.error("[webhook] Erreur upsert plan :", error.message);
-  else console.log(`[webhook] user ${userId} → plan=${plan}`);
+  else        console.log(`[webhook] ✅ user ${userId} → plan=${plan}`);
 }
 
 async function getUserIdByCustomer(customerId) {
@@ -58,6 +58,30 @@ async function getUserIdByCustomer(customerId) {
     .eq("stripe_customer_id", customerId)
     .single();
   return data?.user_id ?? null;
+}
+
+// Triple fallback pour résoudre le user_id depuis un événement Stripe
+// Ordre : metadata.user_id → client_reference_id → lookup par stripe_customer_id
+async function resolveUserId(obj, customerId) {
+  const fromMeta = obj?.metadata?.user_id || null;
+  if (fromMeta) {
+    console.log(`[webhook] user_id résolu via metadata : ${fromMeta}`);
+    return fromMeta;
+  }
+  const fromRef = obj?.client_reference_id || null;
+  if (fromRef) {
+    console.log(`[webhook] user_id résolu via client_reference_id : ${fromRef}`);
+    return fromRef;
+  }
+  if (customerId) {
+    const fromDb = await getUserIdByCustomer(customerId);
+    if (fromDb) {
+      console.log(`[webhook] user_id résolu via stripe_customer_id (${customerId}) : ${fromDb}`);
+      return fromDb;
+    }
+  }
+  console.error("[webhook] ❌ Impossible de résoudre user_id", { meta: obj?.metadata, ref: obj?.client_reference_id, customerId });
+  return null;
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────
@@ -95,16 +119,22 @@ export default async function handler(req, res) {
   try {
     switch (event.type) {
 
-      // ── Paiement réussi → passage en Pro + récompense parrainage ─────
+      // ── Checkout réussi → passage en Pro + récompense parrainage ────
       case "checkout.session.completed": {
         const session        = event.data.object;
-        const userId         = session.metadata?.user_id;
         const customerId     = session.customer;
         const subscriptionId = session.subscription;
 
-        if (!userId) {
-          console.error("[webhook] user_id manquant dans metadata");
-          break;
+        // Triple fallback pour résoudre le user_id
+        const userId = await resolveUserId(session, customerId);
+        if (!userId) break;
+
+        // Sauvegarder le customer_id si nouveau
+        if (customerId) {
+          await supabase.from("profils").upsert(
+            { user_id: userId, stripe_customer_id: customerId },
+            { onConflict: "user_id" }
+          );
         }
 
         // 1. Passer le filleul en Pro
@@ -152,12 +182,23 @@ export default async function handler(req, res) {
         break;
       }
 
+      // ── Renouvellement d'abonnement payé → maintenir Pro ─────────────
+      case "invoice.paid": {
+        const inv    = event.data.object;
+        const userId = await resolveUserId(inv, inv.customer);
+        if (userId) {
+          await setPlan(userId, "pro", {
+            stripe_customer_id:     inv.customer,
+            stripe_subscription_id: inv.subscription,
+          });
+        }
+        break;
+      }
+
       // ── Abonnement annulé → retour en Free ────────────────────────────
       case "customer.subscription.deleted": {
-        const sub      = event.data.object;
-        const userId   = sub.metadata?.user_id
-          ?? await getUserIdByCustomer(sub.customer);
-
+        const sub    = event.data.object;
+        const userId = await resolveUserId(sub, sub.customer);
         if (userId) await setPlan(userId, "free", { stripe_subscription_id: null });
         break;
       }
@@ -165,8 +206,7 @@ export default async function handler(req, res) {
       // ── Abonnement mis à jour (statut inactif → Free) ─────────────────
       case "customer.subscription.updated": {
         const sub    = event.data.object;
-        const userId = sub.metadata?.user_id
-          ?? await getUserIdByCustomer(sub.customer);
+        const userId = await resolveUserId(sub, sub.customer);
 
         const statutsInactifs = ["canceled", "unpaid", "past_due", "incomplete_expired"];
         if (userId && statutsInactifs.includes(sub.status)) {
