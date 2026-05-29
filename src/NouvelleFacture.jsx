@@ -26,7 +26,7 @@ const THEMES = [
   { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
-export default function NouvelleFacture({ user, onBack, clientInitialId }) {
+export default function NouvelleFacture({ user, onBack, clientInitialId, modeSimple = false }) {
   // ── Clients ────────────────────────────────────────────────────────────────
   const [clientsExistants, setClientsExistants] = useState([]);
   const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
@@ -44,6 +44,12 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
   const [tvaSurDebits, setTvaSurDebits] = useState(false);
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [catalogueLigneIndex, setCatalogueLigneIndex] = useState(null);
+
+  // ── Mode simplifié ─────────────────────────────────────────────────────────
+  const [descriptionSimple, setDescriptionSimple] = useState("");
+  const [montantSimple, setMontantSimple]         = useState("");
+  const [clientNomSimple, setClientNomSimple]     = useState("");
+  const [clientTelSimple, setClientTelSimple]     = useState("");
 
   // ── Chargement des clients + paramètres ───────────────────────────────────
   useEffect(() => {
@@ -150,6 +156,48 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
     setTimeout(() => onBack(), 1500);
   };
 
+  // ── Sauvegarde simplifiée ──────────────────────────────────────────────────
+  const sauvegarderSimple = async () => {
+    const nomClient = clientNomSimple.trim();
+    if (!nomClient) { setMessage("❌ Le nom du client est obligatoire"); return; }
+    if (!descriptionSimple.trim()) { setMessage("❌ La description des travaux est obligatoire"); return; }
+    const montant = parseFloat(montantSimple);
+    if (!montant || montant <= 0) { setMessage("❌ Montant invalide"); return; }
+
+    setLoading(true);
+    setMessage("");
+
+    const { data: clientData, error: clientError } = await supabase
+      .from("clients")
+      .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
+      .select()
+      .single();
+    if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+
+    const totalHT  = montant;
+    const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
+    const numero   = "FAC-" + Date.now();
+
+    const { data: factureData, error: factureError } = await supabase
+      .from("factures")
+      .insert({ user_id: user.id, client_id: clientData.id, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique", nature_operation: null, tva_sur_debits: false })
+      .select()
+      .single();
+    if (factureError) { setMessage("❌ Erreur facture : " + factureError.message); setLoading(false); return; }
+
+    await supabase.from("lignes_facture").insert({
+      facture_id:    factureData.id,
+      description:   descriptionSimple.trim(),
+      quantite:      1,
+      prix_unitaire: totalHT,
+      total:         totalHT,
+    });
+
+    setMessage("✅ Facture créée avec succès !");
+    setLoading(false);
+    setTimeout(() => onBack(), 1500);
+  };
+
   // ── Rendu ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "24px" }}>
@@ -160,6 +208,103 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
         <h1 style={{ color: "white", margin: 0, fontSize: "24px" }}>Nouvelle Facture</h1>
       </div>
 
+      {/* ── FORMULAIRE SIMPLIFIÉ ────────────────────────────────── */}
+      {modeSimple && (
+        <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {/* Client */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>👤 Client</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input
+                placeholder="Nom du client *"
+                value={clientNomSimple}
+                onChange={e => setClientNomSimple(e.target.value)}
+                style={{ ...inputStyle, fontSize: "16px", padding: "14px 16px" }}
+              />
+              <input
+                placeholder="Téléphone (optionnel)"
+                value={clientTelSimple}
+                onChange={e => setClientTelSimple(e.target.value)}
+                type="tel"
+                style={{ ...inputStyle, fontSize: "16px", padding: "14px 16px" }}
+              />
+            </div>
+          </div>
+
+          {/* Travaux */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>🔨 Description des travaux</h3>
+            <textarea
+              placeholder="Ex : Pose de carrelage salle de bain…"
+              value={descriptionSimple}
+              onChange={e => setDescriptionSimple(e.target.value)}
+              rows={4}
+              style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "14px 16px", color: "white", fontSize: "15px", outline: "none", width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "'Segoe UI', sans-serif" }}
+            />
+          </div>
+
+          {/* Montant + TVA */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>💰 Montant</h3>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "140px" }}>
+                <label style={{ color: "#8899aa", fontSize: "12px", display: "block", marginBottom: "6px" }}>Montant HT (€) *</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={montantSimple}
+                  onChange={e => setMontantSimple(e.target.value)}
+                  style={{ ...inputStyle, fontSize: "22px", fontWeight: "800", padding: "14px 16px", color: PRIMARY }}
+                />
+              </div>
+              <div style={{ flexShrink: 0, paddingTop: "18px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={appliquerTva}
+                    onChange={e => setAppliquerTva(e.target.checked)}
+                    style={{ width: "20px", height: "20px", accentColor: PRIMARY, cursor: "pointer" }}
+                  />
+                  <span style={{ color: "white", fontSize: "16px", fontWeight: "600" }}>TVA {tva}%</span>
+                </label>
+              </div>
+            </div>
+            {montantSimple && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0", borderTop: "1px solid rgba(255,140,0,0.2)" }}>
+                <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>{appliquerTva ? "Total TTC" : "Total HT"}</span>
+                <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "22px" }}>
+                  {appliquerTva
+                    ? (parseFloat(montantSimple || 0) * (1 + tva / 100)).toFixed(2)
+                    : parseFloat(montantSimple || 0).toFixed(2)
+                  } €
+                </span>
+              </div>
+            )}
+          </div>
+
+          {message && (
+            <div style={{ color: message.includes("✅") ? "#4CAF50" : "#ff6b6b", textAlign: "center", fontSize: "15px", fontWeight: "600" }}>
+              {message}
+            </div>
+          )}
+
+          <button
+            onClick={sauvegarderSimple}
+            disabled={loading}
+            style={{
+              background: loading ? "#888" : PRIMARY, color: "white", border: "none",
+              borderRadius: "14px", padding: "18px", fontSize: "18px", fontWeight: "800",
+              cursor: loading ? "not-allowed" : "pointer", marginBottom: "32px",
+            }}
+          >
+            {loading ? "Sauvegarde…" : "💾 Créer la facture"}
+          </button>
+        </div>
+      )}
+
+      {/* ── FORMULAIRE COMPLET (mode normal) ─────────────────────── */}
+      {!modeSimple && (
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
 
         {/* THÈME */}
@@ -398,6 +543,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId }) {
           {loading ? "Sauvegarde..." : "💾 Sauvegarder la facture"}
         </button>
       </div>
+      )}
     </div>
   );
 }

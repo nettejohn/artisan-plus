@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import CataloguePrestations from "./CataloguePrestations";
 
@@ -26,7 +26,7 @@ const THEMES = [
   { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
-export default function NouveauDevis({ user, onBack, clientInitialId }) {
+export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple = false }) {
   // ── Clients ────────────────────────────────────────────────────────────────
   const [clientsExistants, setClientsExistants] = useState([]);
   const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
@@ -43,6 +43,17 @@ export default function NouveauDevis({ user, onBack, clientInitialId }) {
   const [message, setMessage] = useState("");
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [catalogueLigneIndex, setCatalogueLigneIndex] = useState(null);
+
+  // ── Mode simplifié ─────────────────────────────────────────────────────────
+  const [descriptionSimple, setDescriptionSimple] = useState("");
+  const [montantSimple, setMontantSimple]         = useState("");
+  const [clientNomSimple, setClientNomSimple]     = useState("");
+  const [clientTelSimple, setClientTelSimple]     = useState("");
+
+  // ── Import photo (analyse IA) ──────────────────────────────────────────────
+  const photoInputRef = useRef(null);
+  const [photoAnalyzing, setPhotoAnalyzing] = useState(false);
+  const [photoError,     setPhotoError]     = useState("");
 
   // ── Chargement des clients ─────────────────────────────────────────────────
   useEffect(() => {
@@ -91,6 +102,125 @@ export default function NouveauDevis({ user, onBack, clientInitialId }) {
     const nl = [...lignes]; nl[i][champ] = valeur; setLignes(nl);
   };
 
+  // ── Import photo : compresser en JPEG base64 ──────────────────────────────
+  const compresserImage = (file) => new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1024;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+        else { width = Math.round(width * MAX / height); height = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+
+  const analyserPhoto = async (fichier) => {
+    setPhotoError("");
+    setPhotoAnalyzing(true);
+    try {
+      const base64 = await compresserImage(fichier);
+      if (!base64) { setPhotoError("❌ Impossible de lire l'image."); setPhotoAnalyzing(false); return; }
+
+      const res = await fetch("/api/analyze-devis-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+      });
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        setPhotoError("❌ " + (json.error || "Analyse échouée"));
+        setPhotoAnalyzing(false);
+        return;
+      }
+
+      const d = json.data;
+
+      if (modeSimple) {
+        // Remplir les champs simplifiés
+        if (d.client_nom)      setClientNomSimple(d.client_nom);
+        if (d.client_telephone) setClientTelSimple(d.client_telephone);
+        if (d.lignes?.length) {
+          const totalHT = d.lignes.reduce((s, l) => s + (parseFloat(l.prix_unitaire) || 0) * (parseFloat(l.quantite) || 1), 0);
+          setDescriptionSimple(d.lignes.map(l => l.description).filter(Boolean).join("\n"));
+          setMontantSimple(String(totalHT.toFixed(2)));
+        }
+        if (d.tva) setTva(d.tva);
+        if (typeof d.appliquer_tva === "boolean") setAppliquerTva(d.appliquer_tva);
+      } else {
+        // Remplir les champs complets
+        if (d.client_nom)      setClient(c => ({ ...c, nom: d.client_nom }));
+        if (d.client_telephone) setClient(c => ({ ...c, telephone: d.client_telephone }));
+        if (d.client_adresse)  setClient(c => ({ ...c, adresse: d.client_adresse }));
+        if (d.lignes?.length)  setLignes(d.lignes.map(l => ({
+          description:  l.description  || "",
+          quantite:     parseFloat(l.quantite)     || 1,
+          prix_unitaire: parseFloat(l.prix_unitaire) || 0,
+        })));
+        if (d.tva) setTva(d.tva);
+        if (typeof d.appliquer_tva === "boolean") setAppliquerTva(d.appliquer_tva);
+        if (d.notes) setNotes(d.notes);
+      }
+      setMessage("✅ Devis analysé — vérifiez et complétez les champs !");
+      setTimeout(() => setMessage(""), 4000);
+    } catch (err) {
+      setPhotoError("❌ Erreur réseau : " + err.message);
+    }
+    setPhotoAnalyzing(false);
+  };
+
+  // ── Sauvegarde simplifiée ──────────────────────────────────────────────────
+  const sauvegarderSimple = async () => {
+    const nomClient = clientNomSimple.trim();
+    if (!nomClient) { setMessage("❌ Le nom du client est obligatoire"); return; }
+    if (!descriptionSimple.trim()) { setMessage("❌ La description des travaux est obligatoire"); return; }
+    const montant = parseFloat(montantSimple);
+    if (!montant || montant <= 0) { setMessage("❌ Montant invalide"); return; }
+
+    setLoading(true);
+    setMessage("");
+
+    // Insérer le client
+    const { data: clientData, error: clientError } = await supabase
+      .from("clients")
+      .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
+      .select()
+      .single();
+    if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+
+    const totalHT  = montant;
+    const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
+    const numero   = "DEV-" + Date.now();
+
+    const { data: devisData, error: devisError } = await supabase
+      .from("devis")
+      .insert({ user_id: user.id, client_id: clientData.id, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique" })
+      .select()
+      .single();
+    if (devisError) { setMessage("❌ Erreur devis : " + devisError.message); setLoading(false); return; }
+
+    await supabase.from("lignes_devis").insert({
+      devis_id:     devisData.id,
+      description:  descriptionSimple.trim(),
+      quantite:     1,
+      prix_unitaire: totalHT,
+      total:         totalHT,
+    });
+
+    setMessage("✅ Devis créé avec succès !");
+    setLoading(false);
+    setTimeout(() => onBack(), 1500);
+  };
+
   // ── Sauvegarde ─────────────────────────────────────────────────────────────
   const sauvegarder = async () => {
     if (!client.nom.trim()) { setMessage("❌ Le nom du client est obligatoire"); return; }
@@ -136,6 +266,49 @@ export default function NouveauDevis({ user, onBack, clientInitialId }) {
     setTimeout(() => onBack(), 1500);
   };
 
+  // ── Bouton import photo (commun aux deux modes) ────────────────────────────
+  const boutonImportPhoto = (
+    <>
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={e => { if (e.target.files[0]) { analyserPhoto(e.target.files[0]); e.target.value = ""; } }}
+      />
+      <button
+        onClick={() => photoInputRef.current?.click()}
+        disabled={photoAnalyzing}
+        style={{
+          background: photoAnalyzing ? "rgba(168,85,247,0.06)" : "rgba(168,85,247,0.1)",
+          border: "1.5px solid rgba(168,85,247,0.4)",
+          color: "#a855f7",
+          borderRadius: "12px",
+          padding: "12px 20px",
+          cursor: photoAnalyzing ? "wait" : "pointer",
+          fontSize: "14px",
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          width: "100%",
+          justifyContent: "center",
+          transition: "all 0.15s",
+        }}
+      >
+        {photoAnalyzing ? (
+          <>⏳ Analyse en cours…</>
+        ) : (
+          <>📷 Importer un devis papier — analyse IA</>
+        )}
+      </button>
+      {photoError && (
+        <div style={{ color: "#ff6b6b", fontSize: "13px", textAlign: "center", marginTop: "8px" }}>{photoError}</div>
+      )}
+    </>
+  );
+
   // ── Rendu ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "24px" }}>
@@ -146,7 +319,111 @@ export default function NouveauDevis({ user, onBack, clientInitialId }) {
         <h1 style={{ color: "white", margin: 0, fontSize: "24px" }}>Nouveau Devis</h1>
       </div>
 
+      {/* ── FORMULAIRE SIMPLIFIÉ ───────────────────────────────── */}
+      {modeSimple && (
+        <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {/* Import photo */}
+          {boutonImportPhoto}
+
+          {/* Client */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>👤 Client</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input
+                placeholder="Nom du client *"
+                value={clientNomSimple}
+                onChange={e => setClientNomSimple(e.target.value)}
+                style={{ ...inputStyle, fontSize: "16px", padding: "14px 16px" }}
+              />
+              <input
+                placeholder="Téléphone (optionnel)"
+                value={clientTelSimple}
+                onChange={e => setClientTelSimple(e.target.value)}
+                type="tel"
+                style={{ ...inputStyle, fontSize: "16px", padding: "14px 16px" }}
+              />
+            </div>
+          </div>
+
+          {/* Travaux */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>🔨 Description des travaux</h3>
+            <textarea
+              placeholder="Ex : Nettoyage toiture + traitement anti-mousse…"
+              value={descriptionSimple}
+              onChange={e => setDescriptionSimple(e.target.value)}
+              rows={4}
+              style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "14px 16px", color: "white", fontSize: "15px", outline: "none", width: "100%", boxSizing: "border-box", resize: "vertical", fontFamily: "'Segoe UI', sans-serif" }}
+            />
+          </div>
+
+          {/* Montant + TVA */}
+          <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <h3 style={{ color: "white", marginTop: 0, fontSize: "18px" }}>💰 Montant</h3>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", marginBottom: "16px", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "140px" }}>
+                <label style={{ color: "#8899aa", fontSize: "12px", display: "block", marginBottom: "6px" }}>Montant HT (€) *</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={montantSimple}
+                  onChange={e => setMontantSimple(e.target.value)}
+                  style={{ ...inputStyle, fontSize: "22px", fontWeight: "800", padding: "14px 16px", color: PRIMARY }}
+                />
+              </div>
+              <div style={{ flexShrink: 0, paddingTop: "18px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={appliquerTva}
+                    onChange={e => setAppliquerTva(e.target.checked)}
+                    style={{ width: "20px", height: "20px", accentColor: PRIMARY, cursor: "pointer" }}
+                  />
+                  <span style={{ color: "white", fontSize: "16px", fontWeight: "600" }}>TVA {tva}%</span>
+                </label>
+              </div>
+            </div>
+            {montantSimple && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0", borderTop: "1px solid rgba(255,140,0,0.2)" }}>
+                <span style={{ color: "white", fontWeight: "800", fontSize: "18px" }}>{appliquerTva ? "Total TTC" : "Total HT"}</span>
+                <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "22px" }}>
+                  {appliquerTva
+                    ? (parseFloat(montantSimple || 0) * (1 + tva / 100)).toFixed(2)
+                    : parseFloat(montantSimple || 0).toFixed(2)
+                  } €
+                </span>
+              </div>
+            )}
+          </div>
+
+          {message && (
+            <div style={{ color: message.includes("✅") ? "#4CAF50" : "#ff6b6b", textAlign: "center", fontSize: "15px", fontWeight: "600" }}>
+              {message}
+            </div>
+          )}
+
+          <button
+            onClick={sauvegarderSimple}
+            disabled={loading}
+            style={{
+              background: loading ? "#888" : PRIMARY, color: "white", border: "none",
+              borderRadius: "14px", padding: "18px", fontSize: "18px", fontWeight: "800",
+              cursor: loading ? "not-allowed" : "pointer", marginBottom: "32px",
+            }}
+          >
+            {loading ? "Sauvegarde…" : "💾 Créer le devis"}
+          </button>
+        </div>
+      )}
+
+      {/* ── FORMULAIRE COMPLET (mode normal) ─────────────────────── */}
+      {!modeSimple && (
+
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+
+        {/* IMPORT PHOTO */}
+        {boutonImportPhoto}
 
         {/* THÈME */}
         <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
@@ -345,6 +622,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId }) {
           {loading ? "Sauvegarde..." : "💾 Sauvegarder le devis"}
         </button>
       </div>
+      )}
     </div>
   );
 }

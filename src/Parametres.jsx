@@ -20,6 +20,7 @@ const SECTIONS = [
   { id: "notifications", label: "Notifs",        emoji: "🔔" },
   { id: "abonnement",    label: "Abonnement",    emoji: "💎" },
   { id: "parrainage",    label: "Parrainage",    emoji: "🎁" },
+  { id: "simplifie",     label: "Mode simplifié", emoji: "📱" },
   { id: "securite",      label: "Sécurité",      emoji: "🔒" },
   { id: "danger",        label: "Danger",        emoji: "⚠️" },
   { id: "aide",          label: "Centre d'aide", emoji: "❓" },
@@ -66,7 +67,7 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
   );
 }
 
-export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil" }) {
+export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
@@ -131,6 +132,10 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [referralInfo,   setReferralInfo]   = useState({ code: null, referred_by: null, used: false, pro_until: null });
   const [codeCopie,      setCodeCopie]      = useState(false);
 
+  // ── Mode simplifié ────────────────────────────────
+  const [modeSimplifie,       setModeSimplifie]       = useState(false);
+  const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
+
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); }, []);
 
@@ -187,6 +192,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       notif_rappels_devis:   pm.notif_rappels_devis   || false,
       notif_rappels_factures: pm.notif_rappels_factures || false,
     });
+    setModeSimplifie(pm.mode_simplifie || false);
     setLoading(false);
   };
 
@@ -282,6 +288,18 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       navigator.clipboard.writeText(msg).catch(() => {});
       alert("Message copié ! Partagez-le par SMS ou WhatsApp.");
     }
+  };
+
+  // ── Mode simplifié : toggle ──────────────────────────
+  const toggleModeSimplifie = async (valeur) => {
+    setSavingModeSimplifie(true);
+    setModeSimplifie(valeur);
+    await supabase.from("parametres").upsert(
+      { user_id: user.id, mode_simplifie: valeur },
+      { onConflict: "user_id" }
+    );
+    setSavingModeSimplifie(false);
+    onModeSimpleChange?.(valeur);
   };
 
   // ── Supprimer compte ─────────────────────────────────
@@ -1088,6 +1106,103 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           </div>
         );
       })()}
+
+      {/* ══════════════════════════════════════════════════
+          MODE SIMPLIFIÉ
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "simplifie" && (
+        <div>
+          <SCard titre="📱 Mode simplifié">
+            <p style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.65", margin: "0 0 22px" }}>
+              Le mode simplifié est conçu pour une utilisation rapide et intuitive, avec de grands boutons et une interface épurée.
+              Idéal si vous préférez aller à l'essentiel.
+            </p>
+
+            {/* État actuel */}
+            <div style={{
+              background: modeSimplifie ? "rgba(255,140,0,0.08)" : "rgba(136,153,170,0.08)",
+              border: `1.5px solid ${modeSimplifie ? "rgba(255,140,0,0.3)" : "rgba(136,153,170,0.2)"}`,
+              borderRadius: "14px", padding: "18px 20px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: "16px", flexWrap: "wrap",
+              marginBottom: "22px",
+            }}>
+              <div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "15px", marginBottom: "4px" }}>
+                  {modeSimplifie ? "📱 Mode simplifié activé" : "🖥️ Interface complète active"}
+                </div>
+                <div style={{ color: "#8899aa", fontSize: "13px" }}>
+                  {modeSimplifie
+                    ? "3 boutons principaux, grands textes, formulaires simplifiés"
+                    : "Toutes les fonctionnalités, catalogue, multi-lignes, thèmes PDF…"
+                  }
+                </div>
+              </div>
+              <div style={{ display: "inline-flex", gap: "8px", flexShrink: 0 }}>
+                {modeSimplifie && (
+                  <button
+                    onClick={() => toggleModeSimplifie(false)}
+                    disabled={savingModeSimplifie}
+                    style={{
+                      background: "transparent",
+                      border: "1.5px solid rgba(136,153,170,0.35)",
+                      color: "#8899aa", borderRadius: "10px",
+                      padding: "10px 18px", fontSize: "13px", fontWeight: "700",
+                      cursor: savingModeSimplifie ? "wait" : "pointer",
+                    }}
+                  >
+                    🖥️ Repasser en mode normal
+                  </button>
+                )}
+                {!modeSimplifie && (
+                  <button
+                    onClick={() => toggleModeSimplifie(true)}
+                    disabled={savingModeSimplifie}
+                    style={{
+                      background: PRIMARY, color: "white",
+                      border: "none", borderRadius: "10px",
+                      padding: "10px 18px", fontSize: "13px", fontWeight: "700",
+                      cursor: savingModeSimplifie ? "wait" : "pointer",
+                      boxShadow: "0 4px 16px rgba(255,140,0,0.25)",
+                    }}
+                  >
+                    📱 Activer le mode simplifié
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Ce que le mode simplifié change */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {[
+                { icon: "🔢", label: "3 boutons géants sur l'accueil", desc: "Nouveau devis · Nouvelle facture · Mes clients" },
+                { icon: "📝", label: "Formulaire allégé", desc: "Client, description des travaux, montant total et TVA — c'est tout" },
+                { icon: "📞", label: "Appel & SMS directs", desc: "Boutons appel et SMS toujours visibles sur les fiches clients" },
+                { icon: "✍️", label: "Signature conservée", desc: "L'envoi pour signature numérique reste disponible sur les devis" },
+                { icon: "🔀", label: "Retour facile", desc: "Un bouton « Mode normal » est toujours visible pour revenir à tout moment" },
+              ].map(item => (
+                <div key={item.icon} style={{
+                  display: "flex", gap: "12px",
+                  background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px 14px",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                }}>
+                  <span style={{ fontSize: "20px", flexShrink: 0 }}>{item.icon}</span>
+                  <div>
+                    <div style={{ color: "white", fontSize: "13px", fontWeight: "700" }}>{item.label}</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {savingModeSimplifie && (
+              <div style={{ color: "#8899aa", fontSize: "12px", textAlign: "center", marginTop: "14px" }}>
+                ⏳ Sauvegarde en cours…
+              </div>
+            )}
+          </SCard>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════
           SÉCURITÉ

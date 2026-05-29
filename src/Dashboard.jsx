@@ -90,6 +90,10 @@ export default function Dashboard({
   const [onboardingPhase, setOnboardingPhase] = useState(null); // 'welcome' | 'tour' | null
   const [tourStep, setTourStep] = useState(0);
 
+  // Mode simplifié
+  const [modeSimple,     setModeSimple]     = useState(false);
+  const [modeSimpleView, setModeSimpleView] = useState(null); // null | 'clients'
+
   // Menu hamburger
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
   const [parametresSection, setParametresSection] = useState("profil");
@@ -115,6 +119,7 @@ export default function Dashboard({
     chargerProfil();
     chargerClients();
     chargerChantiers();
+    chargerModeSimple();
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -250,6 +255,15 @@ export default function Dashboard({
       }
       setProfil(data);
     }
+  };
+
+  const chargerModeSimple = async () => {
+    const { data } = await supabase
+      .from("parametres")
+      .select("mode_simplifie")
+      .eq("user_id", user.id)
+      .single();
+    if (data) setModeSimple(data.mode_simplifie || false);
   };
 
   const chargerChantiers = async () => {
@@ -607,10 +621,10 @@ export default function Dashboard({
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
   if (page === "nouvelle-facture") return (
-    <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
+    <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
   if (page === "nouveau-devis") return (
-    <NouveauDevis user={user} clientInitialId={clientPreSelectionne} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
+    <NouveauDevis user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
 
   const statutColor = (s) => s === "payee" || s === "accepte" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
@@ -860,11 +874,225 @@ export default function Dashboard({
             isDesktop={isDesktop}
             initialSection={parametresSection}
             onBack={() => { setPage("dashboard"); chargerProfil(); setParametresSection("profil"); }}
+            onModeSimpleChange={(val) => setModeSimple(val)}
           />
         )}
 
+        {/* ── MODE SIMPLIFIÉ ────────────────────────────────────── */}
+        {page !== "parametres" && modeSimple && (
+          <div style={{ maxWidth: "480px", margin: "0 auto", padding: "8px 0 24px" }}>
+
+            {/* Bandeau "Repasser en mode normal" */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: "rgba(255,140,0,0.07)", border: "1px solid rgba(255,140,0,0.2)",
+              borderRadius: "12px", padding: "10px 16px", marginBottom: "28px", gap: "12px",
+            }}>
+              <span style={{ color: "#8899aa", fontSize: "13px" }}>📱 Mode simplifié actif</span>
+              <button
+                onClick={() => { setParametresSection("simplifie"); setPage("parametres"); }}
+                style={{
+                  background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#8899aa", borderRadius: "8px", padding: "6px 14px",
+                  fontSize: "12px", fontWeight: "700", cursor: "pointer", flexShrink: 0,
+                }}
+              >🖥️ Mode normal</button>
+            </div>
+
+            {/* Vue client simplifiée */}
+            {modeSimpleView === "clients" ? (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+                  <button
+                    onClick={() => setModeSimpleView(null)}
+                    style={{
+                      background: "transparent", border: "1px solid rgba(255,140,0,0.3)",
+                      color: PRIMARY, borderRadius: "8px", padding: "8px 16px",
+                      cursor: "pointer", fontSize: "14px",
+                    }}
+                  >← Retour</button>
+                  <h2 style={{ color: "white", margin: 0, fontSize: "22px", fontWeight: "800" }}>👥 Mes clients</h2>
+                </div>
+
+                {/* Bouton ajouter client */}
+                <button
+                  onClick={() => { ouvrirModalAjout(); }}
+                  style={{
+                    width: "100%", background: "rgba(255,140,0,0.1)",
+                    border: "2px dashed rgba(255,140,0,0.4)", color: PRIMARY,
+                    borderRadius: "14px", padding: "14px", cursor: "pointer",
+                    fontSize: "16px", fontWeight: "700", marginBottom: "16px",
+                  }}
+                >➕ Ajouter un client</button>
+
+                {clients.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#556", padding: "40px 20px" }}>
+                    <div style={{ fontSize: "48px", marginBottom: "12px" }}>👥</div>
+                    <div style={{ color: "#8899aa" }}>Aucun client pour l'instant</div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {clients.filter(c => !clientSearch || c.nom?.toLowerCase().includes(clientSearch.toLowerCase())).map(c => (
+                      <div key={c.id} style={{
+                        background: CARD, borderRadius: "16px", padding: "18px",
+                        border: "1px solid rgba(255,140,0,0.15)",
+                      }}>
+                        <div style={{ color: "white", fontWeight: "800", fontSize: "18px", marginBottom: "8px" }}>{c.nom}</div>
+                        {c.adresse && <div style={{ color: "#8899aa", fontSize: "14px", marginBottom: "10px" }}>📍 {c.adresse}</div>}
+                        {c.telephone && (
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <a href={`tel:${c.telephone}`} style={{
+                              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                              gap: "6px", background: "#1a6f3c", color: "white",
+                              borderRadius: "10px", padding: "12px", textDecoration: "none",
+                              fontSize: "15px", fontWeight: "700",
+                            }}>📞 Appeler</a>
+                            <a href={`sms:${c.telephone}`} style={{
+                              flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+                              gap: "6px", background: "#1a5f8f", color: "white",
+                              borderRadius: "10px", padding: "12px", textDecoration: "none",
+                              fontSize: "15px", fontWeight: "700",
+                            }}>💬 SMS</a>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                          <button
+                            onClick={() => { setClientPreSelectionne(c.id); setPage("nouveau-devis"); }}
+                            style={{
+                              flex: 1, background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                              color: PRIMARY, borderRadius: "10px", padding: "10px",
+                              cursor: "pointer", fontSize: "13px", fontWeight: "700",
+                            }}
+                          >📝 Nouveau devis</button>
+                          <button
+                            onClick={() => { setClientPreSelectionne(c.id); setPage("nouvelle-facture"); }}
+                            style={{
+                              flex: 1, background: "rgba(100,149,237,0.1)", border: "1px solid rgba(100,149,237,0.3)",
+                              color: "#6495ED", borderRadius: "10px", padding: "10px",
+                              cursor: "pointer", fontSize: "13px", fontWeight: "700",
+                            }}
+                          >📄 Nouvelle facture</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Modal client (partagé) */}
+                {clientModal && (
+                  <div style={{
+                    position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    zIndex: 1000, padding: "20px"
+                  }} onClick={e => { if (e.target === e.currentTarget) setClientModal(false); }}>
+                    <div style={{ background: CARD, borderRadius: "20px", padding: "20px", width: "100%", maxWidth: "400px", border: "1px solid rgba(255,140,0,0.3)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                        <h3 style={{ color: "white", margin: 0, fontSize: "18px" }}>➕ Nouveau client</h3>
+                        <button onClick={() => setClientModal(false)} style={{ background: "transparent", border: "none", color: "#8899aa", fontSize: "22px", cursor: "pointer" }}>✕</button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {[
+                          { champ: "nom", label: "Nom *", placeholder: "Jean Dupont" },
+                          { champ: "telephone", label: "Téléphone", placeholder: "06 00 00 00 00" },
+                          { champ: "adresse", label: "Adresse", placeholder: "12 rue des Tilleuls, 44000 Nantes" },
+                        ].map(({ champ, label, placeholder }) => (
+                          <div key={champ}>
+                            <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>{label}</label>
+                            <input
+                              placeholder={placeholder}
+                              value={clientForm[champ]}
+                              onChange={e => setClientForm(f => ({ ...f, [champ]: e.target.value }))}
+                              style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 16px", color: "white", fontSize: "15px", outline: "none", width: "100%", boxSizing: "border-box" }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {clientMessage && <div style={{ color: clientMessage.includes("✅") ? "#4CAF50" : "#ff6b6b", marginTop: "12px", fontSize: "13px", textAlign: "center" }}>{clientMessage}</div>}
+                      <button
+                        onClick={sauvegarderClient}
+                        disabled={clientLoading}
+                        style={{ width: "100%", background: clientLoading ? "#888" : PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "700", cursor: clientLoading ? "not-allowed" : "pointer", marginTop: "16px" }}
+                      >{clientLoading ? "Sauvegarde…" : "💾 Enregistrer"}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* 3 boutons principaux */
+              <div>
+                <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                  <div style={{ fontSize: "36px", fontWeight: "900", color: "white", marginBottom: "6px" }}>
+                    Bonjour 👋
+                  </div>
+                  <div style={{ color: "#8899aa", fontSize: "15px" }}>Que voulez-vous faire ?</div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {[
+                    { label: "📝 Nouveau devis", desc: "Créer et envoyer un devis", color: PRIMARY, action: () => setPage("nouveau-devis") },
+                    { label: "📄 Nouvelle facture", desc: "Créer une facture professionnelle", color: "#6495ED", action: () => setPage("nouvelle-facture") },
+                    { label: "👥 Mes clients", desc: "Voir et contacter vos clients", color: "#4CAF50", action: () => setModeSimpleView("clients") },
+                  ].map(btn => (
+                    <button
+                      key={btn.label}
+                      onClick={btn.action}
+                      style={{
+                        background: `${btn.color}18`,
+                        border: `2px solid ${btn.color}55`,
+                        color: btn.color,
+                        borderRadius: "20px",
+                        padding: "28px 24px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = `${btn.color}28`; e.currentTarget.style.transform = "scale(1.01)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = `${btn.color}18`; e.currentTarget.style.transform = "scale(1)"; }}
+                    >
+                      <div style={{ fontSize: "26px", fontWeight: "900", marginBottom: "6px" }}>{btn.label}</div>
+                      <div style={{ fontSize: "14px", opacity: 0.75, fontWeight: "500" }}>{btn.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Accès rapide aux devis récents */}
+                {devis.length > 0 && (
+                  <div style={{ marginTop: "28px" }}>
+                    <div style={{ color: "#8899aa", fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+                      Devis récents
+                    </div>
+                    {devis.slice(0, 3).map(d => (
+                      <div key={d.id} style={{
+                        background: CARD, borderRadius: "12px", padding: "14px 16px",
+                        border: "1px solid rgba(255,255,255,0.05)", marginBottom: "8px",
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                      }}>
+                        <div>
+                          <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{d.clients?.nom || "—"}</div>
+                          <div style={{ color: "#8899aa", fontSize: "12px" }}>{d.numero}</div>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <span style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px" }}>{d.total_ttc?.toFixed(0)} €</span>
+                          <button
+                            onClick={() => envoyerPourSignature(d)}
+                            style={{
+                              background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)",
+                              color: PRIMARY, borderRadius: "8px", padding: "6px 12px",
+                              cursor: "pointer", fontSize: "12px", fontWeight: "700",
+                            }}
+                          >✍️ Signer</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ONGLETS */}
-        {page !== "parametres" && <>
+        {page !== "parametres" && !modeSimple && <>
 
         {/* ACCUEIL */}
         {activeTab === "accueil" && (
