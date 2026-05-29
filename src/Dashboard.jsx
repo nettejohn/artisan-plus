@@ -8,6 +8,7 @@ import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
 import UpgradeModal from "./UpgradeModal";
 import { idbSave, idbLoad } from "./idb";
+import { QRCodeCanvas } from "qrcode.react";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -33,6 +34,9 @@ export default function Dashboard({
 
   // Freemium / Upgrade
   const [upgradeModal, setUpgradeModal] = useState({ open: false, type: "factures" });
+
+  // QR Code modal
+  const [qrModal, setQrModal] = useState({ open: false, url: "", numero: "", loading: false });
 
   // Menu hamburger
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
@@ -380,6 +384,51 @@ export default function Dashboard({
       navigator.clipboard.writeText(lien).catch(() => {});
       setLienCopie(d.id);
       setTimeout(() => setLienCopie(null), 3000);
+    }
+  };
+
+  // ── QR Code ─────────────────────────────────────────────────────
+  const ouvrirQRModal = async (d) => {
+    setQrModal({ open: true, url: "", numero: d.numero, loading: true });
+
+    const { data: existing } = await supabase
+      .from("signatures")
+      .select("token")
+      .eq("devis_id", d.id)
+      .single();
+
+    let token;
+    if (existing) {
+      token = existing.token;
+    } else {
+      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      await supabase.from("signatures").insert({ devis_id: d.id, token });
+    }
+
+    const url = `https://artisan-plus.vercel.app/signer/${token}`;
+    setQrModal({ open: true, url, numero: d.numero, loading: false });
+  };
+
+  const handleDownloadQR = () => {
+    const canvas = document.getElementById("qr-canvas");
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.download = `QR-devis-${qrModal.numero}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
+  const handleShareQR = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `QR Code — Devis ${qrModal.numero}`,
+          text: `Scannez ce code QR pour consulter et signer le devis ${qrModal.numero} en ligne.`,
+          url: qrModal.url,
+        });
+      } catch (_) { /* annulé */ }
+    } else {
+      navigator.clipboard.writeText(qrModal.url).catch(() => {});
     }
   };
 
@@ -894,6 +943,11 @@ export default function Dashboard({
                         color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>🔗 Envoyer</button>
+                      <button onClick={() => ouvrirQRModal(d)} style={{
+                        background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.3)",
+                        color: "#a855f7", borderRadius: "8px", padding: "8px 12px",
+                        cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                      }}>📱 QR Code</button>
                       <button onClick={() => convertirEnFacture(d)} style={{
                         background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
                         color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
@@ -1694,6 +1748,110 @@ export default function Dashboard({
                 🚪 Déconnexion
               </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* ── QR CODE MODAL ─────────────────────────────────────── */}
+      {qrModal.open && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setQrModal({ open: false, url: "", numero: "", loading: false })}
+            style={{
+              position: "fixed", inset: 0, zIndex: 998,
+              background: "rgba(0,0,0,0.75)",
+              backdropFilter: "blur(4px)",
+            }}
+          />
+          {/* Panel */}
+          <div style={{
+            position: "fixed", top: "50%", left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 999,
+            background: CARD,
+            borderRadius: "24px",
+            padding: "32px 28px",
+            width: "min(360px, 92vw)",
+            border: "1px solid rgba(168,85,247,0.3)",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+            textAlign: "center",
+            animation: "popIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both",
+          }}>
+            {/* Fermer */}
+            <button
+              onClick={() => setQrModal({ open: false, url: "", numero: "", loading: false })}
+              style={{
+                position: "absolute", top: "14px", right: "14px",
+                background: "rgba(255,255,255,0.08)", border: "none",
+                color: "#8899aa", width: "32px", height: "32px",
+                borderRadius: "50%", cursor: "pointer", fontSize: "16px",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >✕</button>
+
+            <div style={{ fontSize: "32px", marginBottom: "8px" }}>📱</div>
+            <div style={{ color: "white", fontWeight: "800", fontSize: "18px", marginBottom: "4px" }}>
+              QR Code — {qrModal.numero}
+            </div>
+            <div style={{ color: "#8899aa", fontSize: "13px", marginBottom: "24px" }}>
+              Le client scanne pour consulter et signer
+            </div>
+
+            {/* QR Code */}
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center", justifyContent: "center",
+              background: "white",
+              borderRadius: "16px",
+              padding: "16px",
+              marginBottom: "24px",
+              boxShadow: "0 4px 32px rgba(0,0,0,0.35)",
+              minWidth: "232px", minHeight: "232px",
+            }}>
+              {qrModal.loading ? (
+                <div style={{ width: 200, height: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ color: "#8899aa", fontSize: "14px" }}>Génération…</div>
+                </div>
+              ) : (
+                <QRCodeCanvas
+                  id="qr-canvas"
+                  value={qrModal.url}
+                  size={200}
+                  level="H"
+                  fgColor="#0a1628"
+                  bgColor="#ffffff"
+                />
+              )}
+            </div>
+
+            {/* Boutons */}
+            {!qrModal.loading && (
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={handleDownloadQR} style={{
+                  flex: 1,
+                  background: "rgba(255,140,0,0.12)",
+                  border: "1.5px solid rgba(255,140,0,0.35)",
+                  color: PRIMARY, borderRadius: "12px",
+                  padding: "13px 10px", cursor: "pointer",
+                  fontSize: "14px", fontWeight: "700",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                }}>
+                  ⬇️ Télécharger
+                </button>
+                <button onClick={handleShareQR} style={{
+                  flex: 1,
+                  background: "rgba(168,85,247,0.12)",
+                  border: "1.5px solid rgba(168,85,247,0.35)",
+                  color: "#a855f7", borderRadius: "12px",
+                  padding: "13px 10px", cursor: "pointer",
+                  fontSize: "14px", fontWeight: "700",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                }}>
+                  📤 Partager
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

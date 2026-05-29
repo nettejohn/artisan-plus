@@ -58,6 +58,12 @@ p {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+/* ── Modal pop-in ───────────────────────────────────────── */
+@keyframes popIn {
+  from { transform: translate(-50%, -50%) scale(0.88); opacity: 0; }
+  to   { transform: translate(-50%, -50%) scale(1);    opacity: 1; }
+}
+
 /* ── Splash screen ──────────────────────────────────────── */
 @keyframes splashLogoIn {
   from { transform: scale(0.6); opacity: 0; }
