@@ -143,40 +143,71 @@ export default async function handler(req, res) {
           stripe_subscription_id: subscriptionId,
         });
 
-        // 2. Vérifier si le filleul a été parrainé
+        // 2. Résoudre le code de parrainage du filleul
+        //    Fallback triple : profils.referred_by → user_metadata.referred_by → absent
         const { data: filleulProfil } = await supabase
           .from("profils")
           .select("referred_by")
           .eq("user_id", userId)
           .single();
 
-        if (filleulProfil?.referred_by) {
-          // Trouver le parrain via son code
+        let referredBy = filleulProfil?.referred_by || null;
+
+        if (!referredBy) {
+          // Fallback : lire les métadonnées auth (service role requis)
+          const { data: authData } = await supabase.auth.admin.getUserById(userId);
+          referredBy = authData?.user?.user_metadata?.referred_by || null;
+          if (referredBy) {
+            // Persister pour les prochaines requêtes
+            await supabase.from("profils").upsert(
+              { user_id: userId, referred_by: referredBy },
+              { onConflict: "user_id" }
+            );
+            console.log(`[webhook] referred_by récupéré depuis user_metadata : ${referredBy}`);
+          }
+        }
+
+        if (referredBy) {
+          // 3. Trouver le parrain via son code
           const { data: parrain } = await supabase
             .from("profils")
-            .select("user_id, referral_used, plan")
-            .eq("referral_code", filleulProfil.referred_by)
+            .select("user_id, referral_used, plan, referral_pro_until")
+            .eq("referral_code", referredBy)
             .single();
 
           if (parrain && !parrain.referral_used) {
-            // Donner 1 mois Pro au parrain
-            const proUntil = new Date();
-            proUntil.setDate(proUntil.getDate() + 30);
+            const now = new Date();
+
+            // 4a. Récompense parrain : +30 jours Pro (cumulable si déjà une date future)
+            const baseParrain = (parrain.referral_pro_until && new Date(parrain.referral_pro_until) > now)
+              ? new Date(parrain.referral_pro_until)
+              : new Date(now);
+            baseParrain.setDate(baseParrain.getDate() + 30);
+
             const { error: errParrain } = await supabase
               .from("profils")
               .update({
                 referral_used:      true,
-                referral_pro_until: proUntil.toISOString(),
-                // Si pas encore Pro payant, passer en Pro via parrainage
+                referral_pro_until: baseParrain.toISOString(),
                 ...(parrain.plan !== "pro" ? { plan: "pro" } : {}),
               })
               .eq("user_id", parrain.user_id);
 
+            // 4b. Récompense filleul : +30 jours Pro (bonus sur l'abonnement payant)
+            const filleulUntil = new Date(now);
+            filleulUntil.setDate(filleulUntil.getDate() + 30);
+            await supabase
+              .from("profils")
+              .update({ referral_pro_until: filleulUntil.toISOString() })
+              .eq("user_id", userId);
+
             if (errParrain) {
               console.error("[webhook] Erreur récompense parrain :", errParrain.message);
             } else {
-              console.log(`[webhook] Parrainage récompensé : parrain=${parrain.user_id}, filleul=${userId}`);
+              console.log(`[webhook] ✅ Parrainage récompensé : parrain=${parrain.user_id} (+30j), filleul=${userId} (+30j)`);
             }
+          } else if (parrain?.referral_used) {
+            console.log(`[webhook] Parrainage déjà utilisé pour le code ${referredBy}`);
           }
         }
         break;

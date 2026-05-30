@@ -43,6 +43,24 @@ export default function App() {
     () => SPLASH_PHRASES[Math.floor(Math.random() * SPLASH_PHRASES.length)]
   );
 
+  // ── Parrainage en attente : appliqué au premier login ────────
+  // Cas : inscription avec code + confirmation email → pas de session immédiate
+  // → stored en localStorage → appliqué ici quand la session arrive
+  useEffect(() => {
+    if (!user) return;
+    const raw = localStorage.getItem("artisan_pending_referral");
+    if (!raw) return;
+    try {
+      const { userId, code } = JSON.parse(raw);
+      if (userId !== user.id || !code) return;
+      supabase.from("profils")
+        .upsert({ user_id: userId, referred_by: code }, { onConflict: "user_id" })
+        .then(({ error }) => {
+          if (!error) localStorage.removeItem("artisan_pending_referral");
+        });
+    } catch { localStorage.removeItem("artisan_pending_referral"); }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Logo transparent : supprime le fond #0a1628 via canvas ────
   // Traitement pixel par pixel au montage → dataURL sans fond
   const [logoSrc, setLogoSrc] = useState("/logo.png");
@@ -138,17 +156,56 @@ export default function App() {
   const handleRegister = async () => {
     setLoading(true);
     setMessage("");
-    const { error } = await supabase.auth.signUp({
+    const trimmedCode = referralInput.trim().toUpperCase();
+
+    // ── 1. Valider le code de parrainage avant de créer le compte ──
+    if (trimmedCode) {
+      const { data: parrain, error: errCheck } = await supabase
+        .from("profils")
+        .select("user_id, referral_used")
+        .eq("referral_code", trimmedCode)
+        .single();
+      if (errCheck || !parrain) {
+        setMessage("❌ Code de parrainage invalide");
+        setLoading(false);
+        return;
+      }
+      if (parrain.referral_used) {
+        setMessage("❌ Ce code a déjà été utilisé");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // ── 2. Créer le compte ─────────────────────────────────────────
+    const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: {
           full_name: nom,
-          referred_by: referralInput.trim().toUpperCase() || null,
+          referred_by: trimmedCode || null,
         }
       }
     });
-    if (error) setMessage("❌ " + error.message);
-    else setMessage("✅ Compte créé ! Vous pouvez vous connecter.");
+    if (error) { setMessage("❌ " + error.message); setLoading(false); return; }
+
+    // ── 3. Écrire referred_by dans profils immédiatement ──────────
+    //   • Si session disponible (email confirmation désactivée) → upsert direct
+    //   • Sinon → localStorage, appliqué au prochain login via useEffect
+    const userId = data.user?.id;
+    if (userId && trimmedCode) {
+      if (data.session) {
+        await supabase.from("profils").upsert(
+          { user_id: userId, referred_by: trimmedCode },
+          { onConflict: "user_id" }
+        );
+      }
+      // Backup localStorage (couvre le cas confirmation email)
+      localStorage.setItem("artisan_pending_referral", JSON.stringify({ userId, code: trimmedCode }));
+      setMessage("✅ Compte créé ! 🎁 Parrainage activé — vous gagnez 1 mois Pro gratuit lors de votre abonnement.");
+    } else {
+      setMessage("✅ Compte créé ! Vous pouvez vous connecter.");
+    }
     setLoading(false);
   };
 

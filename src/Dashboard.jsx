@@ -244,24 +244,32 @@ export default function Dashboard({
       .select("*")
       .eq("user_id", user.id)
       .single();
+
+    // ── Champs à synchroniser / compléter ────────────────────────
+    const patch = {};
+
+    // 1) Générer un code de parrainage si absent
+    if (!data?.referral_code) {
+      patch.referral_code = "ARTISAN-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    // 2) Sync referred_by depuis user_metadata si absent dans profils
+    //    (exécuté même si referral_code existe déjà — c'est le bug corrigé)
+    const metaReferredBy = user.user_metadata?.referred_by || null;
+    if (metaReferredBy && !data?.referred_by) {
+      patch.referred_by = metaReferredBy;
+    }
+
+    // 3) Appliquer le patch si nécessaire
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("profils").upsert(
+        { user_id: user.id, ...patch },
+        { onConflict: "user_id" }
+      );
+    }
+
     if (data) {
-      // Générer le code de parrainage si absent
-      if (!data.referral_code) {
-        const code = "ARTISAN-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-        // Sauvegarder + récupérer le code référent depuis les métadonnées auth
-        const referredBy = user.user_metadata?.referred_by || null;
-        await supabase.from("profils").upsert(
-          {
-            user_id: data.user_id,
-            referral_code: code,
-            ...(referredBy && !data.referred_by ? { referred_by: referredBy } : {}),
-          },
-          { onConflict: "user_id" }
-        );
-        data.referral_code = code;
-        if (referredBy && !data.referred_by) data.referred_by = referredBy;
-      }
-      setProfil(data);
+      setProfil({ ...data, ...patch });
     }
   };
 
