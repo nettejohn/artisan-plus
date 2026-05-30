@@ -140,6 +140,15 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const [factsFiche,    setFactsFiche]    = useState([]);
   const [delConfirm,    setDelConfirm]    = useState(false);
 
+  // ── Plan de chantier ──────────────────────────────────────────
+  const [planImage,    setPlanImage]    = useState(null); // { url, file }
+  const [planData,     setPlanData]     = useState(null);
+  const [planLoading,  setPlanLoading]  = useState(false);
+  const [planAnnot,    setPlanAnnot]    = useState(false); // mode annotation
+  const [planDrawing,  setPlanDrawing]  = useState(false);
+  const planCanvasRef  = useRef(null);
+  const planImgRef     = useRef(null);
+
   // ── Météo (fiche détaillée) ────────────────────────────────────
   const [meteo,        setMeteo]        = useState(null);
   const [meteoLoading, setMeteoLoading] = useState(false);
@@ -451,6 +460,114 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     await supabase.from("chantiers").update({ photos: nouv }).eq("id", fiche.id);
     setChantiers(prev => prev.map(c => c.id === fiche.id ? { ...c, photos: nouv } : c));
     setFicheForm(p => ({ ...p, photos: nouv }));
+  };
+
+  // ── Plan de chantier ──────────────────────────────────────────
+
+  const compresserPlan = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * ratio);
+        const h = Math.round(img.height * ratio);
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.88).split(",")[1]);
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const analyserPlan = async (file) => {
+    setPlanLoading(true);
+    setPlanData(null);
+    try {
+      const base64 = await compresserPlan(file);
+      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const resp = await fetch(`${API_URL}/api/analyze-plan-chantier`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+      });
+      const json = await resp.json();
+      if (json.ok) {
+        setPlanData(json.data);
+      } else {
+        alert("Erreur analyse : " + (json.error || "Inconnue"));
+      }
+    } catch (e) {
+      alert("Erreur : " + e.message);
+    }
+    setPlanLoading(false);
+  };
+
+  const initPlanCanvas = () => {
+    const canvas = planCanvasRef.current;
+    const img = planImgRef.current;
+    if (!canvas || !img) return;
+    canvas.width = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+  };
+
+  const planDrawStart = (e) => {
+    const canvas = planCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    const ctx = canvas.getContext("2d");
+    ctx.strokeStyle = "#FF8C00";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setPlanDrawing(true);
+  };
+
+  const planDrawMove = (e) => {
+    if (!planDrawing) return;
+    e.preventDefault();
+    const canvas = planCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    const ctx = canvas.getContext("2d");
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const planDrawEnd = () => setPlanDrawing(false);
+
+  const clearPlanAnnot = () => {
+    const canvas = planCanvasRef.current;
+    if (canvas) canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const downloadPlanAnnote = () => {
+    const canvas = planCanvasRef.current;
+    const img = planImgRef.current;
+    if (!canvas || !img) return;
+    const out = document.createElement("canvas");
+    out.width = img.naturalWidth || img.offsetWidth;
+    out.height = img.naturalHeight || img.offsetHeight;
+    const ctx = out.getContext("2d");
+    ctx.drawImage(img, 0, 0, out.width, out.height);
+    const scaleX = out.width / canvas.width;
+    const scaleY = out.height / canvas.height;
+    ctx.scale(scaleX, scaleY);
+    ctx.drawImage(canvas, 0, 0);
+    const a = document.createElement("a");
+    a.href = out.toDataURL("image/jpeg", 0.9);
+    a.download = `plan-annote-${fiche?.nom || "chantier"}.jpg`;
+    a.click();
   };
 
   // ── Matériaux ──────────────────────────────────────────────────
@@ -978,6 +1095,168 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
           {photos.length === 0 && (
             <div style={{ textAlign: "center", padding: "24px 0", color: "#555", fontSize: "13px", fontStyle: "italic" }}>
               Sélectionnez une catégorie puis cliquez sur "＋ Ajouter"
+            </div>
+          )}
+        </Card>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION : PLAN DE CHANTIER
+        ══════════════════════════════════════════════════════ */}
+        <Card titre="🗺️ Plan de chantier">
+          {/* Upload du plan */}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{
+              display: "inline-flex", alignItems: "center", gap: "8px",
+              background: "rgba(255,140,0,0.12)", border: `1.5px solid rgba(255,140,0,0.35)`,
+              color: PRIMARY, borderRadius: "10px", padding: "10px 18px",
+              fontSize: "14px", fontWeight: "700", cursor: "pointer",
+            }}>
+              📷 {planImage ? "Changer le plan" : "Photographier / Importer un plan"}
+              <input type="file" accept="image/*" capture="environment" hidden
+                onChange={e => {
+                  const f = e.target.files[0];
+                  if (!f) return;
+                  const url = URL.createObjectURL(f);
+                  setPlanImage({ url, file: f });
+                  setPlanData(null);
+                  setPlanAnnot(false);
+                  e.target.value = "";
+                }} />
+            </label>
+          </div>
+
+          {/* Aperçu du plan + bouton analyse */}
+          {planImage && (
+            <div>
+              <div style={{ position: "relative", marginBottom: "14px" }}>
+                <img
+                  ref={planImgRef}
+                  src={planImage.url}
+                  alt="Plan de chantier"
+                  onLoad={initPlanCanvas}
+                  style={{ width: "100%", borderRadius: "10px", display: "block", maxHeight: "420px", objectFit: "contain", background: "#000" }}
+                />
+                {/* Canvas annotation superposé */}
+                {planAnnot && (
+                  <canvas
+                    ref={planCanvasRef}
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", borderRadius: "10px", cursor: "crosshair", touchAction: "none" }}
+                    onPointerDown={planDrawStart}
+                    onPointerMove={planDrawMove}
+                    onPointerUp={planDrawEnd}
+                    onPointerLeave={planDrawEnd}
+                  />
+                )}
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
+                <button onClick={() => analyserPlan(planImage.file)} disabled={planLoading}
+                  style={{ background: PRIMARY, border: "none", color: "white", borderRadius: "8px", padding: "9px 16px", fontSize: "13px", fontWeight: "700", cursor: planLoading ? "default" : "pointer", opacity: planLoading ? 0.7 : 1 }}>
+                  {planLoading ? "⏳ Analyse en cours…" : "🤖 Analyser avec l'IA"}
+                </button>
+                <button onClick={() => { setPlanAnnot(a => !a); if (!planAnnot) setTimeout(initPlanCanvas, 50); }}
+                  style={{ background: planAnnot ? "rgba(255,140,0,0.15)" : "rgba(255,255,255,0.06)", border: `1.5px solid ${planAnnot ? PRIMARY : "rgba(255,255,255,0.15)"}`, color: planAnnot ? PRIMARY : "#ccc", borderRadius: "8px", padding: "9px 16px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                  ✏️ {planAnnot ? "Terminer l'annotation" : "Annoter le plan"}
+                </button>
+                {planAnnot && (
+                  <>
+                    <button onClick={clearPlanAnnot}
+                      style={{ background: "transparent", border: "1.5px solid rgba(255,107,107,0.4)", color: "#ff6b6b", borderRadius: "8px", padding: "9px 14px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                      🗑️ Effacer
+                    </button>
+                    <button onClick={downloadPlanAnnote}
+                      style={{ background: "rgba(76,175,80,0.12)", border: "1.5px solid rgba(76,175,80,0.35)", color: "#4CAF50", borderRadius: "8px", padding: "9px 14px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                      ⬇️ Télécharger
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Résultats de l'analyse IA */}
+          {planData && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Infos générales */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "8px" }}>
+                {[
+                  { label: "Type", val: planData.type_batiment || "—" },
+                  { label: "Qualité plan", val: planData.qualite_plan || "—" },
+                  { label: "Niveaux", val: planData.nb_niveaux != null ? planData.nb_niveaux : "—" },
+                  { label: "Orientation", val: planData.orientation || "—" },
+                  { label: "Surface habitable", val: planData.surface_habitable_m2 != null ? `${planData.surface_habitable_m2} m²` : "—" },
+                  { label: "Surface totale", val: planData.surface_totale_m2 != null ? `${planData.surface_totale_m2} m²` : "—" },
+                  ...(planData.dimensions_ext?.longueur_m != null ? [{ label: "Dim. ext.", val: `${planData.dimensions_ext.longueur_m} × ${planData.dimensions_ext.largeur_m} m` }] : []),
+                  ...(planData.echelle_detectee ? [{ label: "Échelle", val: planData.echelle_detectee }] : []),
+                ].map(({ label, val }) => (
+                  <div key={label} style={{ background: DARK, borderRadius: "8px", padding: "10px 12px" }}>
+                    <div style={{ color: "#8899aa", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>{label}</div>
+                    <div style={{ color: "white", fontSize: "13px", fontWeight: "600" }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pièces */}
+              {planData.pieces?.length > 0 && (
+                <div>
+                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                    🏠 Pièces détectées ({planData.pieces.length})
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {planData.pieces.map((p, i) => (
+                      <div key={i} style={{ background: DARK, borderRadius: "8px", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                        <span style={{ color: "white", fontSize: "14px", fontWeight: "600" }}>{p.nom}</span>
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                          {p.surface_m2 != null && <span style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px" }}>{p.surface_m2} m²</span>}
+                          {p.longueur_m != null && <span style={{ color: "#8899aa", fontSize: "12px" }}>{p.longueur_m} × {p.largeur_m} m</span>}
+                          {p.hauteur_m != null && <span style={{ color: "#8899aa", fontSize: "12px" }}>h {p.hauteur_m} m</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Éléments détectés */}
+              {planData.elements_detectes?.length > 0 && (
+                <div>
+                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>🔍 Éléments détectés</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {planData.elements_detectes.map((el, i) => (
+                      <span key={i} style={{ background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.25)", color: PRIMARY, borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "600" }}>{el}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Observations */}
+              {planData.observations && (
+                <div style={{ background: "rgba(255,140,0,0.07)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "12px 14px" }}>
+                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>📋 Observations</div>
+                  <div style={{ color: "#ccc", fontSize: "13px", lineHeight: "1.6" }}>{planData.observations}</div>
+                </div>
+              )}
+
+              {/* Suggestions travaux */}
+              {planData.suggestions_travaux?.length > 0 && (
+                <div>
+                  <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>💡 Suggestions de travaux</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {planData.suggestions_travaux.map((s, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                        <span style={{ color: PRIMARY, fontSize: "14px", marginTop: "1px" }}>›</span>
+                        <span style={{ color: "#ccc", fontSize: "13px", lineHeight: "1.5" }}>{s}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!planImage && (
+            <div style={{ textAlign: "center", padding: "24px 0", color: "#555", fontSize: "13px", fontStyle: "italic" }}>
+              📐 Prenez en photo un plan papier — l'IA extraira automatiquement les pièces, dimensions et surfaces
             </div>
           )}
         </Card>

@@ -9,6 +9,7 @@ import Parametres from "./Parametres";
 import UpgradeModal from "./UpgradeModal";
 import { idbSave, idbLoad } from "./idb";
 import { QRCodeCanvas } from "qrcode.react";
+import Outils from "./Outils";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -848,6 +849,7 @@ export default function Dashboard({
               { id: "devis",     icon: "📝",  label: "Devis"     },
               { id: "clients",   icon: "👥",  label: "Clients"   },
               { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+              { id: "outils",    icon: "🔧",  label: "Outils"    },
             ].map(tab => {
               const isActive = activeTab === tab.id && page !== "parametres";
               return (
@@ -2384,6 +2386,11 @@ export default function Dashboard({
             }}
           />
         )}
+
+        {/* OUTILS */}
+        {activeTab === "outils" && (
+          <Outils user={user} profil={profil} />
+        )}
         </>}
       </div>
 
@@ -2402,6 +2409,7 @@ export default function Dashboard({
           { id: "devis",     icon: "📝",  label: "Devis"     },
           { id: "clients",   icon: "👥",  label: "Clients"   },
           { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+          { id: "outils",    icon: "🔧",  label: "Outils"    },
         ].map(tab => {
           const isActive = activeTab === tab.id && page !== "parametres";
           return (
