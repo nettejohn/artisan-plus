@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 
 const PRIMARY = "#FF8C00";
@@ -140,10 +140,15 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const [factsFiche,    setFactsFiche]    = useState([]);
   const [delConfirm,    setDelConfirm]    = useState(false);
 
-  // ── Météo ──────────────────────────────────────────────────────
+  // ── Météo (fiche détaillée) ────────────────────────────────────
   const [meteo,        setMeteo]        = useState(null);
   const [meteoLoading, setMeteoLoading] = useState(false);
   const [meteoError,   setMeteoError]   = useState(null);
+
+  // ── Météo mini (cartes de la liste) ───────────────────────────
+  // Clé: ch.id → { temperature, code, pluie_proba } | undefined
+  const [meteoCache,   setMeteoCache]   = useState({});
+  const fetchedIdsRef = useRef(new Set()); // évite les doubles requêtes
 
   useEffect(() => { chargerTout(); }, [user.id]);
 
@@ -183,6 +188,52 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     ]);
     setDevisFiche(dv || []);
     setFactsFiche(fa || []);
+  };
+
+  // ── Météo mini : charge la météo de chaque carte chantier ──────
+  // Déclenché quand la liste chantiers change, requêtes espacées 450 ms
+  useEffect(() => {
+    if (!chantiers.length) return;
+    chantiers.forEach((ch, i) => {
+      if (!ch.adresse?.trim()) return;
+      if (fetchedIdsRef.current.has(ch.id)) return; // déjà fetchée
+      fetchedIdsRef.current.add(ch.id);
+      setTimeout(() => fetchMeteoCard(ch), i * 450);
+    });
+  }, [chantiers]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchMeteoCard = async (ch) => {
+    if (!ch.adresse?.trim()) return;
+    try {
+      // 1) Géocodage Nominatim
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ch.adresse)}&format=json&limit=1&accept-language=fr`,
+        { headers: { "User-Agent": "ArtisanPlus/1.0 (contact@artisan-plus.fr)" } }
+      );
+      const geoData = await geoRes.json();
+      if (!geoData?.length) return;
+      const lat = parseFloat(geoData[0].lat);
+      const lon = parseFloat(geoData[0].lon);
+
+      // 2) Open-Meteo weather actuel
+      const wRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&current=temperature_2m,precipitation_probability,weather_code` +
+        `&timezone=auto`
+      );
+      const wData = await wRes.json();
+      const c = wData.current;
+      setMeteoCache(prev => ({
+        ...prev,
+        [ch.id]: {
+          temperature: Math.round(c.temperature_2m),
+          code:        c.weather_code,
+          pluie_proba: c.precipitation_probability ?? 0,
+        },
+      }));
+    } catch {
+      // Silencieux : la météo mini est un bonus, pas critique
+    }
   };
 
   // ── Météo : géocode l'adresse puis appelle Open-Meteo ──────────
@@ -1109,10 +1160,35 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                         {st.label}
                       </span>
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
                       {ch.clients?.nom    && <span style={{ color: "#8899aa", fontSize: "12px" }}>👤 {ch.clients.nom}</span>}
                       {ch.adresse         && <span style={{ color: "#8899aa", fontSize: "12px" }}>📍 {ch.adresse}</span>}
                       {ch.date_fin_prevue && <span style={{ color: "#8899aa", fontSize: "12px" }}>📅 {new Date(ch.date_fin_prevue).toLocaleDateString("fr-FR")}</span>}
+                      {/* ── Météo mini ── */}
+                      {ch.adresse && meteoCache[ch.id] && (() => {
+                        const w = meteoCache[ch.id];
+                        const info = wmoInfo(w.code);
+                        return (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: "4px",
+                            background: "rgba(255,140,0,0.08)",
+                            border: "1px solid rgba(255,140,0,0.18)",
+                            borderRadius: "20px", padding: "2px 9px",
+                            color: "#ffcc88", fontSize: "12px", fontWeight: "600",
+                            whiteSpace: "nowrap",
+                          }}>
+                            {info.emoji} {w.temperature}°C
+                            <span style={{ color: "#8899aa", fontWeight: "400" }}> · {info.label}</span>
+                            {w.pluie_proba > 30 && (
+                              <span style={{ color: "#7ec8e3", marginLeft: "2px" }}>💧{w.pluie_proba}%</span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                      {ch.adresse && !meteoCache[ch.id] && fetchedIdsRef.current.has(ch.id) === false && (
+                        // Placeholder pendant le chargement (avant que le fetch commence)
+                        null
+                      )}
                     </div>
                   </div>
                   {cout.prix > 0 && (
