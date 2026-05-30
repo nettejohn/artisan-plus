@@ -43,6 +43,44 @@ export default function App() {
     () => SPLASH_PHRASES[Math.floor(Math.random() * SPLASH_PHRASES.length)]
   );
 
+  // ── Logo transparent : supprime le fond #0a1628 via canvas ────
+  // Traitement pixel par pixel au montage → dataURL sans fond
+  const [logoSrc, setLogoSrc] = useState("/logo.png");
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imageData.data;
+        // Fond cible : #0a1628 = (10, 22, 40)
+        const [bgR, bgG, bgB] = [10, 22, 40];
+        const TOLERANCE = 45; // rayon de suppression (Euclidien RGB)
+        for (let i = 0; i < d.length; i += 4) {
+          const dist = Math.sqrt(
+            (d[i]   - bgR) ** 2 +
+            (d[i+1] - bgG) ** 2 +
+            (d[i+2] - bgB) ** 2
+          );
+          if (dist < TOLERANCE) {
+            // Fondu progressif : complètement transparent au centre,
+            // opacité restaurée progressivement vers les bords de l'élément
+            d[i+3] = Math.round((dist / TOLERANCE) * d[i+3]);
+          }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        setLogoSrc(canvas.toDataURL("image/png"));
+      } catch {
+        // CORS ou erreur → on garde /logo.png d'origine
+      }
+    };
+    img.src = "/logo.png";
+  }, []);
+
   useEffect(() => {
     if (!showSplash) return;
     const t1 = setTimeout(() => setSplashOut(true),  2300); // début du fondu-sortie
@@ -126,15 +164,14 @@ export default function App() {
       transition: "opacity 0.5s ease",
       pointerEvents: splashOut ? "none" : "all",
     }}>
-      {/* Logo — mix-blend-mode:lighten efface le fond sombre */}
+      {/* Logo — fond #0a1628 rendu transparent par canvas (voir useEffect) */}
       <img
-        src="/logo.png"
+        src={logoSrc}
         alt="Artisan+"
         style={{
           width: "clamp(195px, 46vw, 286px)",
           height: "auto",
           marginBottom: "24px",
-          mixBlendMode: "lighten",
           animation: "splashLogoIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
         }}
       />
