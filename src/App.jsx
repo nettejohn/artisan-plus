@@ -29,6 +29,7 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [nom, setNom] = useState("");
   const [referralInput, setReferralInput] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
@@ -175,6 +176,18 @@ export default function App() {
         setLoading(false);
         return;
       }
+    }
+
+    // ── 1b. Validation côté client ────────────────────────────────
+    if (password !== passwordConfirm) {
+      setMessage("❌ Les mots de passe ne correspondent pas");
+      setLoading(false);
+      return;
+    }
+    if (password.length < 6) {
+      setMessage("❌ Le mot de passe doit faire au moins 6 caractères");
+      setLoading(false);
+      return;
     }
 
     // ── 2. Créer le compte ─────────────────────────────────────────
@@ -404,7 +417,7 @@ export default function App() {
 
         <div style={{ display: "flex", marginBottom: "28px", background: "#0a1628", borderRadius: "10px", padding: "4px" }}>
           {["login", "register"].map(tab => (
-            <button key={tab} onClick={() => { setPage(tab); setMessage(""); }} style={{
+            <button key={tab} onClick={() => { setPage(tab); setMessage(""); setPasswordConfirm(""); }} style={{
               flex: 1, padding: "10px", border: "none", borderRadius: "8px", cursor: "pointer",
               background: page === tab ? PRIMARY : "transparent",
               color: page === tab ? "white" : "#8899aa",
@@ -421,12 +434,23 @@ export default function App() {
               onChange={e => setNom(e.target.value)} style={inputStyle} />
           )}
           <input placeholder="Email" value={email}
-            onChange={e => setEmail(e.target.value)} style={inputStyle} />
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !loading && (page === "login" ? handleLogin() : handleRegister())}
+            style={inputStyle} />
           <input placeholder="Mot de passe" type="password" value={password}
-            onChange={e => setPassword(e.target.value)} style={inputStyle} />
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !loading && page === "login" && handleLogin()}
+            style={inputStyle} />
           {page === "register" && (
             <>
-              <input placeholder="Confirmer le mot de passe" type="password" style={inputStyle} />
+              <input
+                placeholder="Confirmer le mot de passe"
+                type="password"
+                value={passwordConfirm}
+                onChange={e => setPasswordConfirm(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !loading && handleRegister()}
+                style={inputStyle}
+              />
               <div style={{ position: "relative" }}>
                 <input
                   placeholder="Code de parrainage (optionnel)"

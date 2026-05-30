@@ -19,46 +19,69 @@ const TOUR_STEPS = [
   {
     tab: "accueil",
     emoji: "🏠",
-    title: "Accueil — vos stats en direct",
-    desc: "Visualisez en temps réel le nombre de factures, devis en cours, votre chiffre d'affaires total et vos clients. Tout ce qui compte, d'un coup d'œil.",
+    title: "Accueil — tableau de bord",
+    desc: "Suivez en temps réel votre CA encaissé, les factures à encaisser, vos devis en attente et vos chantiers actifs. Le graphique CA affiche l'évolution sur les 6 derniers mois.",
   },
   {
     tab: "factures",
     emoji: "📄",
-    title: "Factures — pro en 1 minute",
-    desc: "Créez une facture professionnelle en moins d'une minute. Choisissez parmi 5 thèmes (Moderne, Classique, Élégant…), ajoutez vos lignes, téléchargez en PDF. Vous pouvez aussi convertir un devis accepté en facture d'un clic.",
+    title: "Factures — PDFs pro en 1 minute",
+    desc: "Créez une facture professionnelle en quelques secondes. 5 thèmes visuels (Moderne, Classique, Élégant…), numérotation automatique, téléchargement PDF. Convertissez un devis accepté en facture d'un seul clic.",
   },
   {
     tab: "devis",
     emoji: "✍️",
-    title: "Devis — signature digitale",
-    desc: "Créez un devis et envoyez le lien de signature à votre client par SMS, WhatsApp ou email. Il accède au devis sur son téléphone et le signe avec son doigt. Vous recevez la confirmation instantanément.",
+    title: "Devis — signature électronique",
+    desc: "Créez un devis et envoyez le lien de signature à votre client par SMS, WhatsApp ou email. Il signe directement sur son téléphone avec son doigt. La signature est horodatée et légalement valable.",
   },
   {
     tab: "clients",
     emoji: "👥",
-    title: "Clients — tout leur historique",
-    desc: "Ajoutez vos clients et appelez-les en 1 clic depuis leur fiche. Consultez l'historique complet — toutes leurs factures, devis et chantiers associés en un seul endroit.",
+    title: "Clients — fiches & historique complet",
+    desc: "Appelez, envoyez un SMS ou un email à votre client en 1 clic. Consultez l'historique complet : factures, devis, chantiers, notes et appréciations — tout en un seul endroit.",
   },
   {
     tab: "chantiers",
     emoji: "🏗️",
-    title: "Chantiers — bénéfice en temps réel",
-    desc: "Créez un chantier, saisissez vos dépenses matériaux et heures de travail. Artisan+ calcule automatiquement vos frais et votre bénéfice net. Ajoutez des photos de chantier directement depuis votre téléphone.",
+    title: "Chantiers — rentabilité en temps réel",
+    desc: "Créez un chantier, saisissez vos dépenses matériaux et heures de travail. Artisan+ calcule votre bénéfice net automatiquement. Ajoutez des photos HD directement depuis votre téléphone.",
+  },
+  {
+    tab: "chantiers",
+    emoji: "⛅",
+    title: "Météo — planifiez selon la météo",
+    desc: "Chaque chantier affiche la météo en temps réel : température, conditions et risque de pluie. Planifiez vos journées de travail selon les prévisions directement depuis la liste des chantiers.",
   },
   {
     tab: "factures",
     emoji: "📦",
     title: "Catalogue de prestations",
-    desc: "Enregistrez vos articles, fournitures et prestations habituelles avec leurs prix unitaires. Lors de la création d'un devis ou d'une facture, insérez-les en 1 clic — fini de tout ressaisir à chaque fois.",
+    desc: "Enregistrez vos articles, fournitures et prestations habituelles avec leurs prix unitaires. Lors d'un devis ou d'une facture, insérez-les en 1 clic — fini de tout ressaisir à chaque fois !",
     note: "Accessible depuis ➜ Nouveau devis / Nouvelle facture",
   },
   {
     tab: null,
-    emoji: "⚙️",
-    title: "Paramètres — tout personnaliser",
-    desc: "Ajoutez votre logo, SIRET, IBAN, mentions légales et conditions de paiement. Gérez votre abonnement Pro, découvrez le système de parrainage pour gagner des mois gratuits, et accédez au Centre d'aide.",
+    emoji: "📱",
+    title: "Mode simplifié — pour aller vite",
+    desc: "Activez le mode simplifié pour une interface ultra-épurée : 3 grands boutons, formulaires raccourcis, appel & SMS directs. Idéal quand vous êtes sur un chantier et voulez aller à l'essentiel.",
     isParams: true,
+    paramsSection: "simplifie",
+  },
+  {
+    tab: null,
+    emoji: "✅",
+    title: "Badge Artisan Vérifié",
+    desc: "Soumettez votre SIRET et un justificatif pour obtenir le badge ✓ Artisan Vérifié. Il apparaît sur votre profil et vos PDFs, renforçant la confiance de vos clients.",
+    isParams: true,
+    paramsSection: "verif",
+  },
+  {
+    tab: null,
+    emoji: "💎",
+    title: "Plan Pro — tout illimité",
+    desc: "Factures, devis, clients et chantiers illimités. Logo professionnel sur les PDFs, photos HD, notifications intelligentes et support prioritaire. Résiliable à tout moment, sans engagement.",
+    isParams: true,
+    paramsSection: "abonnement",
   },
 ];
 
@@ -196,8 +219,17 @@ export default function Dashboard({
   const demarrerVisite = () => {
     setTourStep(0);
     setOnboardingPhase("tour");
-    setPage("dashboard");
-    setActiveTab(TOUR_STEPS[0].tab || "accueil");
+    naviguerVersStep(TOUR_STEPS[0]);
+  };
+
+  const naviguerVersStep = (step) => {
+    if (step.isParams) {
+      setPage("parametres");
+      if (step.paramsSection) setParametresSection(step.paramsSection);
+    } else if (step.tab) {
+      setPage("dashboard");
+      setActiveTab(step.tab);
+    }
   };
 
   const avancerTour = () => {
@@ -206,11 +238,7 @@ export default function Dashboard({
       terminerTour();
     } else {
       setTourStep(next);
-      const step = TOUR_STEPS[next];
-      if (step.tab && !step.isParams) {
-        setPage("dashboard");
-        setActiveTab(step.tab);
-      }
+      naviguerVersStep(TOUR_STEPS[next]);
     }
   };
 
@@ -218,11 +246,7 @@ export default function Dashboard({
     const prev = tourStep - 1;
     if (prev >= 0) {
       setTourStep(prev);
-      const step = TOUR_STEPS[prev];
-      if (step.tab && !step.isParams) {
-        setPage("dashboard");
-        setActiveTab(step.tab);
-      }
+      naviguerVersStep(TOUR_STEPS[prev]);
     }
   };
 
@@ -523,6 +547,12 @@ export default function Dashboard({
     chargerDonnees();
   };
 
+  const changerStatutFacture = async (facture) => {
+    const nouveauStatut = facture.statut === "payee" ? "en_attente" : "payee";
+    await supabase.from("factures").update({ statut: nouveauStatut }).eq("id", facture.id);
+    chargerDonnees();
+  };
+
   const envoyerPourSignature = async (d) => {
     const { data: existing } = await supabase
       .from("signatures")
@@ -650,8 +680,22 @@ export default function Dashboard({
     <NouveauDevis user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
 
-  const statutColor = (s) => s === "payee" || s === "accepte" ? "#4CAF50" : s === "en_attente" ? PRIMARY : "#ff6b6b";
-  const statutLabel = (s) => s === "payee" ? "✅ Payée" : s === "accepte" ? "✅ Accepté" : s === "en_attente" ? "⏳ En attente" : "❌ Refusé";
+  const statutColor = (s) => {
+    if (s === "payee" || s === "accepte") return "#4CAF50";
+    if (s === "en_attente")              return PRIMARY;
+    if (s === "envoye")                  return "#6495ED";
+    if (s === "annulee" || s === "refuse") return "#ff6b6b";
+    return "#8899aa";
+  };
+  const statutLabel = (s) => {
+    if (s === "payee")    return "✅ Payée";
+    if (s === "accepte")  return "✅ Accepté";
+    if (s === "en_attente") return "⏳ En attente";
+    if (s === "envoye")   return "📤 Envoyé";
+    if (s === "annulee")  return "❌ Annulée";
+    if (s === "refuse")   return "❌ Refusé";
+    return "⏳ En attente";
+  };
 
   const STATUT_CHANTIER = {
     en_attente: { label: "En attente", color: "#8899aa", bg: "rgba(136,153,170,0.15)" },
@@ -1120,9 +1164,38 @@ export default function Dashboard({
         {/* ACCUEIL */}
         {activeTab === "accueil" && (
           <div>
-            <h2 style={{ color: "white", fontSize: "24px", marginBottom: "24px" }}>
-              Bonjour 👋 Bienvenue sur Artisan<span style={{ color: PRIMARY }}>+</span>
-            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", marginBottom: "24px" }}>
+              <h2 style={{ color: "white", fontSize: "24px", margin: 0, flex: 1 }}>
+                {profil?.nom
+                  ? <>Bonjour, <span style={{ color: PRIMARY }}>{profil.nom.split(" ")[0]}</span> 👋</>
+                  : <>Bonjour 👋 Bienvenue sur Artisan<span style={{ color: PRIMARY }}>+</span></>
+                }
+              </h2>
+              {profil?.verification_statut === "verifie" && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px",
+                  background: "rgba(255,140,0,0.12)", border: "1.5px solid rgba(255,140,0,0.4)",
+                  borderRadius: "30px", padding: "6px 16px",
+                  color: PRIMARY, fontWeight: "800", fontSize: "12px",
+                  flexShrink: 0,
+                }}>
+                  ✓ Artisan Vérifié
+                </div>
+              )}
+              {profil?.verification_statut === "en_attente" && (
+                <div
+                  title="Votre demande de vérification est en cours d'examen"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)",
+                    borderRadius: "30px", padding: "5px 14px",
+                    color: "#8899aa", fontWeight: "700", fontSize: "12px",
+                    flexShrink: 0, cursor: "default",
+                  }}>
+                  ⏳ Vérification en cours
+                </div>
+              )}
+            </div>
             {!profil?.nom && (
               <div style={{
                 background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
@@ -1579,19 +1652,31 @@ export default function Dashboard({
                       </span>
                     </div>
                     {/* Ligne 2 : statut + actions */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                       <span style={{ color: statutColor(f.statut), fontSize: "13px", fontWeight: "600" }}>
                         {statutLabel(f.statut)}
                       </span>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => changerStatutFacture(f)}
+                          style={{
+                            background: f.statut === "payee" ? "rgba(136,153,170,0.1)" : "rgba(76,175,80,0.1)",
+                            border: `1px solid ${f.statut === "payee" ? "rgba(136,153,170,0.3)" : "rgba(76,175,80,0.3)"}`,
+                            color: f.statut === "payee" ? "#8899aa" : "#4CAF50",
+                            borderRadius: "8px", padding: "7px 10px",
+                            cursor: "pointer", fontSize: "12px", fontWeight: "600",
+                          }}
+                        >
+                          {f.statut === "payee" ? "↩️ Non payée" : "✅ Payée"}
+                        </button>
                         <button onClick={() => telechargerPDF(f)} style={{
                           background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
-                          color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
-                          cursor: "pointer", fontSize: "13px", fontWeight: "600"
+                          color: PRIMARY, borderRadius: "8px", padding: "7px 10px",
+                          cursor: "pointer", fontSize: "12px", fontWeight: "600"
                         }}>📄 PDF</button>
                         <button onClick={() => supprimerFacture(f.id)} style={{
                           background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
-                          color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                          color: "#ff6b6b", borderRadius: "8px", padding: "7px 10px",
                           cursor: "pointer", fontSize: "13px"
                         }}>🗑️</button>
                       </div>
@@ -2541,15 +2626,15 @@ export default function Dashboard({
 
           {/* Aperçu des fonctions */}
           <div style={{
-            display: "flex", gap: "10px", flexWrap: "wrap",
+            display: "flex", gap: "8px", flexWrap: "wrap",
             justifyContent: "center", marginBottom: "36px",
-            maxWidth: "400px",
+            maxWidth: "420px",
           }}>
-            {["📄 Factures", "✍️ Devis", "👥 Clients", "🏗️ Chantiers", "📦 Catalogue"].map(f => (
+            {["📄 Factures PDF", "✍️ Signature digitale", "👥 Clients", "🏗️ Chantiers", "⛅ Météo", "📦 Catalogue", "✅ Badge Vérifié", "💎 Plan Pro"].map(f => (
               <span key={f} style={{
                 background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)",
                 color: PRIMARY, borderRadius: "20px",
-                padding: "6px 14px", fontSize: "13px", fontWeight: "600",
+                padding: "5px 12px", fontSize: "12px", fontWeight: "600",
               }}>{f}</span>
             ))}
           </div>
@@ -2589,12 +2674,11 @@ export default function Dashboard({
         const total = TOUR_STEPS.length;
         return (
           <>
-            {/* Backdrop semi-transparent */}
+            {/* Backdrop semi-transparent — clic = pas de fermeture accidentelle */}
             <div
-              onClick={terminerTour}
               style={{
                 position: "fixed", inset: 0, zIndex: 1050,
-                background: "rgba(5,12,25,0.6)",
+                background: "rgba(5,12,25,0.55)",
                 backdropFilter: "blur(2px)",
               }}
             />

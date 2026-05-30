@@ -189,13 +189,24 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
     setLoading(true);
     setMessage("");
 
-    // Insérer le client
-    const { data: clientData, error: clientError } = await supabase
-      .from("clients")
-      .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
-      .select()
-      .single();
-    if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+    // Chercher un client existant avec le même nom (insensible à la casse)
+    let clientId;
+    const clientExistant = clientsExistants.find(
+      c => c.nom.trim().toLowerCase() === nomClient.toLowerCase()
+    );
+    if (clientExistant) {
+      clientId = clientExistant.id;
+    } else {
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
+        .select()
+        .single();
+      if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+      clientId = clientData.id;
+      // Mettre à jour la liste locale
+      setClientsExistants(prev => [...prev, clientData]);
+    }
 
     const totalHT  = montant;
     const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
@@ -203,7 +214,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
 
     const { data: devisData, error: devisError } = await supabase
       .from("devis")
-      .insert({ user_id: user.id, client_id: clientData.id, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique" })
+      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique" })
       .select()
       .single();
     if (devisError) { setMessage("❌ Erreur devis : " + devisError.message); setLoading(false); return; }

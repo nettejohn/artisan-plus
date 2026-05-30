@@ -15,6 +15,7 @@ const THEMES_PDF = [
 
 const SECTIONS = [
   { id: "profil",        label: "Mon profil",    emoji: "👤" },
+  { id: "verif",         label: "Vérification",  emoji: "✅" },
   { id: "apparence",     label: "Apparence",     emoji: "🎨" },
   { id: "factures",      label: "Facturation",   emoji: "📄" },
   { id: "notifications", label: "Notifs",        emoji: "🔔" },
@@ -136,6 +137,12 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
 
+  // ── Vérification artisan ──────────────────────────
+  const [verificationStatut, setVerificationStatut] = useState("non_soumis"); // non_soumis | en_attente | verifie | rejete
+  const [verifDocUrl,        setVerifDocUrl]        = useState("");
+  const [verifUploading,     setVerifUploading]     = useState(false);
+  const [verifMsg,           setVerifMsg]           = useState({ text: "", ok: true });
+
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); }, []);
 
@@ -164,6 +171,8 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         used:        p.referral_used     || false,
         pro_until:   p.referral_pro_until || null,
       });
+      setVerificationStatut(p.verification_statut || "non_soumis");
+      setVerifDocUrl(p.verification_document_url  || "");
     }
     if (pm) {
       setParams({
@@ -249,6 +258,44 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       setProfil(p => ({ ...p, logo_url: publicUrl + "?t=" + Date.now() }));
     } catch (e) { alert("Erreur upload logo : " + e.message); }
     setLogoUploading(false);
+  };
+
+  // ── Upload justificatif vérification ─────────────────
+  const uploadVerifDoc = async (fichier) => {
+    setVerifUploading(true);
+    try {
+      const ext  = fichier.name.split(".").pop().toLowerCase();
+      const path = `${user.id}/verification.${ext}`;
+      const { error: errUp } = await supabase.storage
+        .from("verifications")
+        .upload(path, fichier, { cacheControl: "3600", upsert: true });
+      if (errUp) throw errUp;
+      const { data: { publicUrl } } = supabase.storage.from("verifications").getPublicUrl(path);
+      setVerifDocUrl(publicUrl + "?t=" + Date.now());
+    } catch (e) {
+      setVerifMsg({ text: "❌ Erreur upload : " + e.message, ok: false });
+      setTimeout(() => setVerifMsg({ text: "" }), 4000);
+    }
+    setVerifUploading(false);
+  };
+
+  // ── Soumettre dossier vérification ───────────────────
+  const soumettreDossier = async () => {
+    if (!profil.siret)  { setVerifMsg({ text: "❌ Ajoutez votre SIRET dans Mon profil", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
+    if (!verifDocUrl)   { setVerifMsg({ text: "❌ Ajoutez un justificatif", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
+    const { error } = await supabase.from("profils").upsert({
+      user_id:                    user.id,
+      verification_statut:        "en_attente",
+      verification_document_url:  verifDocUrl,
+      verification_soumis_at:     new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (error) {
+      setVerifMsg({ text: "❌ " + error.message, ok: false });
+    } else {
+      setVerificationStatut("en_attente");
+      setVerifMsg({ text: "✅ Dossier envoyé ! Notre équipe examine votre demande sous 24–48h.", ok: true });
+    }
+    setTimeout(() => setVerifMsg({ text: "" }), 6000);
   };
 
   // ── Changer mot de passe ─────────────────────────────
@@ -516,6 +563,221 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
             {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
             <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les préférences" />
+          </SCard>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          VÉRIFICATION ARTISAN
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "verif" && (
+        <div>
+          {/* ── Statut actuel ─────────────────────────── */}
+          <div style={{
+            background: verificationStatut === "verifie"
+              ? "rgba(76,175,80,0.08)"
+              : verificationStatut === "en_attente"
+                ? "rgba(255,140,0,0.08)"
+                : verificationStatut === "rejete"
+                  ? "rgba(255,80,80,0.07)"
+                  : "rgba(136,153,170,0.06)",
+            border: `1.5px solid ${
+              verificationStatut === "verifie"    ? "rgba(76,175,80,0.35)"
+              : verificationStatut === "en_attente" ? "rgba(255,140,0,0.35)"
+              : verificationStatut === "rejete"    ? "rgba(255,80,80,0.3)"
+              : "rgba(136,153,170,0.18)"
+            }`,
+            borderRadius: "16px", padding: "20px 22px", marginBottom: "20px",
+            display: "flex", alignItems: "flex-start", gap: "16px",
+          }}>
+            <span style={{ fontSize: "32px", flexShrink: 0 }}>
+              {verificationStatut === "verifie"     ? "✅"
+               : verificationStatut === "en_attente" ? "⏳"
+               : verificationStatut === "rejete"     ? "❌"
+               : "🔍"}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontWeight: "800", fontSize: "16px", marginBottom: "5px",
+                color: verificationStatut === "verifie"     ? "#4CAF50"
+                     : verificationStatut === "en_attente" ? PRIMARY
+                     : verificationStatut === "rejete"     ? "#ff6b6b"
+                     : "white",
+              }}>
+                {verificationStatut === "verifie"     ? "✓ Artisan Vérifié"
+                 : verificationStatut === "en_attente" ? "Vérification en cours…"
+                 : verificationStatut === "rejete"     ? "Vérification refusée"
+                 : "Non vérifié"}
+              </div>
+              <div style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.55" }}>
+                {verificationStatut === "verifie"
+                  ? "Votre badge ✓ Artisan Vérifié est affiché sur votre profil, vos devis et vos factures."
+                  : verificationStatut === "en_attente"
+                    ? "Votre dossier est en cours d'examen par notre équipe. Réponse sous 24–48h ouvrées."
+                    : verificationStatut === "rejete"
+                      ? "Votre dossier a été refusé. Vérifiez vos informations et soumettez à nouveau un justificatif valide."
+                      : "Soumettez votre SIRET et un justificatif pour obtenir le badge ✓ Artisan Vérifié."}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Badge affiché si vérifié ──────────────── */}
+          {verificationStatut === "verifie" && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                background: "linear-gradient(135deg, rgba(255,140,0,0.18) 0%, rgba(255,180,50,0.08) 100%)",
+                border: "1.5px solid rgba(255,140,0,0.5)",
+                borderRadius: "30px", padding: "10px 24px",
+                color: PRIMARY, fontWeight: "800", fontSize: "15px",
+                boxShadow: "0 4px 20px rgba(255,140,0,0.18)",
+              }}>
+                ✓ Artisan Vérifié
+              </div>
+            </div>
+          )}
+
+          {/* ── Formulaire de soumission ──────────────── */}
+          {verificationStatut !== "verifie" && (
+            <SCard titre="📋 Soumettre votre dossier">
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                {/* SIRET (readonly depuis profil) */}
+                <div>
+                  <label style={lbl}>🔢 Votre SIRET (depuis Mon profil)</label>
+                  <div style={{
+                    ...inp, cursor: "not-allowed", userSelect: "none",
+                    color: profil.siret ? "white" : "#666",
+                    opacity: profil.siret ? 1 : 0.7,
+                  }}>
+                    {profil.siret || "⚠️ SIRET non renseigné — allez dans Mon profil pour l'ajouter"}
+                  </div>
+                  {!profil.siret && (
+                    <div style={{ marginTop: "6px" }}>
+                      <button
+                        onClick={() => setActiveSection("profil")}
+                        style={{
+                          background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
+                          color: PRIMARY, borderRadius: "8px", padding: "7px 14px",
+                          fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                        }}
+                      >
+                        → Aller dans Mon profil
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload justificatif */}
+                <div>
+                  <label style={lbl}>📷 Justificatif — Kbis, carte pro ou attestation URSSAF</label>
+                  <label style={{
+                    display: "inline-flex", alignItems: "center", gap: "8px",
+                    background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.25)",
+                    color: PRIMARY, borderRadius: "10px", padding: "11px 18px",
+                    fontSize: "13px", fontWeight: "700",
+                    cursor: verifUploading ? "wait" : "pointer",
+                    transition: "all 0.15s",
+                  }}>
+                    {verifUploading ? "⏳ Upload en cours…"
+                     : verifDocUrl   ? "✅ Document chargé — cliquer pour remplacer"
+                     : "📁 Choisir un fichier"}
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      hidden
+                      disabled={verifUploading}
+                      onChange={e => { if (e.target.files[0]) uploadVerifDoc(e.target.files[0]); e.target.value = ""; }}
+                    />
+                  </label>
+                  {verifDocUrl && !verifUploading && (
+                    <div style={{ color: "#4CAF50", fontSize: "12px", marginTop: "6px" }}>
+                      ✅ Fichier prêt à l'envoi
+                    </div>
+                  )}
+                  <div style={{ color: "#555", fontSize: "11px", marginTop: "6px" }}>
+                    Photo lisible (Kbis, carte pro artisanale ou attestation URSSAF). JPG, PNG ou PDF, max 5 Mo.
+                  </div>
+                </div>
+
+                {/* Ce que vous obtenez */}
+                <div style={{
+                  background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.12)",
+                  borderRadius: "12px", padding: "14px 16px",
+                }}>
+                  <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px", marginBottom: "8px" }}>
+                    🏅 Avantages du badge Artisan Vérifié :
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                    {[
+                      "Badge ✓ Artisan Vérifié affiché sur votre profil",
+                      "Mention visible sur tous vos devis et factures PDF",
+                      "Confiance accrue auprès de vos clients",
+                    ].map((item, i) => (
+                      <div key={i} style={{ color: "#ccd6e0", fontSize: "13px" }}>✅ {item}</div>
+                    ))}
+                  </div>
+                </div>
+
+                {verifMsg.text && (
+                  <div style={{ fontSize: "13px", fontWeight: "600", color: verifMsg.ok ? "#4CAF50" : "#ff6b6b", lineHeight: "1.5" }}>
+                    {verifMsg.text}
+                  </div>
+                )}
+
+                <button
+                  onClick={soumettreDossier}
+                  disabled={!profil.siret || !verifDocUrl || verificationStatut === "en_attente"}
+                  style={{
+                    background: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#2a3450" : PRIMARY,
+                    color: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#555" : "white",
+                    border: "none", borderRadius: "12px",
+                    padding: "14px 24px", fontSize: "14px", fontWeight: "800",
+                    cursor: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", gap: "8px",
+                    boxShadow: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "none" : "0 4px 20px rgba(255,140,0,0.3)",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {verificationStatut === "en_attente"
+                    ? "⏳ Dossier en cours d'examen…"
+                    : "🚀 Soumettre pour vérification"}
+                </button>
+              </div>
+            </SCard>
+          )}
+
+          {/* ── Comment ça marche ─────────────────────── */}
+          <SCard titre="💡 Comment fonctionne la vérification ?">
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[
+                { step: "1", text: "Renseignez votre SIRET dans Mon profil et téléchargez un justificatif (Kbis, carte pro ou attestation URSSAF)." },
+                { step: "2", text: "Notre équipe vérifie votre dossier sous 24–48h ouvrées." },
+                { step: "3", text: "Votre badge ✓ Artisan Vérifié apparaît sur votre profil et sur tous vos PDFs." },
+              ].map(({ step, text }) => (
+                <div key={step} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <div style={{
+                    width: "26px", height: "26px", borderRadius: "50%",
+                    background: "rgba(255,140,0,0.15)", border: "1.5px solid rgba(255,140,0,0.4)",
+                    color: PRIMARY, fontWeight: "900", fontSize: "12px",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0,
+                  }}>{step}</div>
+                  <div style={{ color: "#ccd6e0", fontSize: "13px", lineHeight: "1.5", paddingTop: "3px" }}>
+                    {text}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{
+              marginTop: "14px", background: "rgba(255,140,0,0.05)",
+              border: "1px solid rgba(255,140,0,0.12)",
+              borderRadius: "10px", padding: "10px 14px",
+            }}>
+              <div style={{ color: "#8899aa", fontSize: "11px", lineHeight: "1.6" }}>
+                ℹ️ La vérification est <strong style={{ color: "white" }}>gratuite</strong> et disponible pour tous les abonnés. Le badge est valable tant que votre SIRET est actif.
+              </div>
+            </div>
           </SCard>
         </div>
       )}
@@ -1391,7 +1653,17 @@ ALTER TABLE profils
   ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE,
   ADD COLUMN IF NOT EXISTS referred_by TEXT,
   ADD COLUMN IF NOT EXISTS referral_used BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS referral_pro_until TIMESTAMPTZ;`}</pre>
+  ADD COLUMN IF NOT EXISTS referral_pro_until TIMESTAMPTZ;
+
+-- Badge Artisan Vérifié
+ALTER TABLE profils
+  ADD COLUMN IF NOT EXISTS verification_statut TEXT DEFAULT 'non_soumis',
+  ADD COLUMN IF NOT EXISTS verification_document_url TEXT,
+  ADD COLUMN IF NOT EXISTS verification_soumis_at TIMESTAMPTZ;
+
+-- Bucket Supabase Storage : "verifications" (private → public)
+-- À créer dans Supabase Dashboard → Storage → New bucket
+-- Name: verifications  |  Public: ✓`}</pre>
           </div>
         </div>
       )}

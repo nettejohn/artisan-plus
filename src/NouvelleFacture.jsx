@@ -167,12 +167,24 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     setLoading(true);
     setMessage("");
 
-    const { data: clientData, error: clientError } = await supabase
-      .from("clients")
-      .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
-      .select()
-      .single();
-    if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+    // Chercher un client existant avec le même nom (insensible à la casse)
+    let clientId;
+    const clientExistant = clientsExistants.find(
+      c => c.nom.trim().toLowerCase() === nomClient.toLowerCase()
+    );
+    if (clientExistant) {
+      clientId = clientExistant.id;
+    } else {
+      const { data: clientData, error: clientError } = await supabase
+        .from("clients")
+        .insert({ nom: nomClient, telephone: clientTelSimple || null, user_id: user.id })
+        .select()
+        .single();
+      if (clientError) { setMessage("❌ Erreur client : " + clientError.message); setLoading(false); return; }
+      clientId = clientData.id;
+      // Mettre à jour la liste locale
+      setClientsExistants(prev => [...prev, clientData]);
+    }
 
     const totalHT  = montant;
     const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
@@ -180,7 +192,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
 
     const { data: factureData, error: factureError } = await supabase
       .from("factures")
-      .insert({ user_id: user.id, client_id: clientData.id, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique", nature_operation: null, tva_sur_debits: false })
+      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique", nature_operation: null, tva_sur_debits: false })
       .select()
       .single();
     if (factureError) { setMessage("❌ Erreur facture : " + factureError.message); setLoading(false); return; }
