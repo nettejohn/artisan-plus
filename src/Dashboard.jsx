@@ -1407,7 +1407,7 @@ export default function Dashboard({
                           { label: "Total charges", value: charges.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois", color: "#ff6b6b", sub: "À couvrir chaque mois" },
                           { label: "CA brut",        value: ca > 0 ? ca.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois" : "—", color: "#7ec8e3", sub: h > 0 ? `${h}h × ${th}€` : "Renseignez les heures" },
                           { label: "Bénéfice net",   value: ca > 0 ? (benefice >= 0 ? "+" : "") + benefice.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois" : "—", color: benefice >= 0 ? "#4CAF50" : "#ff6b6b", sub: ca > 0 ? (benefice >= 0 ? "Vous êtes rentable ✓" : "En dessous du seuil ⚠️") : "" },
-                          { label: "Seuil de rentabilité", value: seuilH > 0 ? Math.ceil(seuilH) + " h/mois", color: PRIMARY, sub: "Heures min. pour couvrir les charges" },
+                          { label: "Seuil de rentabilité", value: seuilH > 0 ? Math.ceil(seuilH) + " h/mois" : "—", color: PRIMARY, sub: "Heures min. pour couvrir les charges" },
                         ].map(({ label, value, color, sub }) => (
                           <div key={label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.05)" }}>
                             <div style={{ color: "#7788aa", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>{label}</div>
