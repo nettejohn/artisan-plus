@@ -126,28 +126,18 @@ export default function App() {
       transition: "opacity 0.5s ease",
       pointerEvents: splashOut ? "none" : "all",
     }}>
-      {/* Logo — mix-blend-mode:screen efface le fond sombre, ne laisse
-           apparaître que les éléments clairs/colorés (A+, texte, ligne dorée) */}
+      {/* Logo — mix-blend-mode:lighten efface le fond sombre */}
       <img
         src="/logo.png"
         alt="Artisan+"
         style={{
-          width: "clamp(150px, 35vw, 220px)",
+          width: "clamp(195px, 46vw, 286px)",
           height: "auto",
-          marginBottom: "18px",
-          mixBlendMode: "screen",
+          marginBottom: "24px",
+          mixBlendMode: "lighten",
           animation: "splashLogoIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
         }}
       />
-
-      {/* Nom */}
-      <div style={{
-        fontSize: "clamp(30px, 7vw, 40px)", fontWeight: "900", color: "white",
-        letterSpacing: "-0.5px", marginBottom: "14px",
-        animation: "splashFadeUp 0.5s ease 0.15s both",
-      }}>
-        Artisan<span style={{ color: PRIMARY }}>+</span>
-      </div>
 
       {/* Phrase humoristique */}
       <div style={{
