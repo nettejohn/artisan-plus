@@ -165,34 +165,36 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         pro_until:   p.referral_pro_until || null,
       });
     }
-    if (pm) setParams({
-      theme_pdf:             pm.theme_pdf             || "moderne",
-      couleur_pdf:           pm.couleur_pdf           || "#FF8C00",
-      format_numerotation:   pm.format_numerotation   || "FAC-{YYYY}-{NNN}",
-      tva_defaut:            String(pm.tva_defaut      ?? "20"),
-      mention_legale:        pm.mention_legale        || "",
-      conditions_paiement:   pm.conditions_paiement   || "Paiement à réception de facture",
-      penalites_retard:      pm.penalites_retard      || "1,5% par mois",
-      // Mentions optionnelles PDF
-      numero_assurance:          pm.numero_assurance          || "",
-      afficher_assurance:        pm.afficher_assurance        || false,
-      numero_rcs:                pm.numero_rcs                || "",
-      afficher_rcs:              pm.afficher_rcs              || false,
-      numero_tva_intra:          pm.numero_tva_intra          || "",
-      afficher_tva_intra:        pm.afficher_tva_intra        || false,
-      mention_auto_entrepreneur: pm.mention_auto_entrepreneur || false,
-      indemnite_recouvrement:    pm.indemnite_recouvrement    || false,
-      tva_sur_debits:            pm.tva_sur_debits            || false,
-      // Préférences
-      langue:          pm.langue          || "fr",
-      devise:          pm.devise          || "€",
-      signature_email: pm.signature_email || "",
-      // Notifications
-      notif_emails:          pm.notif_emails          || false,
-      notif_rappels_devis:   pm.notif_rappels_devis   || false,
-      notif_rappels_factures: pm.notif_rappels_factures || false,
-    });
-    setModeSimplifie(pm.mode_simplifie || false);
+    if (pm) {
+      setParams({
+        theme_pdf:             pm.theme_pdf             || "moderne",
+        couleur_pdf:           pm.couleur_pdf           || "#FF8C00",
+        format_numerotation:   pm.format_numerotation   || "FAC-{YYYY}-{NNN}",
+        tva_defaut:            String(pm.tva_defaut      ?? "20"),
+        mention_legale:        pm.mention_legale        || "",
+        conditions_paiement:   pm.conditions_paiement   || "Paiement à réception de facture",
+        penalites_retard:      pm.penalites_retard      || "1,5% par mois",
+        // Mentions optionnelles PDF
+        numero_assurance:          pm.numero_assurance          || "",
+        afficher_assurance:        pm.afficher_assurance        || false,
+        numero_rcs:                pm.numero_rcs                || "",
+        afficher_rcs:              pm.afficher_rcs              || false,
+        numero_tva_intra:          pm.numero_tva_intra          || "",
+        afficher_tva_intra:        pm.afficher_tva_intra        || false,
+        mention_auto_entrepreneur: pm.mention_auto_entrepreneur || false,
+        indemnite_recouvrement:    pm.indemnite_recouvrement    || false,
+        tva_sur_debits:            pm.tva_sur_debits            || false,
+        // Préférences
+        langue:          pm.langue          || "fr",
+        devise:          pm.devise          || "€",
+        signature_email: pm.signature_email || "",
+        // Notifications
+        notif_emails:          pm.notif_emails          || false,
+        notif_rappels_devis:   pm.notif_rappels_devis   || false,
+        notif_rappels_factures: pm.notif_rappels_factures || false,
+      });
+      setModeSimplifie(pm.mode_simplifie || false);
+    }
     setLoading(false);
   };
 
@@ -294,12 +296,18 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const toggleModeSimplifie = async (valeur) => {
     setSavingModeSimplifie(true);
     setModeSimplifie(valeur);
-    await supabase.from("parametres").upsert(
+    const { error } = await supabase.from("parametres").upsert(
       { user_id: user.id, mode_simplifie: valeur },
       { onConflict: "user_id" }
     );
     setSavingModeSimplifie(false);
-    onModeSimpleChange?.(valeur);
+    if (error) {
+      console.error("[mode simplifié] erreur upsert :", error.message);
+      // Annuler l'optimistic update si erreur (colonne manquante → SQL migration à exécuter)
+      setModeSimplifie(!valeur);
+    } else {
+      onModeSimpleChange?.(valeur);
+    }
   };
 
   // ── Supprimer compte ─────────────────────────────────
@@ -1370,7 +1378,8 @@ ALTER TABLE parametres
   ADD COLUMN IF NOT EXISTS langue TEXT DEFAULT 'fr',
   ADD COLUMN IF NOT EXISTS devise TEXT DEFAULT '€',
   ADD COLUMN IF NOT EXISTS signature_email TEXT,
-  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false;
+  ADD COLUMN IF NOT EXISTS tva_sur_debits BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS mode_simplifie BOOLEAN DEFAULT false;
 
 -- Colonnes factures (nature opération + TVA sur débits)
 ALTER TABLE factures

@@ -260,7 +260,7 @@ export default function Dashboard({
   const chargerModeSimple = async () => {
     const { data } = await supabase
       .from("parametres")
-      .select("mode_simplifie")
+      .select("*")
       .eq("user_id", user.id)
       .single();
     if (data) setModeSimple(data.mode_simplifie || false);

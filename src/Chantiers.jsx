@@ -506,7 +506,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
         {/* ══════════════════════════════════════════════════════
             WIDGET MÉTÉO
         ══════════════════════════════════════════════════════ */}
-        {ficheForm.adresse?.trim() && (
+        {(
           <div style={{
             background: CARD, borderRadius: "16px", padding: "16px 18px",
             marginBottom: "14px",
@@ -544,6 +544,13 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             )}
 
             {/* Erreur */}
+            {/* Pas d'adresse renseignée */}
+            {!ficheForm.adresse?.trim() && !meteoLoading && !meteo && !meteoError && (
+              <div style={{ color: "#8899aa", fontSize: "12px", textAlign: "center", padding: "10px 0", fontStyle: "italic" }}>
+                📍 Renseignez l'adresse du chantier pour voir la météo
+              </div>
+            )}
+
             {meteoError && !meteoLoading && (
               <div style={{ color: "#ff6b6b", fontSize: "12px", padding: "6px 0" }}>
                 ⚠️ {meteoError}
