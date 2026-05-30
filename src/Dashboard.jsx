@@ -102,6 +102,13 @@ export default function Dashboard({
   const [modeSimple,     setModeSimple]     = useState(false);
   const [modeSimpleView, setModeSimpleView] = useState(null); // null | 'clients'
 
+  // Calculateur de rentabilité
+  const [calc, setCalc] = useState({
+    tauxHoraire: "", heuresMois: "",
+    carburant: "",   materiel: "",
+    assurance: "",   autres: "",
+  });
+
   // Menu hamburger
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
   const [parametresSection, setParametresSection] = useState("profil");
@@ -1165,25 +1172,282 @@ export default function Dashboard({
                 </button>
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "28px" }}>
-              {[
-                { label: "Factures", value: stats.factures, icon: "📄" },
-                { label: "Devis en cours", value: stats.devis, icon: "📝" },
-                { label: "Chiffre d'affaires", value: stats.ca.toFixed(2) + " €", icon: "💰" },
-                { label: "Clients", value: stats.clients, icon: "👥" },
-              ].map((stat, i) => (
-                <div key={i} style={{
-                  background: CARD, borderRadius: "16px", padding: "24px",
-                  border: "1px solid rgba(255,140,0,0.15)"
-                }}>
-                  <div style={{ fontSize: "32px", marginBottom: "8px" }}>{stat.icon}</div>
-                  <div style={{ color: PRIMARY, fontSize: "28px", fontWeight: "800" }}>{stat.value}</div>
-                  <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
+            {/* ══════════════════════════════════════════════════
+                  STATS VISUELLES — 4 indicateurs clés
+            ══════════════════════════════════════════════════ */}
+            {(() => {
+              const caPaye       = factures.filter(f => f.statut === "payee").reduce((s, f) => s + (f.total_ttc || 0), 0);
+              const impayees     = factures.filter(f => f.statut !== "payee" && f.statut !== "annulee");
+              const mtImpaye     = impayees.reduce((s, f) => s + (f.total_ttc || 0), 0);
+              const devisAtt     = devis.filter(d => d.statut === "envoye" || d.statut === "en_attente");
+              const chantiersEC  = chantiers.filter(c => c.statut === "en_cours");
+              const fmt = (v) => v >= 1000
+                ? (v / 1000).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " k€"
+                : v.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
 
-            {/* ── Checklist de démarrage ──────────────────── */}
+              const cards = [
+                {
+                  label: "CA encaissé",
+                  value: fmt(caPaye),
+                  sub: `${factures.filter(f => f.statut === "payee").length} facture${factures.filter(f => f.statut === "payee").length !== 1 ? "s" : ""} payée${factures.filter(f => f.statut === "payee").length !== 1 ? "s" : ""}`,
+                  icon: "💰",
+                  color: PRIMARY,
+                  accent: "rgba(255,140,0,0.15)",
+                  border: "rgba(255,140,0,0.25)",
+                  action: () => setActiveTab("factures"),
+                },
+                {
+                  label: "À encaisser",
+                  value: mtImpaye > 0 ? fmt(mtImpaye) : "À jour ✓",
+                  sub: mtImpaye > 0 ? `${impayees.length} facture${impayees.length > 1 ? "s" : ""} impayée${impayees.length > 1 ? "s" : ""}` : "Aucune impayée",
+                  icon: "⏰",
+                  color: mtImpaye > 0 ? "#ff6b6b" : "#4CAF50",
+                  accent: mtImpaye > 0 ? "rgba(255,107,107,0.12)" : "rgba(76,175,80,0.10)",
+                  border: mtImpaye > 0 ? "rgba(255,107,107,0.28)" : "rgba(76,175,80,0.25)",
+                  action: () => setActiveTab("factures"),
+                },
+                {
+                  label: "Devis en attente",
+                  value: devisAtt.length.toString(),
+                  sub: devisAtt.length > 0 ? "En attente de signature" : "Aucun en attente",
+                  icon: "✍️",
+                  color: "#7ec8e3",
+                  accent: "rgba(126,200,227,0.10)",
+                  border: "rgba(126,200,227,0.22)",
+                  action: () => setActiveTab("devis"),
+                },
+                {
+                  label: "Chantiers actifs",
+                  value: chantiersEC.length.toString(),
+                  sub: chantiersEC.length > 0 ? "En cours" : "Aucun en cours",
+                  icon: "🏗️",
+                  color: "#ffb347",
+                  accent: "rgba(255,179,71,0.10)",
+                  border: "rgba(255,179,71,0.22)",
+                  action: () => setActiveTab("chantiers"),
+                },
+              ];
+
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+                  {cards.map((c, i) => (
+                    <div
+                      key={i}
+                      onClick={c.action}
+                      style={{
+                        background: c.accent, borderRadius: "16px", padding: "18px 16px",
+                        border: `1px solid ${c.border}`, cursor: "pointer",
+                        transition: "transform 0.15s, box-shadow 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 24px ${c.border}`; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "10px" }}>
+                        <span style={{ fontSize: "16px" }}>{c.icon}</span>
+                        <span style={{ color: "#8899aa", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.6px" }}>{c.label}</span>
+                      </div>
+                      <div style={{ color: c.color, fontSize: "22px", fontWeight: "800", marginBottom: "4px", letterSpacing: "-0.5px" }}>{c.value}</div>
+                      <div style={{ color: "#445566", fontSize: "11px" }}>{c.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════
+                  GRAPHIQUE CA — 6 DERNIERS MOIS (SVG pur)
+            ══════════════════════════════════════════════════ */}
+            {(() => {
+              const now = new Date();
+              const moisData = Array.from({ length: 6 }, (_, i) => {
+                const d     = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+                const label = d.toLocaleDateString("fr-FR", { month: "short" });
+                const y = d.getFullYear(), m = d.getMonth();
+                const ca = factures
+                  .filter(f => { const fd = new Date(f.created_at); return fd.getFullYear() === y && fd.getMonth() === m && f.statut === "payee"; })
+                  .reduce((s, f) => s + (f.total_ttc || 0), 0);
+                const total = factures
+                  .filter(f => { const fd = new Date(f.created_at); return fd.getFullYear() === y && fd.getMonth() === m; })
+                  .reduce((s, f) => s + (f.total_ttc || 0), 0);
+                return { label, ca, total };
+              });
+              const maxV  = Math.max(...moisData.map(m => m.total), 1);
+              const W = 600, H = 130, PL = 8, PR = 8, barW = 72, gap = 12;
+              const slotW = (W - PL - PR) / 6;
+
+              return (
+                <div style={{ background: CARD, borderRadius: "16px", padding: "20px 20px 16px", border: "1px solid rgba(255,140,0,0.15)", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "8px" }}>
+                    <h3 style={{ color: "white", fontSize: "15px", fontWeight: "800", margin: 0 }}>📈 Chiffre d'affaires — 6 derniers mois</h3>
+                    <div style={{ display: "flex", gap: "14px" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "#8899aa", fontSize: "11px" }}>
+                        <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: PRIMARY, display: "inline-block" }} />Payé
+                      </span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "5px", color: "#8899aa", fontSize: "11px" }}>
+                        <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "rgba(255,140,0,0.25)", display: "inline-block" }} />Total facturé
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ overflowX: "auto", marginLeft: "-4px" }}>
+                    <svg viewBox={`0 0 ${W} ${H + 36}`} style={{ width: "100%", minWidth: "280px", display: "block" }} preserveAspectRatio="xMidYMid meet">
+                      <defs>
+                        <linearGradient id="gPaye" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#FF8C00" />
+                          <stop offset="100%" stopColor="rgba(255,140,0,0.25)" />
+                        </linearGradient>
+                        <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="rgba(255,140,0,0.28)" />
+                          <stop offset="100%" stopColor="rgba(255,140,0,0.06)" />
+                        </linearGradient>
+                      </defs>
+                      {/* Lignes de grille */}
+                      {[0.25, 0.5, 0.75, 1].map(p => (
+                        <line key={p} x1={PL} y1={H * (1 - p)} x2={W - PR} y2={H * (1 - p)}
+                          stroke="rgba(255,255,255,0.045)" strokeWidth="1" />
+                      ))}
+                      {/* Barres */}
+                      {moisData.map(({ label, ca, total }, i) => {
+                        const x = PL + i * slotW + (slotW - barW) / 2;
+                        const hTotal = Math.max((total / maxV) * H, total > 0 ? 3 : 0);
+                        const hCa    = Math.max((ca    / maxV) * H, ca    > 0 ? 3 : 0);
+                        const isCurMonth = i === 5;
+                        return (
+                          <g key={i}>
+                            {/* Barre total (fond) */}
+                            <rect x={x} y={H - hTotal} width={barW} height={hTotal} rx={6} fill="url(#gTotal)" />
+                            {/* Barre payé (avant) */}
+                            <rect x={x} y={H - hCa} width={barW} height={hCa} rx={6} fill="url(#gPaye)" />
+                            {/* Halo mois courant */}
+                            {isCurMonth && <rect x={x - 3} y={0} width={barW + 6} height={H} rx={8} fill="rgba(255,140,0,0.04)" />}
+                            {/* Label mois */}
+                            <text x={x + barW / 2} y={H + 18} textAnchor="middle"
+                              fill={isCurMonth ? PRIMARY : "#6677aa"} fontSize="11.5"
+                              fontFamily="system-ui,sans-serif" fontWeight={isCurMonth ? "700" : "400"}>
+                              {label}
+                            </text>
+                            {/* Valeur payée */}
+                            {ca > 0 && (
+                              <text x={x + barW / 2} y={H - hCa - 5} textAnchor="middle"
+                                fill="#ffcc88" fontSize="9.5" fontFamily="system-ui,sans-serif" fontWeight="700">
+                                {ca >= 1000 ? (ca / 1000).toFixed(1) + "k" : Math.round(ca)}€
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════
+                  CALCULATEUR DE RENTABILITÉ
+            ══════════════════════════════════════════════════ */}
+            {(() => {
+              const th  = parseFloat(calc.tauxHoraire) || 0;
+              const h   = parseFloat(calc.heuresMois)  || 0;
+              const charges = (parseFloat(calc.carburant)  || 0)
+                            + (parseFloat(calc.materiel)   || 0)
+                            + (parseFloat(calc.assurance)  || 0)
+                            + (parseFloat(calc.autres)     || 0);
+              const ca       = th * h;
+              const benefice = ca - charges;
+              const seuilH   = th > 0 ? charges / th : 0;
+              const tauxRent = ca > 0 ? Math.min((benefice / ca) * 100, 100) : 0;
+              const hasResult = th > 0 && charges > 0;
+
+              const cInp = {
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: "9px", padding: "10px 12px", color: "white",
+                fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box",
+                fontFamily: "inherit",
+              };
+
+              return (
+                <div style={{ background: CARD, borderRadius: "16px", padding: "20px 20px", border: "1px solid rgba(255,140,0,0.15)", marginBottom: "16px" }}>
+                  <h3 style={{ color: "white", fontSize: "15px", fontWeight: "800", margin: "0 0 18px" }}>🧮 Calculateur de rentabilité</h3>
+
+                  {/* Grille inputs */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "12px", marginBottom: "18px" }}>
+                    {[
+                      { key: "tauxHoraire", label: "Taux horaire",  unit: "€/h",  placeholder: "ex: 45" },
+                      { key: "heuresMois",  label: "Heures/mois",   unit: "h",    placeholder: "ex: 140" },
+                      { key: "carburant",   label: "Carburant",     unit: "€/mois", placeholder: "ex: 200" },
+                      { key: "materiel",    label: "Matériel/outillage", unit: "€/mois", placeholder: "ex: 300" },
+                      { key: "assurance",   label: "Assurance",     unit: "€/mois", placeholder: "ex: 150" },
+                      { key: "autres",      label: "Autres charges", unit: "€/mois", placeholder: "ex: 100" },
+                    ].map(({ key, label, unit, placeholder }) => (
+                      <div key={key}>
+                        <div style={{ color: "#7788aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>
+                          {label} <span style={{ color: "#445566", fontWeight: "400", textTransform: "none" }}>({unit})</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder={placeholder}
+                          value={calc[key]}
+                          onChange={e => setCalc(p => ({ ...p, [key]: e.target.value }))}
+                          style={cInp}
+                          onFocus={e => e.target.style.borderColor = "rgba(255,140,0,0.5)"}
+                          onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.09)"}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Résultats — visibles dès qu'on a au moins le taux + une charge */}
+                  {hasResult ? (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "18px" }}>
+                      <div style={{ color: "#7788aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "14px" }}>
+                        ⚡ Résultats
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "16px" }}>
+                        {[
+                          { label: "Total charges", value: charges.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois", color: "#ff6b6b", sub: "À couvrir chaque mois" },
+                          { label: "CA brut",        value: ca > 0 ? ca.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois" : "—", color: "#7ec8e3", sub: h > 0 ? `${h}h × ${th}€` : "Renseignez les heures" },
+                          { label: "Bénéfice net",   value: ca > 0 ? (benefice >= 0 ? "+" : "") + benefice.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €/mois" : "—", color: benefice >= 0 ? "#4CAF50" : "#ff6b6b", sub: ca > 0 ? (benefice >= 0 ? "Vous êtes rentable ✓" : "En dessous du seuil ⚠️") : "" },
+                          { label: "Seuil de rentabilité", value: seuilH > 0 ? Math.ceil(seuilH) + " h/mois", color: PRIMARY, sub: "Heures min. pour couvrir les charges" },
+                        ].map(({ label, value, color, sub }) => (
+                          <div key={label} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "10px", padding: "12px 14px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                            <div style={{ color: "#7788aa", fontSize: "10px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "6px" }}>{label}</div>
+                            <div style={{ color, fontSize: "18px", fontWeight: "800", marginBottom: "3px" }}>{value}</div>
+                            <div style={{ color: "#445566", fontSize: "11px" }}>{sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Barre de rentabilité */}
+                      {ca > 0 && (
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                            <span style={{ color: "#7788aa", fontSize: "11px" }}>Taux de marge nette</span>
+                            <span style={{ color: tauxRent >= 0 ? "#4CAF50" : "#ff6b6b", fontSize: "12px", fontWeight: "700" }}>
+                              {benefice >= 0 ? "+" : ""}{tauxRent.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ height: "7px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", overflow: "hidden" }}>
+                            <div style={{
+                              height: "100%", borderRadius: "4px",
+                              width: `${Math.max(0, Math.min(tauxRent, 100))}%`,
+                              background: tauxRent > 25 ? "linear-gradient(90deg, #4CAF50, #81C784)" : tauxRent > 0 ? `linear-gradient(90deg, ${PRIMARY}, #ffb347)` : "#ff6b6b",
+                              transition: "width 0.5s ease",
+                            }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "14px", color: "#445566", fontSize: "13px", textAlign: "center" }}>
+                      Renseignez votre taux horaire et vos charges pour voir vos résultats
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════
+                  CHECKLIST DE DÉMARRAGE
+            ══════════════════════════════════════════════════ */}
             {(() => {
               const etapes = [
                 {
@@ -1216,7 +1480,6 @@ export default function Dashboard({
                   background: CARD, borderRadius: "16px", padding: "20px 22px",
                   border: "1px solid rgba(255,140,0,0.15)",
                 }}>
-                  {/* En-tête */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                     <h3 style={{ color: "white", fontSize: "15px", fontWeight: "800", margin: 0 }}>
                       {tout ? "🎉 Vous êtes prêt !" : "⚡ Pour bien démarrer"}
@@ -1225,19 +1488,13 @@ export default function Dashboard({
                       {nbFait}/{etapes.length}
                     </span>
                   </div>
-
-                  {/* Barre */}
                   <div style={{ height: "6px", background: "rgba(255,255,255,0.06)", borderRadius: "3px", marginBottom: "16px" }}>
                     <div style={{
                       height: "100%", borderRadius: "3px", transition: "width 0.6s ease",
                       width: `${pct}%`,
-                      background: tout
-                        ? "linear-gradient(90deg, #4CAF50, #81C784)"
-                        : `linear-gradient(90deg, ${PRIMARY}, #ffb347)`,
+                      background: tout ? "linear-gradient(90deg, #4CAF50, #81C784)" : `linear-gradient(90deg, ${PRIMARY}, #ffb347)`,
                     }} />
                   </div>
-
-                  {/* Étapes */}
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {etapes.map(({ done, label, action }) => (
                       <div
@@ -1254,27 +1511,20 @@ export default function Dashboard({
                         onMouseEnter={e => { if (!done) e.currentTarget.style.background = "rgba(255,140,0,0.06)"; }}
                         onMouseLeave={e => { if (!done) e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
                       >
-                        {/* Cercle coché */}
                         <div style={{
                           width: "22px", height: "22px", borderRadius: "50%", flexShrink: 0,
                           background: done ? "rgba(76,175,80,0.2)" : "transparent",
                           border: `2px solid ${done ? "#4CAF50" : "rgba(255,255,255,0.2)"}`,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: "11px", color: "#4CAF50", fontWeight: "900",
-                          transition: "all 0.3s",
                         }}>
                           {done ? "✓" : ""}
                         </div>
                         <span style={{
-                          color: done ? "#4CAF50" : "white",
-                          fontSize: "14px", fontWeight: "500",
-                          textDecoration: done ? "line-through" : "none",
-                          opacity: done ? 0.65 : 1,
-                          flex: 1,
+                          color: done ? "#4CAF50" : "white", fontSize: "14px", fontWeight: "500",
+                          textDecoration: done ? "line-through" : "none", opacity: done ? 0.65 : 1, flex: 1,
                         }}>{label}</span>
-                        {!done && (
-                          <span style={{ color: PRIMARY, fontSize: "14px", flexShrink: 0 }}>→</span>
-                        )}
+                        {!done && <span style={{ color: PRIMARY, fontSize: "14px", flexShrink: 0 }}>→</span>}
                       </div>
                     ))}
                   </div>
