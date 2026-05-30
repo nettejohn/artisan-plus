@@ -132,8 +132,7 @@ export default function App() {
         alt="Artisan+"
         style={{
           width: "clamp(130px, 30vw, 190px)",
-          height: "clamp(130px, 30vw, 190px)",
-          borderRadius: "24%",
+          height: "auto",
           marginBottom: "30px",
           animation: "splashLogoIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
         }}
