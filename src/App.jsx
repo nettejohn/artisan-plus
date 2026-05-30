@@ -126,14 +126,16 @@ export default function App() {
       transition: "opacity 0.5s ease",
       pointerEvents: splashOut ? "none" : "all",
     }}>
-      {/* Logo */}
+      {/* Logo — mix-blend-mode:screen efface le fond sombre, ne laisse
+           apparaître que les éléments clairs/colorés (A+, texte, ligne dorée) */}
       <img
         src="/logo.png"
         alt="Artisan+"
         style={{
-          width: "clamp(130px, 30vw, 190px)",
+          width: "clamp(150px, 35vw, 220px)",
           height: "auto",
-          marginBottom: "30px",
+          marginBottom: "18px",
+          mixBlendMode: "screen",
           animation: "splashLogoIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both",
         }}
       />
