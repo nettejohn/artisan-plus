@@ -152,6 +152,72 @@ export default function App() {
     setLoading(false);
   };
 
+  // ── Compte invité ─────────────────────────────────────────────
+  // Fingerprint FNV-1a basé sur user-agent, résolution, langue, timezone
+  // → identifiant déterministe par appareil, stocké dans localStorage
+  const getDeviceFingerprint = () => {
+    const raw = [
+      navigator.userAgent.slice(0, 120),
+      `${screen.width}x${screen.height}x${screen.colorDepth}`,
+      navigator.language,
+      new Date().getTimezoneOffset(),
+      navigator.hardwareConcurrency || 2,
+    ].join("|");
+    let h = 0x811c9dc5;
+    for (let i = 0; i < raw.length; i++) {
+      h ^= raw.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(36);
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    setMessage("");
+    const fp         = getDeviceFingerprint();
+    const guestEmail = `guest_${fp}@artisan-plus.app`;
+    const guestPass  = `Ap_${fp}_G!`;
+
+    // 1) L'appareil a déjà un compte invité → connexion directe
+    const { error: loginErr } = await supabase.auth.signInWithPassword({
+      email: guestEmail, password: guestPass,
+    });
+    if (!loginErr) {
+      localStorage.setItem("artisan_guest_fp", fp);
+      setLoading(false);
+      return;
+    }
+
+    // 2) Premier accès → création du compte invité
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email: guestEmail, password: guestPass,
+      options: { data: { full_name: "Invité", is_guest: true } },
+    });
+    if (signUpErr) {
+      setMessage("❌ " + signUpErr.message);
+      setLoading(false);
+      return;
+    }
+
+    // Si email confirmation désactivée, Supabase renvoie une session directement
+    if (signUpData?.session) {
+      localStorage.setItem("artisan_guest_fp", fp);
+      setLoading(false);
+      return;
+    }
+
+    // Sinon on tente la connexion (confirmation auto activée côté Supabase)
+    const { error: login2Err } = await supabase.auth.signInWithPassword({
+      email: guestEmail, password: guestPass,
+    });
+    if (login2Err) {
+      setMessage("⚠️ Activez « Disable email confirmations » dans Supabase → Auth → Settings pour les comptes invités.");
+    } else {
+      localStorage.setItem("artisan_guest_fp", fp);
+    }
+    setLoading(false);
+  };
+
   // ── Splash screen JSX (overlay fixe, zIndex 9999) ─────────────
   const splashEl = showSplash && (
     <div style={{
@@ -212,11 +278,16 @@ export default function App() {
   // Page de signature — pas de splash
   if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
+  // Détection compte invité : email déterministe généré par handleGuestLogin
+  const isGuest = user?.email?.endsWith("@artisan-plus.app") === true
+    || user?.user_metadata?.is_guest === true;
+
   if (user) return (
     <>
       {splashEl}
       <Dashboard
         user={user}
+        isGuest={isGuest}
         onLogout={() => setUser(null)}
         isOnline={isOnline}
         canInstall={canInstall}
@@ -350,6 +421,35 @@ export default function App() {
             </span>
           </div>
         )}
+
+        {/* ── Séparateur + bouton invité ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "20px 0 4px" }}>
+          <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
+          <span style={{ color: "#556677", fontSize: "12px", whiteSpace: "nowrap" }}>ou</span>
+          <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
+        </div>
+
+        <button
+          onClick={handleGuestLogin}
+          disabled={loading}
+          style={{
+            width: "100%", background: "transparent",
+            border: "1.5px solid rgba(255,255,255,0.10)",
+            borderRadius: "10px", padding: "12px 16px",
+            cursor: loading ? "not-allowed" : "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
+            transition: "border-color 0.2s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,140,0,0.35)"}
+          onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)"}
+        >
+          <span style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>
+            👤 Essayer sans compte
+          </span>
+          <span style={{ color: "#556677", fontSize: "11px" }}>
+            Accès gratuit limité · Aucune inscription
+          </span>
+        </button>
       </div>
     </div>
     </>

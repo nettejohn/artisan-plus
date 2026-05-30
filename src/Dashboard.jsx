@@ -64,6 +64,7 @@ const TOUR_STEPS = [
 
 export default function Dashboard({
   user, onLogout,
+  isGuest = false,
   isOnline = true,
   canInstall = false, handleInstall,
   showSyncToast = false,
@@ -81,7 +82,14 @@ export default function Dashboard({
   const [lienCopie, setLienCopie] = useState(null);
 
   // Freemium / Upgrade
-  const [upgradeModal, setUpgradeModal] = useState({ open: false, type: "factures" });
+  const [upgradeModal,   setUpgradeModal]   = useState({ open: false, type: "factures" });
+  const [guestModal,     setGuestModal]     = useState(false);
+
+  // Interception : invités → modal "créez un compte" au lieu de Stripe
+  const ouvrirUpgrade = (type = "factures") => {
+    if (isGuest) setGuestModal(true);
+    else setUpgradeModal({ open: true, type });
+  };
 
   // QR Code modal
   const [qrModal, setQrModal] = useState({ open: false, url: "", numero: "", loading: false });
@@ -1276,7 +1284,7 @@ export default function Dashboard({
               <button
                 onClick={() => {
                   if (!isPro && factures.length >= 3) {
-                    setUpgradeModal({ open: true, type: "factures" });
+                    ouvrirUpgrade("factures");
                   } else {
                     setPage("nouvelle-facture");
                   }
@@ -1345,7 +1353,7 @@ export default function Dashboard({
               <button
                 onClick={() => {
                   if (!isPro && devis.length >= 3) {
-                    setUpgradeModal({ open: true, type: "devis" });
+                    ouvrirUpgrade("devis");
                   } else {
                     setPage("nouveau-devis");
                   }
@@ -2020,7 +2028,7 @@ export default function Dashboard({
           <Chantiers
             user={user}
             isPro={isPro}
-            onUpgrade={() => setUpgradeModal({ open: true, type: "chantiers" })}
+            onUpgrade={() => ouvrirUpgrade("chantiers")}
             clientInitialId={clientChantierPreselect}
             onClientInitialIdHandled={() => setClientChantierPreselect(null)}
             onCreerDevis={(clientId) => {
@@ -2543,6 +2551,49 @@ export default function Dashboard({
             setPage("parametres");
           }}
         />
+      )}
+
+      {/* ── MODAL INVITÉ : créer un compte pour passer au Pro ─── */}
+      {guestModal && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+          onClick={e => { if (e.target === e.currentTarget) setGuestModal(false); }}
+        >
+          <div style={{ background: CARD, borderRadius: "20px", padding: "36px 28px", maxWidth: "400px", width: "100%", border: "1px solid rgba(255,140,0,0.25)", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔓</div>
+            <div style={{ color: "white", fontWeight: "800", fontSize: "20px", marginBottom: "10px" }}>
+              Passez au Pro
+            </div>
+            <div style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.6", marginBottom: "28px" }}>
+              Vous utilisez actuellement un compte invité.<br />
+              Pour débloquer les fonctionnalités Pro illimitées, créez un compte gratuit — ça prend 30 secondes.
+            </div>
+            <button
+              onClick={async () => {
+                setGuestModal(false);
+                await supabase.auth.signOut();
+              }}
+              style={{
+                width: "100%", background: PRIMARY, color: "white", border: "none",
+                borderRadius: "12px", padding: "14px", fontSize: "15px",
+                fontWeight: "700", cursor: "pointer", marginBottom: "10px",
+              }}
+            >
+              🚀 Créer mon compte gratuitement
+            </button>
+            <button
+              onClick={() => setGuestModal(false)}
+              style={{
+                width: "100%", background: "transparent",
+                border: "1px solid rgba(255,255,255,0.1)", color: "#8899aa",
+                borderRadius: "12px", padding: "12px", fontSize: "14px",
+                cursor: "pointer",
+              }}
+            >
+              Continuer en mode invité
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
