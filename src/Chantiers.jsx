@@ -192,20 +192,25 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setMeteoError(null);
     setMeteo(null);
     try {
-      // 1) Géocodage via Open-Meteo (gratuit, sans clé)
-      const geoRes  = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(adresse)}&count=1&language=fr&format=json`
+      // 1) Géocodage via Nominatim (OpenStreetMap) — gère les adresses complètes françaises
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1&accept-language=fr`,
+        { headers: { "User-Agent": "ArtisanPlus/1.0 (contact@artisan-plus.fr)" } }
       );
       const geoData = await geoRes.json();
-      if (!geoData.results?.length) {
+      if (!geoData?.length) {
         setMeteoError("Adresse introuvable — vérifiez l'adresse du chantier");
         setMeteoLoading(false);
         return;
       }
-      const { latitude, longitude, name, country_code } = geoData.results[0];
+      const { lat, lon, display_name } = geoData[0];
+      const latitude  = parseFloat(lat);
+      const longitude = parseFloat(lon);
+      // Extraire la ville depuis display_name (2e segment séparé par virgule)
+      const lieu = display_name.split(",").slice(0, 2).join(",").trim();
 
       // 2) Météo actuelle via Open-Meteo forecast
-      const wRes  = await fetch(
+      const wRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
         `&current=temperature_2m,relative_humidity_2m,apparent_temperature,` +
         `precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m` +
@@ -221,7 +226,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
         code:           c.weather_code,
         vent_vitesse:   Math.round(c.wind_speed_10m),
         vent_direction: c.wind_direction_10m,
-        lieu:           `${name}${country_code ? " · " + country_code.toUpperCase() : ""}`,
+        lieu,
       });
     } catch {
       setMeteoError("Impossible de charger la météo (réseau ou API indisponible)");
@@ -275,41 +280,50 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     if (!ficheForm.nom.trim()) { setFicheMsg("❌ Le nom est obligatoire"); return; }
     setFicheSaving(true);
     setFicheMsg("");
-    const payload = {
-      nom:             ficheForm.nom.trim(),
-      client_id:       ficheForm.client_id       || null,
-      adresse:         ficheForm.adresse         || null,
-      date_debut:      ficheForm.date_debut       || null,
-      date_fin_prevue: ficheForm.date_fin_prevue  || null,
-      statut:          ficheForm.statut,
-      description:     ficheForm.description     || null,
-      notes:           ficheForm.notes           || null,
-      heures_mo:       parseFloat(ficheForm.heures_mo)      || 0,
-      taux_horaire:    parseFloat(ficheForm.taux_horaire)   || 0,
-      materiaux:       ficheForm.materiaux,
-      km_deplacement:  parseFloat(ficheForm.km_deplacement) || 0,
-      prix_km:         parseFloat(ficheForm.prix_km)        || 0.50,
-      sous_traitants:  ficheForm.sous_traitants,
-      taux_imprevus:   parseFloat(ficheForm.taux_imprevus)  || 0,
-      taux_marge:      parseFloat(ficheForm.taux_marge)     || 0,
-      tva:             parseFloat(ficheForm.tva)            || 20,
-      photos:          ficheForm.photos,
-      prix_chantier:   parseFloat(ficheForm.prix_chantier)  || 0,
-      tva_prix:        ficheForm.tva_prix === true,
-      tva_mo:          ficheForm.tva_mo   === true,
-      tva_mat:         ficheForm.tva_mat  === true,
-      tva_dep:         ficheForm.tva_dep  === true,
-      tva_st:          ficheForm.tva_st   === true,
-    };
-    const { error } = await supabase.from("chantiers").update(payload).eq("id", fiche.id);
-    if (error) { setFicheMsg("❌ " + error.message); setFicheSaving(false); return; }
-    const updated = { ...fiche, ...payload };
-    setChantiers(prev => prev.map(c => c.id === fiche.id ? { ...c, ...payload } : c));
-    setFiche(updated);
-    setFicheModifie(false);
-    setFicheSaving(false);
-    setFicheMsg("✅ Sauvegardé !");
-    setTimeout(() => setFicheMsg(""), 2500);
+    try {
+      // Nettoyage photos : on ne garde que les objets avec une vraie URL (pas de blob: temporaires)
+      const photosPropres = (ficheForm.photos || []).filter(p =>
+        p && typeof p === "object" && typeof p.url === "string" && p.url.startsWith("http")
+      );
+      const payload = {
+        nom:             ficheForm.nom.trim(),
+        client_id:       ficheForm.client_id       || null,
+        adresse:         ficheForm.adresse         || null,
+        date_debut:      ficheForm.date_debut       || null,
+        date_fin_prevue: ficheForm.date_fin_prevue  || null,
+        statut:          ficheForm.statut,
+        description:     ficheForm.description     || null,
+        notes:           ficheForm.notes           || null,
+        heures_mo:       parseFloat(ficheForm.heures_mo)      || 0,
+        taux_horaire:    parseFloat(ficheForm.taux_horaire)   || 0,
+        materiaux:       ficheForm.materiaux,
+        km_deplacement:  parseFloat(ficheForm.km_deplacement) || 0,
+        prix_km:         parseFloat(ficheForm.prix_km)        || 0.50,
+        sous_traitants:  ficheForm.sous_traitants,
+        taux_imprevus:   parseFloat(ficheForm.taux_imprevus)  || 0,
+        taux_marge:      parseFloat(ficheForm.taux_marge)     || 0,
+        tva:             parseFloat(ficheForm.tva)            || 20,
+        photos:          photosPropres,
+        prix_chantier:   parseFloat(ficheForm.prix_chantier)  || 0,
+        tva_prix:        ficheForm.tva_prix === true,
+        tva_mo:          ficheForm.tva_mo   === true,
+        tva_mat:         ficheForm.tva_mat  === true,
+        tva_dep:         ficheForm.tva_dep  === true,
+        tva_st:          ficheForm.tva_st   === true,
+      };
+      const { error } = await supabase.from("chantiers").update(payload).eq("id", fiche.id);
+      if (error) { setFicheMsg("❌ " + error.message); setFicheSaving(false); return; }
+      const updated = { ...fiche, ...payload };
+      setChantiers(prev => prev.map(c => c.id === fiche.id ? { ...c, ...payload } : c));
+      setFiche(updated);
+      setFicheModifie(false);
+      setFicheSaving(false);
+      setFicheMsg("✅ Sauvegardé !");
+      setTimeout(() => setFicheMsg(""), 2500);
+    } catch (err) {
+      setFicheMsg("❌ Erreur réseau : " + (err?.message || "connexion impossible"));
+      setFicheSaving(false);
+    }
   };
 
   // ── Créer chantier ─────────────────────────────────────────────
