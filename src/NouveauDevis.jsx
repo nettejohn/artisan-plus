@@ -55,6 +55,13 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   const [photoAnalyzing, setPhotoAnalyzing] = useState(false);
   const [photoError,     setPhotoError]     = useState("");
 
+  // ── Dictée vocale ─────────────────────────────────────────────────────────
+  const [vocalEcoute,  setVocalEcoute]  = useState(false);
+  const [vocalLoading, setVocalLoading] = useState(false);
+  const [vocalError,   setVocalError]   = useState("");
+  const [vocalTexte,   setVocalTexte]   = useState(""); // transcription live
+  const vocalRecogRef = useRef(null);
+
   // ── Chargement des clients ─────────────────────────────────────────────────
   useEffect(() => {
     supabase
@@ -277,6 +284,143 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
     setTimeout(() => onBack(), 1500);
   };
 
+  // ── Dictée vocale ─────────────────────────────────────────────────────────
+  const traiterTranscription = async (transcript) => {
+    setVocalLoading(true);
+    setVocalError("");
+    setVocalTexte("");
+    try {
+      const API = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const r = await fetch(`${API}/api/process-vocal-devis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcription: transcript }),
+      });
+      const json = await r.json();
+      if (!json.ok) { setVocalError("❌ " + (json.error || "Analyse échouée")); setVocalLoading(false); return; }
+      const d = json.data;
+
+      if (modeSimple) {
+        if (d.client_nom)       setClientNomSimple(d.client_nom);
+        if (d.client_telephone) setClientTelSimple(d.client_telephone);
+        if (d.lignes?.length) {
+          const total = d.lignes.reduce((s, l) => s + (parseFloat(l.prix_unitaire) || 0) * (parseFloat(l.quantite) || 1), 0);
+          setDescriptionSimple(d.lignes.map(l => l.description).filter(Boolean).join("\n"));
+          setMontantSimple(String(total.toFixed(2)));
+        }
+        if (d.tva) setTva(d.tva);
+        if (typeof d.appliquer_tva === "boolean") setAppliquerTva(d.appliquer_tva);
+      } else {
+        if (d.client_nom)       setClient(c => ({ ...c, nom: d.client_nom }));
+        if (d.client_telephone) setClient(c => ({ ...c, telephone: d.client_telephone }));
+        if (d.client_adresse)   setClient(c => ({ ...c, adresse: d.client_adresse }));
+        if (d.lignes?.length)   setLignes(d.lignes.map(l => ({
+          description:   l.description   || "",
+          quantite:      parseFloat(l.quantite)      || 1,
+          prix_unitaire: parseFloat(l.prix_unitaire) || 0,
+        })));
+        if (d.tva) setTva(d.tva);
+        if (typeof d.appliquer_tva === "boolean") setAppliquerTva(d.appliquer_tva);
+        if (d.notes) setNotes(d.notes);
+      }
+
+      // Afficher éléments manquants si confiance faible
+      if (d.elements_manquants?.length) {
+        setVocalError("⚠️ Manquants : " + d.elements_manquants.join(", "));
+      }
+      setMessage("✅ Devis rempli depuis votre dictée — vérifiez les montants !");
+      setTimeout(() => setMessage(""), 4500);
+    } catch (err) {
+      setVocalError("❌ Erreur réseau : " + err.message);
+    }
+    setVocalLoading(false);
+  };
+
+  const demarrerVocal = () => {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      setVocalError("❌ Dictée non supportée. Utilisez Chrome ou Safari récent.");
+      return;
+    }
+    setVocalError("");
+    setVocalTexte("");
+    const recog = new SpeechRec();
+    recog.lang = "fr-FR";
+    recog.continuous = false;
+    recog.interimResults = true;
+    recog.maxAlternatives = 1;
+
+    recog.onresult = (e) => {
+      const interim = Array.from(e.results).map(r => r[0].transcript).join(" ");
+      setVocalTexte(interim);
+      if (e.results[e.results.length - 1].isFinal) {
+        recog.stop();
+        traiterTranscription(interim);
+      }
+    };
+    recog.onerror = (e) => {
+      setVocalEcoute(false);
+      setVocalError(e.error === "no-speech" ? "⚠️ Aucune voix détectée. Réessayez." : "❌ Erreur : " + e.error);
+    };
+    recog.onend = () => setVocalEcoute(false);
+
+    vocalRecogRef.current = recog;
+    recog.start();
+    setVocalEcoute(true);
+  };
+
+  const arreterVocal = () => {
+    vocalRecogRef.current?.stop();
+    setVocalEcoute(false);
+  };
+
+  const boutonVocal = (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <button
+        onClick={vocalEcoute ? arreterVocal : demarrerVocal}
+        disabled={vocalLoading || photoAnalyzing}
+        style={{
+          background: vocalEcoute
+            ? "rgba(255,60,60,0.15)"
+            : vocalLoading
+              ? "rgba(255,140,0,0.06)"
+              : "rgba(255,140,0,0.12)",
+          border: `1.5px solid ${vocalEcoute ? "rgba(255,60,60,0.5)" : "rgba(255,140,0,0.4)"}`,
+          color: vocalEcoute ? "#ff6b6b" : PRIMARY,
+          borderRadius: "12px",
+          padding: "12px 20px",
+          cursor: vocalLoading ? "wait" : "pointer",
+          fontSize: "14px", fontWeight: "700",
+          display: "flex", alignItems: "center", gap: "8px",
+          width: "100%", justifyContent: "center",
+          transition: "all 0.15s",
+          animation: vocalEcoute ? "pulse 1.2s infinite" : "none",
+          opacity: (vocalLoading || photoAnalyzing) ? 0.7 : 1,
+        }}
+      >
+        {vocalLoading ? (
+          <>⏳ L'IA analyse votre dictée…</>
+        ) : vocalEcoute ? (
+          <>🔴 En écoute… Parlez maintenant (cliquez pour arrêter)</>
+        ) : (
+          <>🎙️ Créer un devis à la voix — IA</>
+        )}
+      </button>
+      {vocalTexte && !vocalLoading && (
+        <div style={{ color: "#8899aa", fontSize: "12px", fontStyle: "italic", padding: "4px 8px",
+          background: "rgba(255,255,255,0.04)", borderRadius: "6px", lineHeight: "1.5" }}>
+          "{vocalTexte}"
+        </div>
+      )}
+      {vocalError && (
+        <div style={{ color: vocalError.startsWith("⚠️") ? "#FFB74D" : "#ff6b6b",
+          fontSize: "12px", padding: "4px 8px" }}>
+          {vocalError}
+        </div>
+      )}
+    </div>
+  );
+
   // ── Bouton import photo (commun aux deux modes) ────────────────────────────
   const boutonImportPhoto = (
     <>
@@ -333,6 +477,9 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       {/* ── FORMULAIRE SIMPLIFIÉ ───────────────────────────────── */}
       {modeSimple && (
         <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
+
+          {/* Vocal IA */}
+          {boutonVocal}
 
           {/* Import photo */}
           {boutonImportPhoto}
@@ -432,6 +579,9 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       {!modeSimple && (
 
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
+
+        {/* VOCAL IA */}
+        {boutonVocal}
 
         {/* IMPORT PHOTO */}
         {boutonImportPhoto}

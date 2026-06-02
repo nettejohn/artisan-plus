@@ -98,9 +98,10 @@ export default function RecapMensuel({ user, profil, onClose }) {
   const genererIA = async (s) => {
     setLoadingIA(true);
     try {
-      const r = await fetch(`${API_URL}/api/generate-recap`, {
+      const r = await fetch(`${API_URL}/api/ai-assist`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
+          type: "recap",
           mois: MOIS_FR[moisRecap.getMonth()],
           annee: moisRecap.getFullYear(),
           prenom: profil?.nom?.split(" ")[0] || "Artisan",

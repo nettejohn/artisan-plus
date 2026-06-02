@@ -149,6 +149,17 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const planCanvasRef  = useRef(null);
   const planImgRef     = useRef(null);
 
+  // ── Scan facture fournisseur ───────────────────────────────────
+  const [scanFrLoading, setScanFrLoading] = useState(false);
+  const [scanFrMsg,     setScanFrMsg]     = useState({ text: "", ok: true });
+  const scanFrRef = useRef(null);
+
+  // ── Pointage des heures ────────────────────────────────────────
+  const [pointages,             setPointages]             = useState([]);
+  const [pointageActif,         setPointageActif]         = useState(null); // {id, arrivee}
+  const [pointageLoading,       setPointageLoading]       = useState(false);
+  const [showPointageHistorique,setShowPointageHistorique]= useState(false);
+
   // ── Météo (fiche détaillée) ────────────────────────────────────
   const [meteo,        setMeteo]        = useState(null);
   const [meteoLoading, setMeteoLoading] = useState(false);
@@ -327,8 +338,12 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setFicheModifie(false);
     setFicheMsg("");
     setDelConfirm(false);
+    setPlanImage(null); setPlanData(null);
+    setPointages([]); setPointageActif(null); setShowPointageHistorique(false);
+    setScanFrMsg({ text: "", ok: true });
     chargerDocs(ch.client_id);
-    fetchMeteo(ch.adresse); // Charge la météo de l'adresse du chantier
+    fetchMeteo(ch.adresse);
+    chargerPointages(ch.id);
   };
 
   // Setter qui marque la fiche comme modifiée
@@ -569,6 +584,155 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     a.download = `plan-annote-${fiche?.nom || "chantier"}.jpg`;
     a.click();
   };
+
+  // ── Scan facture fournisseur ──────────────────────────────────
+
+  const compresserImageFr = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88).split(",")[1]);
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const analyserFactureFournisseur = async (file) => {
+    setScanFrLoading(true);
+    setScanFrMsg({ text: "", ok: true });
+    try {
+      const base64 = await compresserImageFr(file);
+      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const resp = await fetch(`${API_URL}/api/analyze-facture-fournisseur`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+      });
+      const json = await resp.json();
+      if (!json.ok) {
+        setScanFrMsg({ text: "❌ " + (json.error || "Analyse échouée"), ok: false });
+      } else {
+        const d = json.data;
+        if (!d.lisible) {
+          setScanFrMsg({ text: "⚠️ " + (d.observations || "Facture illisible"), ok: false });
+        } else if (!d.articles?.length) {
+          setScanFrMsg({ text: "⚠️ Aucun article détecté", ok: false });
+        } else {
+          // Convertir articles → format materiaux du chantier
+          const nouveauxMat = d.articles.map(a => ({
+            nom: a.nom,
+            quantite: String(a.quantite || 1),
+            prix_unitaire: String((a.prix_unitaire || 0).toFixed(2)),
+          }));
+          ff("materiaux", [...(ficheForm.materiaux || []), ...nouveauxMat]);
+          setScanFrMsg({
+            text: `✅ ${nouveauxMat.length} article${nouveauxMat.length > 1 ? "s" : ""} ajouté${nouveauxMat.length > 1 ? "s" : ""} depuis ${d.fournisseur || "la facture"}`,
+            ok: true,
+          });
+        }
+      }
+    } catch (e) {
+      setScanFrMsg({ text: "❌ Erreur : " + e.message, ok: false });
+    }
+    setScanFrLoading(false);
+    setTimeout(() => setScanFrMsg({ text: "", ok: true }), 5000);
+  };
+
+  // ── Pointage des heures ───────────────────────────────────────
+
+  const chargerPointages = async (chantierId) => {
+    const { data } = await supabase
+      .from("pointages")
+      .select("*")
+      .eq("chantier_id", chantierId)
+      .order("arrivee", { ascending: false });
+    if (data) {
+      setPointages(data);
+      const actif = data.find(p => !p.depart);
+      setPointageActif(actif || null);
+    }
+  };
+
+  const pointer = async () => {
+    if (!fiche) return;
+    setPointageLoading(true);
+    const now = new Date().toISOString();
+
+    if (pointageActif) {
+      // Pointer départ
+      const { error } = await supabase
+        .from("pointages")
+        .update({ depart: now })
+        .eq("id", pointageActif.id);
+
+      if (!error) {
+        const updated = { ...pointageActif, depart: now };
+        const newList = pointages.map(p => p.id === pointageActif.id ? updated : p);
+        setPointages(newList);
+        setPointageActif(null);
+
+        // Recalculer le total des heures et mettre à jour heures_mo
+        const totalH = newList
+          .filter(p => p.depart)
+          .reduce((s, p) => {
+            const diff = (new Date(p.depart) - new Date(p.arrivee)) / 3600000;
+            return s + diff;
+          }, 0);
+        ff("heures_mo", totalH.toFixed(2));
+      }
+    } else {
+      // Pointer arrivée
+      const { data, error } = await supabase
+        .from("pointages")
+        .insert({ user_id: user.id, chantier_id: fiche.id, arrivee: now })
+        .select()
+        .single();
+      if (!error && data) {
+        setPointages(prev => [data, ...prev]);
+        setPointageActif(data);
+      }
+    }
+    setPointageLoading(false);
+  };
+
+  const supprimerPointage = async (id) => {
+    if (!window.confirm("Supprimer ce pointage ?")) return;
+    await supabase.from("pointages").delete().eq("id", id);
+    const newList = pointages.filter(p => p.id !== id);
+    setPointages(newList);
+    if (pointageActif?.id === id) setPointageActif(null);
+    // Recalculer heures
+    const totalH = newList
+      .filter(p => p.depart)
+      .reduce((s, p) => s + (new Date(p.depart) - new Date(p.arrivee)) / 3600000, 0);
+    if (totalH > 0) ff("heures_mo", totalH.toFixed(2));
+  };
+
+  const formatHeure = (iso) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const formatDate  = (iso) => new Date(iso).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  const formatDuree = (arrivee, depart) => {
+    if (!depart) {
+      const diff = (Date.now() - new Date(arrivee)) / 3600000;
+      const h = Math.floor(diff), m = Math.round((diff - h) * 60);
+      return `${h}h${String(m).padStart(2,"0")} en cours`;
+    }
+    const diff = (new Date(depart) - new Date(arrivee)) / 3600000;
+    const h = Math.floor(diff), m = Math.round((diff - h) * 60);
+    return `${h}h${String(m).padStart(2,"0")}`;
+  };
+  const totalHeuresPointees = pointages
+    .filter(p => p.depart)
+    .reduce((s, p) => s + (new Date(p.depart) - new Date(p.arrivee)) / 3600000, 0);
 
   // ── Matériaux ──────────────────────────────────────────────────
 
@@ -903,12 +1067,112 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             )}
           </div>
 
+          {/* ── Pointage des heures ───────────────────────────── */}
+          <div style={{ marginBottom: "18px", background: DARK, borderRadius: "12px", padding: "14px 16px", border: "1px solid rgba(255,140,0,0.15)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+              <div style={subTitre}>⏱️ Pointage des heures</div>
+              {pointages.filter(p => p.depart).length > 0 && (
+                <button
+                  onClick={() => setShowPointageHistorique(h => !h)}
+                  style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)", color: PRIMARY, borderRadius: "8px", padding: "4px 10px", fontSize: "12px", cursor: "pointer", fontWeight: "600" }}
+                >
+                  {showPointageHistorique ? "Masquer" : `Historique (${pointages.filter(p => p.depart).length})`}
+                </button>
+              )}
+            </div>
+
+            {/* Session en cours */}
+            {pointageActif && (
+              <div style={{ background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "10px", padding: "10px 12px", marginBottom: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: PRIMARY, flexShrink: 0, animation: "pulse 1.5s ease-in-out infinite" }} />
+                <div>
+                  <div style={{ color: PRIMARY, fontSize: "13px", fontWeight: "700" }}>Session en cours</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px" }}>Arrivée à {formatHeure(pointageActif.arrivee)} — {formatDuree(pointageActif.arrivee, null)}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Bouton pointer */}
+            <button
+              onClick={pointer}
+              disabled={pointageLoading}
+              style={{
+                width: "100%", padding: "12px", borderRadius: "10px", border: "none",
+                background: pointageActif ? "rgba(255,100,100,0.15)" : "rgba(255,140,0,0.15)",
+                color: pointageActif ? "#ff6b6b" : PRIMARY,
+                fontSize: "15px", fontWeight: "700", cursor: pointageLoading ? "default" : "pointer",
+                transition: "all 0.2s", letterSpacing: "0.3px",
+              }}
+            >
+              {pointageLoading ? "⏳ Chargement…" : pointageActif ? "🏁 Pointer mon départ" : "⏱️ Pointer mon arrivée"}
+            </button>
+
+            {/* Total des heures pointées */}
+            {totalHeuresPointees > 0 && (
+              <div style={{ marginTop: "10px", textAlign: "center", color: "#8899aa", fontSize: "13px" }}>
+                Total pointé : <span style={{ color: PRIMARY, fontWeight: "700" }}>{(() => {
+                  const h = Math.floor(totalHeuresPointees);
+                  const m = Math.round((totalHeuresPointees - h) * 60);
+                  return `${h}h${m > 0 ? String(m).padStart(2, "0") : ""}`;
+                })()}</span>
+                {" "}· mis à jour dans <em>Heures MO</em>
+              </div>
+            )}
+
+            {/* Historique */}
+            {showPointageHistorique && (
+              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>Historique</div>
+                {pointages.filter(p => p.depart).map(p => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)", borderRadius: "8px", padding: "8px 10px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div>
+                      <div style={{ color: "white", fontSize: "13px", fontWeight: "600" }}>{formatDate(p.arrivee)}</div>
+                      <div style={{ color: "#8899aa", fontSize: "12px" }}>
+                        {formatHeure(p.arrivee)} → {formatHeure(p.depart)}
+                        <span style={{ color: PRIMARY, fontWeight: "700", marginLeft: "6px" }}>({formatDuree(p.arrivee, p.depart)})</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => supprimerPointage(p.id)}
+                      style={{ background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.2)", color: "#ff6b6b", borderRadius: "6px", padding: "4px 8px", fontSize: "12px", cursor: "pointer" }}
+                    >🗑️</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* ── Matériaux ─────────────────────────────────────── */}
           <div style={{ marginBottom: "18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
               <div style={subTitre}>🧱 Matériaux</div>
               <TvaSwitch checked={ficheForm.tva_mat} onChange={v => ff("tva_mat", v)} taux={ficheForm.tva} />
             </div>
+
+            {/* ── Scanner facture fournisseur ─────── */}
+            <div style={{ marginBottom: "10px" }}>
+              <input ref={scanFrRef} type="file" accept="image/*" capture="environment" hidden
+                onChange={e => { if (e.target.files[0]) { analyserFactureFournisseur(e.target.files[0]); e.target.value = ""; }}} />
+              <button onClick={() => scanFrRef.current?.click()} disabled={scanFrLoading}
+                style={{
+                  width: "100%", background: scanFrLoading ? "rgba(255,140,0,0.05)" : "rgba(255,140,0,0.1)",
+                  border: "1.5px dashed rgba(255,140,0,0.5)", color: PRIMARY,
+                  borderRadius: "9px", padding: "9px 14px", fontSize: "13px", fontWeight: "700",
+                  cursor: scanFrLoading ? "default" : "pointer", display: "flex", alignItems: "center",
+                  justifyContent: "center", gap: "7px", opacity: scanFrLoading ? 0.7 : 1,
+                }}>
+                {scanFrLoading ? "⏳ Analyse en cours…" : "📸 Scanner une facture fournisseur (IA)"}
+              </button>
+              {scanFrMsg.text && (
+                <div style={{ fontSize: "12px", marginTop: "6px", padding: "6px 10px",
+                  color: scanFrMsg.ok ? "#4CAF50" : "#FFB74D",
+                  background: scanFrMsg.ok ? "rgba(76,175,80,0.08)" : "rgba(255,183,77,0.08)",
+                  borderRadius: "7px" }}>
+                  {scanFrMsg.text}
+                </div>
+              )}
+            </div>
+
             {ficheForm.materiaux.length === 0 && (
               <div style={{ color: "#555", fontSize: "12px", fontStyle: "italic", marginBottom: "8px" }}>Aucun matériau ajouté</div>
             )}

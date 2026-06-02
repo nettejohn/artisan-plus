@@ -196,9 +196,10 @@ export default function Agenda({ user, profil, clients = [], chantiers = [] }) {
     }).map(d=>({ numero:d.numero, expire:d.date_validite, montant:d.total_ttc }));
 
     try {
-      const r = await fetch(`${API_URL}/api/analyze-agenda`, {
+      const r = await fetch(`${API_URL}/api/ai-assist`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
+          type: "agenda",
           dateAujourdhui: now.toISOString().slice(0,10),
           evenements: prochains,
           chantiers: chantiers.filter(c=>c.statut==="en_cours").map(c=>({ nom:c.nom, debut:c.date_debut })),
