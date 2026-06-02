@@ -10,6 +10,8 @@ import UpgradeModal from "./UpgradeModal";
 import { idbSave, idbLoad } from "./idb";
 import { QRCodeCanvas } from "qrcode.react";
 import Outils from "./Outils";
+import Agenda from "./Agenda";
+import RecapMensuel from "./RecapMensuel";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -137,7 +139,11 @@ export default function Dashboard({
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
   const [parametresSection, setParametresSection] = useState("profil");
 
-  // États chantiers (pour affichage dans la fiche client)
+  // ── Récap mensuel ─────────────────────────────────────────────
+  const [showRecap,  setShowRecap]  = useState(false);
+  const [recapBadge, setRecapBadge] = useState(false);
+
+  // ── États chantiers (pour affichage dans la fiche client) ─────
   const [chantiers, setChantiers] = useState([]);
   const [clientChantierPreselect, setClientChantierPreselect] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -212,6 +218,19 @@ export default function Dashboard({
     if (!localStorage.getItem(key)) {
       // Petite attente pour que le splash soit parti
       const t = setTimeout(() => setOnboardingPhase("welcome"), 3200);
+      return () => clearTimeout(t);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Récap mensuel : badge le 1er du mois (et jours suivants jusqu'à fermeture)
+  useEffect(() => {
+    const now  = new Date();
+    const ym   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    const key  = `recap_shown_${user.id}_${ym}`;
+    // Afficher si pas encore vu ce mois-ci (le mois précédent a des données)
+    if (!localStorage.getItem(key)) {
+      // Attendre que l'app soit chargée pour éviter de clignoter au démarrage
+      const t = setTimeout(() => setRecapBadge(true), 4000);
       return () => clearTimeout(t);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -849,6 +868,7 @@ export default function Dashboard({
               { id: "devis",     icon: "📝",  label: "Devis"     },
               { id: "clients",   icon: "👥",  label: "Clients"   },
               { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+              { id: "agenda",    icon: "📅",  label: "Agenda"    },
               { id: "outils",    icon: "🔧",  label: "Outils"    },
             ].map(tab => {
               const isActive = activeTab === tab.id && page !== "parametres";
@@ -877,6 +897,45 @@ export default function Dashboard({
 
         {/* Boutons droite */}
         <div style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+
+          {/* ── Badge récap mensuel ─────────────────────────── */}
+          {recapBadge && (() => {
+            const now = new Date();
+            const prevMois = new Date(now.getFullYear(), now.getMonth()-1, 1);
+            const moisFR = ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"];
+            return (
+              <button
+                onClick={() => {
+                  setShowRecap(true);
+                  setRecapBadge(false);
+                  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+                  localStorage.setItem(`recap_shown_${user.id}_${ym}`, "1");
+                }}
+                style={{
+                  background: "linear-gradient(135deg,rgba(255,140,0,0.25),rgba(255,180,0,0.15))",
+                  border: "1.5px solid rgba(255,140,0,0.5)",
+                  color: PRIMARY,
+                  borderRadius: "9px",
+                  padding: isDesktop ? "8px 14px" : "0",
+                  width: isDesktop ? "auto" : "36px",
+                  height: isDesktop ? "auto" : "36px",
+                  cursor: "pointer",
+                  fontSize: isDesktop ? "12px" : "16px",
+                  fontWeight: "800",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  gap: "5px", flexShrink: 0,
+                  animation: "pulse 2s infinite",
+                  position: "relative",
+                }}>
+                <span>🎉</span>
+                {isDesktop && <span>Récap {moisFR[prevMois.getMonth()]} prêt !</span>}
+                {!isDesktop && (
+                  <div style={{ position:"absolute", top:"-4px", right:"-4px",
+                    background:"#ff6b6b", borderRadius:"50%", width:"10px", height:"10px" }} />
+                )}
+              </button>
+            );
+          })()}
 
           {/* Bouton d'installation PWA (mobile + desktop) */}
           {canInstall && (
@@ -2387,12 +2446,32 @@ export default function Dashboard({
           />
         )}
 
+        {/* AGENDA */}
+        {activeTab === "agenda" && (
+          <Agenda
+            user={user}
+            profil={profil}
+            clients={clients}
+            chantiers={chantiers}
+          />
+        )}
+
         {/* OUTILS */}
         {activeTab === "outils" && (
           <Outils user={user} profil={profil} />
         )}
         </>}
       </div>
+
+      {/* ── RÉCAP MENSUEL (overlay plein écran) ─────────────────── */}
+      {showRecap && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 600,
+          background: "#0a1628", overflowY: "auto",
+        }}>
+          <RecapMensuel user={user} profil={profil} onClose={() => setShowRecap(false)} />
+        </div>
+      )}
 
       {/* ── BOTTOM NAV mobile : 5 onglets ───────────────────────── */}
       {!isDesktop && <nav style={{
@@ -2409,6 +2488,7 @@ export default function Dashboard({
           { id: "devis",     icon: "📝",  label: "Devis"     },
           { id: "clients",   icon: "👥",  label: "Clients"   },
           { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+          { id: "agenda",    icon: "📅",  label: "Agenda"    },
           { id: "outils",    icon: "🔧",  label: "Outils"    },
         ].map(tab => {
           const isActive = activeTab === tab.id && page !== "parametres";

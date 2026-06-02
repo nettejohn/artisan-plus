@@ -78,6 +78,12 @@ p {
   to   { transform: scaleX(1); }
 }
 
+/* ── Pulse animation (badge récap mensuel) ──────────────────── */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,140,0,0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(255,140,0,0); }
+}
+
 /* Évite le "flash" lors de l'ajout à l'écran d'accueil iOS */
 @media (display-mode: standalone) {
   body {
