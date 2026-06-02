@@ -88,9 +88,17 @@ const TOUR_STEPS = [
   },
 ];
 
+// Droits d'accès par rôle équipe
+const ROLE_TABS = {
+  associe:       ["accueil", "factures", "devis", "clients", "chantiers", "outils", "agenda"],
+  collaborateur: ["accueil", "chantiers"],
+  comptable:     ["accueil", "factures"],
+};
+
 export default function Dashboard({
   user, onLogout,
   isGuest = false,
+  teamInfo = null,  // { role, patronId } si membre d'une équipe
   isOnline = true,
   canInstall = false, handleInstall,
   showSyncToast = false,
@@ -98,6 +106,11 @@ export default function Dashboard({
   notifPermission = 'default', requestNotifPermission, checkAndNotify,
   subscriptionStatus = null, onSubscriptionStatusCleared,
 }) {
+  // Rôle effectif : 'patron' si pas dans une équipe, sinon le rôle assigné
+  const teamRole   = teamInfo?.role ?? "patron";
+  const allowedTabs = teamRole === "patron" ? null : ROLE_TABS[teamRole] ?? [];
+  const canAccess  = (tab) => !allowedTabs || allowedTabs.includes(tab);
+  const viewUserId = teamInfo?.patronId ?? user.id; // Pour les requêtes de données
   const [activeTab, setActiveTab] = useState("accueil");
   const [page, setPage] = useState("dashboard");
   const [clientPreSelectionne, setClientPreSelectionne] = useState(null);
@@ -119,6 +132,12 @@ export default function Dashboard({
 
   // QR Code modal
   const [qrModal, setQrModal] = useState({ open: false, url: "", numero: "", loading: false });
+
+  // Acompte modal
+  const [acompteModal,  setAcompteModal]  = useState(null); // devis ou null
+  const [acomptePct,    setAcomptePct]    = useState(30);
+  const [acompteCustom, setAcompteCustom] = useState("");
+  const [acompteLoading,setAcompteLoading]= useState(false);
 
   // Onboarding
   const [onboardingPhase, setOnboardingPhase] = useState(null); // 'welcome' | 'tour' | null
@@ -337,7 +356,7 @@ export default function Dashboard({
     const { data } = await supabase
       .from("chantiers")
       .select("id, nom, statut, prix_chantier, client_id")
-      .eq("user_id", user.id)
+      .eq("user_id", viewUserId)
       .order("created_at", { ascending: false });
     if (data) {
       setChantiers(data);
@@ -357,7 +376,7 @@ export default function Dashboard({
         factures(id, total_ttc, statut),
         devis(id, statut)
       `)
-      .eq("user_id", user.id)
+      .eq("user_id", viewUserId)
       .order("created_at", { ascending: false });
     if (data) {
       setClients(data);
@@ -486,7 +505,7 @@ export default function Dashboard({
     const { data: facturesData } = await supabase
       .from("factures")
       .select("*, clients(*)")
-      .eq("user_id", user.id)
+      .eq("user_id", viewUserId)
       .order("created_at", { ascending: false });
 
     if (facturesData) {
@@ -507,7 +526,7 @@ export default function Dashboard({
     const { data: devisData } = await supabase
       .from("devis")
       .select("*, clients(*)")
-      .eq("user_id", user.id)
+      .eq("user_id", viewUserId)
       .order("created_at", { ascending: false });
 
     if (devisData) {
@@ -690,6 +709,54 @@ export default function Dashboard({
     alert("✅ Devis converti en facture !");
   };
 
+  const creerAcompte = async () => {
+    if (!acompteModal) return;
+    setAcompteLoading(true);
+    const pct = acomptePct === "custom" ? parseFloat(acompteCustom) : acomptePct;
+    if (!pct || pct <= 0 || pct > 100) { alert("Pourcentage invalide"); setAcompteLoading(false); return; }
+
+    const ratio      = pct / 100;
+    const total_ht   = (acompteModal.total_ht  || 0) * ratio;
+    const total_ttc  = (acompteModal.total_ttc || 0) * ratio;
+    const numero     = "ACOMPTE-" + Date.now();
+    const description = `Acompte ${pct}% sur devis ${acompteModal.numero || acompteModal.id.slice(0,8)}`;
+
+    const { data: factureData, error } = await supabase
+      .from("factures")
+      .insert({
+        user_id:   viewUserId,
+        client_id: acompteModal.client_id,
+        numero,
+        total_ht:  Math.round(total_ht * 100) / 100,
+        tva:       acompteModal.tva,
+        total_ttc: Math.round(total_ttc * 100) / 100,
+        notes:     description,
+        style:     acompteModal.style || "moderne",
+        type:      "acompte",
+        devis_id:  acompteModal.id,
+        statut:    "en_attente",
+      })
+      .select()
+      .single();
+
+    if (error) { alert("Erreur : " + error.message); setAcompteLoading(false); return; }
+
+    // Ligne unique pour la facture d'acompte
+    await supabase.from("lignes_facture").insert({
+      facture_id:    factureData.id,
+      description,
+      quantite:      1,
+      prix_unitaire: Math.round(total_ht * 100) / 100,
+      total:         Math.round(total_ht * 100) / 100,
+    });
+
+    setAcompteModal(null);
+    setAcompteLoading(false);
+    chargerDonnees();
+    setActiveTab("factures");
+    alert(`✅ Facture d'acompte ${pct}% créée ! (${Math.round(total_ttc * 100) / 100} € TTC)`);
+  };
+
   if (page === "profil") return (
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
@@ -870,7 +937,7 @@ export default function Dashboard({
               { id: "chantiers", icon: "🏗️", label: "Chantiers" },
               { id: "agenda",    icon: "📅",  label: "Agenda"    },
               { id: "outils",    icon: "🔧",  label: "Outils"    },
-            ].map(tab => {
+            ].filter(tab => canAccess(tab.id)).map(tab => {
               const isActive = activeTab === tab.id && page !== "parametres";
               return (
                 <button
@@ -1221,6 +1288,17 @@ export default function Dashboard({
 
         {/* ONGLETS */}
         {page !== "parametres" && !modeSimple && <>
+
+        {/* GARDE ACCÈS RÔLE ÉQUIPE */}
+        {!canAccess(activeTab) && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "40vh", textAlign: "center", padding: "40px 20px" }}>
+            <div style={{ fontSize: "64px", marginBottom: "20px" }}>🔒</div>
+            <h2 style={{ color: "white", fontSize: "22px", marginBottom: "10px" }}>Accès non autorisé</h2>
+            <p style={{ color: "#8899aa", fontSize: "15px", maxWidth: "320px", lineHeight: "1.6", margin: "0 0 20px" }}>
+              Cette section n'est pas accessible avec votre rôle <strong style={{ color: PRIMARY }}>{teamRole}</strong>.<br />Contactez votre patron pour modifier vos droits.
+            </p>
+          </div>
+        )}
 
         {/* ACCUEIL */}
         {activeTab === "accueil" && (
@@ -1822,6 +1900,13 @@ export default function Dashboard({
                         color: "#4CAF50", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>✅ Facturer</button>
+                      {(d.statut === "accepte" || d.statut === "signe") && (
+                        <button onClick={() => { setAcompteModal(d); setAcomptePct(30); setAcompteCustom(""); }} style={{
+                          background: "rgba(255,140,0,0.12)", border: "1.5px solid rgba(255,140,0,0.5)",
+                          color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "13px", fontWeight: "700"
+                        }}>💰 Acompte</button>
+                      )}
                       <button onClick={() => supprimerDevis(d.id)} style={{
                         background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
                         color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
@@ -2490,7 +2575,7 @@ export default function Dashboard({
           { id: "chantiers", icon: "🏗️", label: "Chantiers" },
           { id: "agenda",    icon: "📅",  label: "Agenda"    },
           { id: "outils",    icon: "🔧",  label: "Outils"    },
-        ].map(tab => {
+        ].filter(tab => canAccess(tab.id)).map(tab => {
           const isActive = activeTab === tab.id && page !== "parametres";
           return (
             <button
@@ -2969,6 +3054,91 @@ export default function Dashboard({
             )}
           </div>
         </>
+      )}
+
+      {/* ── MODAL ACOMPTE ─────────────────────────────────────── */}
+      {acompteModal && (
+        <>
+          <div onClick={() => setAcompteModal(null)} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+            zIndex: 999, background: CARD, borderRadius: "24px", padding: "28px",
+            width: "min(380px, 94vw)", border: "1px solid rgba(255,140,0,0.3)",
+            animation: "popIn 0.25s ease",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <h2 style={{ color: "white", fontSize: "18px", margin: 0 }}>💰 Créer un acompte</h2>
+              <button onClick={() => setAcompteModal(null)} style={{ background: "none", border: "none", color: "#8899aa", fontSize: "20px", cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ color: "#8899aa", fontSize: "13px", marginBottom: "20px" }}>
+              Devis {acompteModal.numero} — {acompteModal.total_ttc?.toFixed(2)} € TTC
+            </div>
+
+            {/* Sélecteur de pourcentage */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "16px" }}>
+              {[10, 20, 30, 50].map(pct => (
+                <button key={pct} onClick={() => { setAcomptePct(pct); setAcompteCustom(""); }} style={{
+                  padding: "12px 6px", borderRadius: "10px", border: "2px solid",
+                  borderColor: acomptePct === pct && acomptePct !== "custom" ? PRIMARY : "rgba(255,255,255,0.1)",
+                  background: acomptePct === pct && acomptePct !== "custom" ? "rgba(255,140,0,0.15)" : "transparent",
+                  color: acomptePct === pct && acomptePct !== "custom" ? PRIMARY : "white",
+                  fontWeight: "700", fontSize: "16px", cursor: "pointer",
+                }}>
+                  {pct}%
+                </button>
+              ))}
+            </div>
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ color: "#8899aa", fontSize: "12px", display: "block", marginBottom: "6px" }}>Ou entrez un pourcentage personnalisé :</label>
+              <input type="number" min="1" max="99" placeholder="Ex: 40" value={acompteCustom}
+                onChange={e => { setAcompteCustom(e.target.value); setAcomptePct("custom"); }}
+                style={{ background: DARK, border: "1px solid rgba(255,140,0,0.25)", borderRadius: "10px", padding: "11px 14px", color: "white", fontSize: "15px", width: "100%", boxSizing: "border-box", outline: "none" }} />
+            </div>
+
+            {/* Montant calculé */}
+            {(() => {
+              const pct = acomptePct === "custom" ? parseFloat(acompteCustom) : acomptePct;
+              const ttc = pct > 0 && pct <= 100 ? ((acompteModal.total_ttc || 0) * pct / 100) : 0;
+              const ht  = pct > 0 && pct <= 100 ? ((acompteModal.total_ht  || 0) * pct / 100) : 0;
+              return ttc > 0 ? (
+                <div style={{ background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "12px", padding: "14px 16px", marginBottom: "20px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#8899aa", fontSize: "13px", marginBottom: "4px" }}>
+                    <span>Montant HT</span><span>{ht.toFixed(2)} €</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "white", fontWeight: "800", fontSize: "20px" }}>
+                    <span>Acompte TTC</span><span style={{ color: PRIMARY }}>{ttc.toFixed(2)} €</span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            <button onClick={creerAcompte} disabled={acompteLoading} style={{
+              width: "100%", background: acompteLoading ? "#555" : PRIMARY,
+              color: "white", border: "none", borderRadius: "12px",
+              padding: "14px", fontSize: "16px", fontWeight: "700",
+              cursor: acompteLoading ? "not-allowed" : "pointer",
+            }}>
+              {acompteLoading ? "⏳ Création…" : "✅ Créer la facture d'acompte"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── BANDEAU RÔLE ÉQUIPE ────────────────────────────────── */}
+      {teamInfo && (
+        <div style={{
+          position: "fixed", bottom: isDesktop ? "16px" : "74px", left: "50%",
+          transform: "translateX(-50%)", zIndex: 500,
+          background: CARD, border: "1px solid rgba(255,140,0,0.3)",
+          borderRadius: "24px", padding: "8px 16px",
+          display: "flex", alignItems: "center", gap: "8px",
+          fontSize: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+          whiteSpace: "nowrap",
+        }}>
+          <span style={{ fontSize: "16px" }}>👥</span>
+          <span style={{ color: "#8899aa" }}>Connecté en tant que</span>
+          <span style={{ color: PRIMARY, fontWeight: "700", textTransform: "capitalize" }}>{teamInfo.role}</span>
+        </div>
       )}
 
       {/* ── UPGRADE MODAL ─────────────────────────────────────── */}

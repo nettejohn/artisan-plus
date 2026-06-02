@@ -160,6 +160,15 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const [pointageLoading,       setPointageLoading]       = useState(false);
   const [showPointageHistorique,setShowPointageHistorique]= useState(false);
 
+  // ── Suivi chantier client ──────────────────────────────────────
+  const [suiviToken,   setSuiviToken]   = useState(null);
+  const [suiviActif,   setSuiviActif]   = useState(false);
+  const [avancement,   setAvancement]   = useState(0);
+  const [etapes,       setEtapes]       = useState([]);
+  const [prochInter,   setProchInter]   = useState("");
+  const [suiviSaving,  setSuiviSaving]  = useState(false);
+  const [suiviCopied,  setSuiviCopied]  = useState(false);
+
   // ── Météo (fiche détaillée) ────────────────────────────────────
   const [meteo,        setMeteo]        = useState(null);
   const [meteoLoading, setMeteoLoading] = useState(false);
@@ -341,6 +350,12 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setPlanImage(null); setPlanData(null);
     setPointages([]); setPointageActif(null); setShowPointageHistorique(false);
     setScanFrMsg({ text: "", ok: true });
+    // Suivi
+    setSuiviToken(ch.suivi_token || null);
+    setSuiviActif(ch.suivi_actif || false);
+    setAvancement(ch.avancement ?? 0);
+    setEtapes(Array.isArray(ch.etapes) ? ch.etapes : []);
+    setProchInter(ch.prochaine_intervention || "");
     chargerDocs(ch.client_id);
     fetchMeteo(ch.adresse);
     chargerPointages(ch.id);
@@ -733,6 +748,52 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const totalHeuresPointees = pointages
     .filter(p => p.depart)
     .reduce((s, p) => s + (new Date(p.depart) - new Date(p.arrivee)) / 3600000, 0);
+
+  // ── Suivi chantier client ──────────────────────────────────────
+
+  const genererToken = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let token = "";
+    for (let i = 0; i < 12; i++) token += chars[Math.floor(Math.random() * chars.length)];
+    return token;
+  };
+
+  const sauvegarderSuivi = async () => {
+    if (!fiche) return;
+    setSuiviSaving(true);
+    const token = suiviToken || genererToken();
+    const { error } = await supabase.from("chantiers").update({
+      suivi_token:            token,
+      suivi_actif:            suiviActif,
+      avancement:             avancement,
+      etapes:                 etapes,
+      prochaine_intervention: prochInter || null,
+    }).eq("id", fiche.id);
+
+    if (!error) {
+      setSuiviToken(token);
+      // Rafraîchir la liste
+      const { data } = await supabase.from("chantiers").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (data) setChantiersList(data);
+    }
+    setSuiviSaving(false);
+  };
+
+  const ajouterEtape = () => {
+    setEtapes(prev => [...prev, { titre: "", description: "", statut: "a_venir", date: "" }]);
+  };
+  const modifierEtape = (i, champ, val) => {
+    setEtapes(prev => { const arr = [...prev]; arr[i] = { ...arr[i], [champ]: val }; return arr; });
+  };
+  const supprimerEtape = (i) => setEtapes(prev => prev.filter((_, idx) => idx !== i));
+
+  const copierLienSuivi = () => {
+    const url = `${window.location.origin}/suivi/${suiviToken}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setSuiviCopied(true);
+      setTimeout(() => setSuiviCopied(false), 2500);
+    });
+  };
 
   // ── Matériaux ──────────────────────────────────────────────────
 
@@ -1581,6 +1642,129 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             </div>
           </Card>
         )}
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION : SUIVI CLIENT EN TEMPS RÉEL
+        ══════════════════════════════════════════════════════ */}
+        <Card titre="🔗 Suivi chantier — lien client">
+          {/* Activer / désactiver */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+            <div>
+              <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>Partager l'avancement avec le client</div>
+              <div style={{ color: "#8899aa", fontSize: "12px" }}>Le client reçoit un lien pour suivre le chantier en temps réel</div>
+            </div>
+            <button onClick={() => setSuiviActif(p => !p)} style={{
+              width: "48px", height: "28px", borderRadius: "14px", border: "none", cursor: "pointer",
+              background: suiviActif ? PRIMARY : "rgba(255,255,255,0.15)", position: "relative", flexShrink: 0,
+              transition: "background 0.2s",
+            }}>
+              <div style={{
+                width: "22px", height: "22px", borderRadius: "50%", background: "white",
+                position: "absolute", top: "3px",
+                left: suiviActif ? "23px" : "3px", transition: "left 0.2s",
+              }} />
+            </button>
+          </div>
+
+          {/* Avancement */}
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600" }}>Avancement des travaux</label>
+              <span style={{ color: PRIMARY, fontWeight: "800", fontSize: "18px" }}>{avancement}%</span>
+            </div>
+            <input type="range" min="0" max="100" value={avancement}
+              onChange={e => setAvancement(Number(e.target.value))}
+              style={{ width: "100%", accentColor: PRIMARY, cursor: "pointer" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", color: "#556677", fontSize: "11px", marginTop: "2px" }}>
+              <span>0%</span><span>50%</span><span>100%</span>
+            </div>
+          </div>
+
+          {/* Prochaine intervention */}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>📅 Prochaine intervention</label>
+            <input type="date" value={prochInter} onChange={e => setProchInter(e.target.value)}
+              style={{ background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "10px 14px", color: "white", fontSize: "14px", outline: "none", width: "100%", boxSizing: "border-box" }} />
+          </div>
+
+          {/* Étapes */}
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600" }}>📋 Étapes des travaux</label>
+              <button onClick={ajouterEtape} style={{ background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)", color: PRIMARY, borderRadius: "8px", padding: "5px 12px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }}>+ Ajouter</button>
+            </div>
+            {etapes.length === 0 && (
+              <div style={{ color: "#556677", fontSize: "13px", fontStyle: "italic", padding: "8px 0" }}>Aucune étape — cliquez "+ Ajouter" pour créer un suivi détaillé</div>
+            )}
+            {etapes.map((etape, i) => (
+              <div key={i} style={{ background: DARK, borderRadius: "10px", padding: "12px", marginBottom: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                  <input value={etape.titre} onChange={e => modifierEtape(i, "titre", e.target.value)}
+                    placeholder="Titre de l'étape (ex: Démolition)"
+                    style={{ flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px 10px", color: "white", fontSize: "13px", outline: "none" }} />
+                  <select value={etape.statut} onChange={e => modifierEtape(i, "statut", e.target.value)}
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px", color: "white", fontSize: "12px", outline: "none", cursor: "pointer" }}>
+                    <option value="a_venir">⏳ À venir</option>
+                    <option value="en_cours">🔄 En cours</option>
+                    <option value="fait">✅ Terminé</option>
+                  </select>
+                  <button onClick={() => supprimerEtape(i)} style={{ background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.2)", color: "#ff6b6b", borderRadius: "8px", padding: "8px", cursor: "pointer", fontSize: "13px" }}>🗑️</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px" }}>
+                  <input value={etape.description || ""} onChange={e => modifierEtape(i, "description", e.target.value)}
+                    placeholder="Description (optionnel)"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "7px 10px", color: "#8899aa", fontSize: "12px", outline: "none" }} />
+                  <input type="date" value={etape.date || ""} onChange={e => modifierEtape(i, "date", e.target.value)}
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "7px 10px", color: "white", fontSize: "12px", outline: "none" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bouton sauvegarder */}
+          <button onClick={sauvegarderSuivi} disabled={suiviSaving} style={{
+            width: "100%", background: suiviSaving ? "#555" : PRIMARY, color: "white",
+            border: "none", borderRadius: "10px", padding: "12px",
+            fontSize: "14px", fontWeight: "700", cursor: suiviSaving ? "not-allowed" : "pointer",
+            marginBottom: suiviToken ? "12px" : 0,
+          }}>
+            {suiviSaving ? "⏳ Sauvegarde…" : "💾 Sauvegarder le suivi"}
+          </button>
+
+          {/* Lien à partager */}
+          {suiviToken && suiviActif && (
+            <div style={{ background: "rgba(76,175,80,0.08)", border: "1px solid rgba(76,175,80,0.25)", borderRadius: "12px", padding: "14px 16px" }}>
+              <div style={{ color: "#4CAF50", fontSize: "12px", fontWeight: "700", marginBottom: "8px" }}>✅ Lien actif — à partager avec votre client :</div>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div style={{ flex: 1, background: DARK, borderRadius: "8px", padding: "9px 12px", color: "#8899aa", fontSize: "12px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {window.location.origin}/suivi/{suiviToken}
+                </div>
+                <button onClick={copierLienSuivi} style={{
+                  background: suiviCopied ? "rgba(76,175,80,0.15)" : "rgba(255,140,0,0.12)",
+                  border: suiviCopied ? "1px solid rgba(76,175,80,0.3)" : "1px solid rgba(255,140,0,0.3)",
+                  color: suiviCopied ? "#4CAF50" : PRIMARY,
+                  borderRadius: "8px", padding: "9px 14px", cursor: "pointer",
+                  fontSize: "13px", fontWeight: "700", flexShrink: 0,
+                }}>
+                  {suiviCopied ? "✅ Copié !" : "📋 Copier"}
+                </button>
+              </div>
+              {navigator.share && (
+                <button onClick={() => navigator.share({ title: `Suivi chantier — ${ficheForm.nom}`, url: `${window.location.origin}/suivi/${suiviToken}` })} style={{
+                  width: "100%", marginTop: "8px", background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.1)", color: "#8899aa",
+                  borderRadius: "8px", padding: "9px", cursor: "pointer",
+                  fontSize: "13px", fontWeight: "600",
+                }}>📤 Partager via…</button>
+              )}
+            </div>
+          )}
+          {suiviToken && !suiviActif && (
+            <div style={{ color: "#8899aa", fontSize: "12px", fontStyle: "italic", textAlign: "center" }}>
+              Le suivi est désactivé — activez-le pour que le lien soit accessible
+            </div>
+          )}
+        </Card>
 
         {/* ── Supprimer ──────────────────────────────────────── */}
         <div style={{ marginTop: "24px", textAlign: "center" }}>

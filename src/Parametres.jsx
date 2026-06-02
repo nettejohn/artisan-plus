@@ -15,6 +15,7 @@ const THEMES_PDF = [
 
 const SECTIONS = [
   { id: "profil",        label: "Mon profil",    emoji: "👤" },
+  { id: "equipe",        label: "Mon équipe",    emoji: "👥" },
   { id: "verif",         label: "Vérification",  emoji: "✅" },
   { id: "apparence",     label: "Apparence",     emoji: "🎨" },
   { id: "factures",      label: "Facturation",   emoji: "📄" },
@@ -25,6 +26,12 @@ const SECTIONS = [
   { id: "securite",      label: "Sécurité",      emoji: "🔒" },
   { id: "danger",        label: "Danger",        emoji: "⚠️" },
   { id: "aide",          label: "Centre d'aide", emoji: "❓" },
+];
+
+const ROLES_EQUIPE = [
+  { id: "associe",       label: "Associé",       desc: "Accès complet sauf paiement & abonnement" },
+  { id: "collaborateur", label: "Collaborateur", desc: "Chantiers et pointage uniquement"          },
+  { id: "comptable",     label: "Comptable",     desc: "Factures et tableau de bord financier"     },
 ];
 
 const inp = {
@@ -133,6 +140,14 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [referralInfo,   setReferralInfo]   = useState({ code: null, referred_by: null, used: false, pro_until: null });
   const [codeCopie,      setCodeCopie]      = useState(false);
 
+  // ── Mon Équipe ────────────────────────────────────
+  const [membres,        setMembres]        = useState([]);
+  const [inviteEmail,    setInviteEmail]    = useState("");
+  const [inviteRole,     setInviteRole]     = useState("collaborateur");
+  const [inviteSending,  setInviteSending]  = useState(false);
+  const [inviteMsg,      setInviteMsg]      = useState({ text: "", ok: true });
+  const [codeCopied,     setCodeCopied]     = useState(null); // id du membre
+
   // ── Mode simplifié ────────────────────────────────
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
@@ -144,7 +159,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [verifMsg,           setVerifMsg]           = useState({ text: "", ok: true });
 
   // ── Chargement ───────────────────────────────────────
-  useEffect(() => { charger(); }, []);
+  useEffect(() => { charger(); chargerMembres(); }, []);
 
   const charger = async () => {
     setLoading(true);
@@ -205,6 +220,55 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       setModeSimplifie(pm.mode_simplifie || false);
     }
     setLoading(false);
+  };
+
+  // ── Équipe ────────────────────────────────────────────────────
+  const chargerMembres = async () => {
+    const { data } = await supabase
+      .from("equipe_membres")
+      .select("*")
+      .eq("patron_id", user.id)
+      .order("created_at", { ascending: false });
+    if (data) setMembres(data);
+  };
+
+  const genCodeInvitation = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return "EQUIP-" + Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const inviterMembre = async () => {
+    if (!inviteEmail.trim()) { setInviteMsg({ text: "❌ Email requis", ok: false }); return; }
+    setInviteSending(true);
+    setInviteMsg({ text: "", ok: true });
+    const code = genCodeInvitation();
+    const { error } = await supabase.from("equipe_membres").insert({
+      patron_id:       user.id,
+      email_invite:    inviteEmail.trim().toLowerCase(),
+      role:            inviteRole,
+      code_invitation: code,
+      statut:          "invite",
+    });
+    if (error) {
+      setInviteMsg({ text: "❌ " + error.message, ok: false });
+    } else {
+      setInviteMsg({ text: `✅ Invitation créée ! Code : ${code}`, ok: true });
+      setInviteEmail("");
+      chargerMembres();
+    }
+    setInviteSending(false);
+  };
+
+  const revoquerMembre = async (id) => {
+    if (!window.confirm("Révoquer l'accès de ce membre ?")) return;
+    await supabase.from("equipe_membres").delete().eq("id", id);
+    chargerMembres();
+  };
+
+  const copierCodeInvitation = (membre) => {
+    navigator.clipboard.writeText(membre.code_invitation);
+    setCodeCopied(membre.id);
+    setTimeout(() => setCodeCopied(null), 2000);
   };
 
   const flash = (setter, text, ok = true) => {
@@ -563,6 +627,132 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
             {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
             <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les préférences" />
+          </SCard>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MON ÉQUIPE
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "equipe" && (
+        <div>
+          {/* Inviter un membre */}
+          <SCard titre="👥 Mon équipe">
+            <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", marginBottom: "18px" }}>
+              Invitez des collaborateurs, associés ou comptables. Chaque membre reçoit un <strong style={{ color: PRIMARY }}>code d'invitation</strong> à entrer lors de sa connexion.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "16px" }}>
+              <div>
+                <label style={lbl}>Email du membre à inviter</label>
+                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="collaborateur@example.com" style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Rôle</label>
+                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ ...inp, cursor: "pointer" }}>
+                  {ROLES_EQUIPE.map(r => (
+                    <option key={r.id} value={r.id}>{r.label} — {r.desc}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description du rôle sélectionné */}
+              {(() => {
+                const r = ROLES_EQUIPE.find(x => x.id === inviteRole);
+                const icons = { associe: "🤝", collaborateur: "🔨", comptable: "📊" };
+                const tabs  = { associe: "Tout sauf paiement", collaborateur: "Accueil + Chantiers", comptable: "Accueil + Factures" };
+                return (
+                  <div style={{ background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "12px 14px", fontSize: "13px" }}>
+                    <span style={{ fontSize: "18px", marginRight: "8px" }}>{icons[inviteRole]}</span>
+                    <span style={{ color: "white", fontWeight: "600" }}>{r?.label}</span>
+                    <span style={{ color: "#8899aa" }}> — </span>
+                    <span style={{ color: "#8899aa" }}>Accès : <span style={{ color: PRIMARY }}>{tabs[inviteRole]}</span></span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {inviteMsg.text && (
+              <div style={{ color: inviteMsg.ok ? "#4CAF50" : "#ff6b6b", fontSize: "13px", marginBottom: "12px", fontWeight: "600" }}>
+                {inviteMsg.text}
+              </div>
+            )}
+
+            <button onClick={inviterMembre} disabled={inviteSending} style={{
+              background: inviteSending ? "#555" : PRIMARY, color: "white", border: "none",
+              borderRadius: "10px", padding: "12px 20px", fontSize: "14px",
+              fontWeight: "700", cursor: inviteSending ? "not-allowed" : "pointer",
+            }}>
+              {inviteSending ? "⏳ Création…" : "📨 Créer l'invitation"}
+            </button>
+          </SCard>
+
+          {/* Liste des membres */}
+          {membres.length > 0 && (
+            <SCard titre={`Membres (${membres.length})`}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {membres.map(m => {
+                  const roleInfo = ROLES_EQUIPE.find(r => r.id === m.role);
+                  const statutColor = m.statut === "actif" ? "#4CAF50" : m.statut === "invite" ? PRIMARY : "#ff6b6b";
+                  const statutLabel = m.statut === "actif" ? "✅ Actif" : m.statut === "invite" ? "⏳ En attente" : "❌ Révoqué";
+                  return (
+                    <div key={m.id} style={{ background: DARK, borderRadius: "12px", padding: "14px 16px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>{m.email_invite}</div>
+                          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
+                            <span style={{ color: PRIMARY, fontSize: "12px", fontWeight: "600" }}>{roleInfo?.label || m.role}</span>
+                            <span style={{ color: "#556677", fontSize: "12px" }}>·</span>
+                            <span style={{ color: statutColor, fontSize: "12px", fontWeight: "600" }}>{statutLabel}</span>
+                          </div>
+                          {m.statut === "invite" && (
+                            <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                              <div style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "6px 10px", fontFamily: "monospace", fontSize: "13px", color: PRIMARY, letterSpacing: "1px" }}>
+                                {m.code_invitation}
+                              </div>
+                              <button onClick={() => copierCodeInvitation(m)} style={{
+                                background: codeCopied === m.id ? "rgba(76,175,80,0.1)" : "rgba(255,140,0,0.1)",
+                                border: "1px solid rgba(255,255,255,0.1)", color: codeCopied === m.id ? "#4CAF50" : PRIMARY,
+                                borderRadius: "8px", padding: "6px 10px", cursor: "pointer", fontSize: "12px", fontWeight: "600",
+                              }}>
+                                {codeCopied === m.id ? "✅ Copié" : "📋 Copier"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <button onClick={() => revoquerMembre(m.id)} style={{
+                          background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.2)",
+                          color: "#ff6b6b", borderRadius: "8px", padding: "8px 12px",
+                          cursor: "pointer", fontSize: "12px", fontWeight: "600", flexShrink: 0,
+                        }}>🗑️ Révoquer</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SCard>
+          )}
+
+          {/* Explications des rôles */}
+          <SCard titre="📖 Guide des rôles">
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {[
+                { emoji: "👑", role: "Patron", color: PRIMARY, desc: "Accès total à toutes les fonctionnalités", tabs: "Toutes les sections" },
+                { emoji: "🤝", role: "Associé", color: "#a855f7", desc: "Comme le patron, sauf paiement & abonnement", tabs: "Tout sauf Paramètres paiement" },
+                { emoji: "🔨", role: "Collaborateur", color: "#6495ED", desc: "Pour les ouvriers sur le terrain", tabs: "Accueil + Chantiers (pointage)" },
+                { emoji: "📊", role: "Comptable", color: "#4CAF50", desc: "Consultation financière uniquement", tabs: "Accueil + Factures" },
+              ].map(r => (
+                <div key={r.role} style={{ display: "flex", gap: "12px", padding: "12px", background: DARK, borderRadius: "10px" }}>
+                  <div style={{ fontSize: "24px", flexShrink: 0 }}>{r.emoji}</div>
+                  <div>
+                    <div style={{ color: r.color, fontWeight: "700", fontSize: "14px" }}>{r.role}</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>{r.desc}</div>
+                    <div style={{ color: "#556677", fontSize: "11px", marginTop: "4px" }}>Onglets : {r.tabs}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </SCard>
         </div>
       )}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import Dashboard from "./Dashboard";
 import SignatureDevis from "./SignatureDevis";
+import SuiviChantier from "./SuiviChantier";
 import { usePWA } from "./usePWA";
 
 const PRIMARY = "#FF8C00";
@@ -35,6 +36,10 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null); // 'success' | 'canceled' | null
+  const [teamInfo,           setTeamInfo]           = useState(null); // { role, patronId } si membre d'une équipe
+  const [loginMode,          setLoginMode]          = useState("normal"); // "normal" | "join-team"
+  const [inviteCode,         setInviteCode]         = useState("");
+  const [joinMsg,            setJoinMsg]            = useState("");
 
   // ── Splash screen ─────────────────────────────────────────────
   const isSplashPage = !window.location.pathname.startsWith("/signer/");
@@ -115,13 +120,14 @@ export default function App() {
   } = usePWA();
 
   useEffect(() => {
-    // Vérifier si c'est un lien de signature
+    // Vérifier si c'est un lien de signature ou de suivi
     const path = window.location.pathname;
     if (path.startsWith("/signer/")) {
       const token = path.replace("/signer/", "");
       setSignatureToken(token);
       return;
     }
+    if (path.startsWith("/suivi/")) return; // géré plus bas
 
     // Détecter le retour depuis Stripe Checkout + code parrainage dans l'URL
     const params = new URLSearchParams(window.location.search);
@@ -139,12 +145,73 @@ export default function App() {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) chargerEquipe(u.id);
     });
     supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) chargerEquipe(u.id);
     });
   }, []);
+
+  // Vérifier si l'utilisateur est membre d'une équipe
+  const chargerEquipe = async (userId) => {
+    const { data } = await supabase
+      .from("equipe_membres")
+      .select("role, patron_id")
+      .eq("membre_id", userId)
+      .eq("statut", "actif")
+      .single();
+    if (data) setTeamInfo({ role: data.role, patronId: data.patron_id });
+    else setTeamInfo(null);
+  };
+
+  // Rejoindre une équipe avec un code d'invitation
+  const handleJoinTeam = async () => {
+    setLoading(true);
+    setJoinMsg("");
+    const code = inviteCode.trim().toUpperCase();
+    if (!code) { setJoinMsg("❌ Entrez un code d'invitation"); setLoading(false); return; }
+
+    // 1. Vérifier le code
+    const { data: invite, error } = await supabase
+      .from("equipe_membres")
+      .select("id, email_invite, statut")
+      .eq("code_invitation", code)
+      .single();
+
+    if (error || !invite) { setJoinMsg("❌ Code invalide ou expiré"); setLoading(false); return; }
+    if (invite.statut === "actif") { setJoinMsg("⚠️ Ce code a déjà été utilisé"); setLoading(false); return; }
+
+    // 2. Connexion / inscription
+    const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (loginErr) {
+      // Essai inscription
+      const { data: signData, error: signErr } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { full_name: nom || email.split("@")[0] } }
+      });
+      if (signErr) { setJoinMsg("❌ " + signErr.message); setLoading(false); return; }
+      if (!signData.session) {
+        setJoinMsg("✅ Compte créé ! Vérifiez votre email puis revenez rejoindre l'équipe.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 3. Récupérer l'utilisateur connecté et lier
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setJoinMsg("❌ Connexion échouée"); setLoading(false); return; }
+
+    await supabase.from("equipe_membres")
+      .update({ membre_id: session.user.id, statut: "actif" })
+      .eq("code_invitation", code);
+
+    setJoinMsg("✅ Bienvenue dans l'équipe !");
+    setLoading(false);
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -348,6 +415,13 @@ export default function App() {
   // Page de signature — pas de splash
   if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
+  // Page de suivi chantier — publique, pas d'auth
+  const suiviPath = window.location.pathname;
+  if (suiviPath.startsWith("/suivi/")) {
+    const suiviToken = suiviPath.replace("/suivi/", "").split("?")[0];
+    if (suiviToken) return <SuiviChantier token={suiviToken} />;
+  }
+
   // Détection compte invité : email déterministe généré par handleGuestLogin
   const isGuest = user?.email?.endsWith("@artisan-plus.app") === true
     || user?.user_metadata?.is_guest === true;
@@ -358,6 +432,7 @@ export default function App() {
       <Dashboard
         user={user}
         isGuest={isGuest}
+        teamInfo={teamInfo}
         onLogout={() => setUser(null)}
         isOnline={isOnline}
         canInstall={canInstall}
@@ -415,92 +490,125 @@ export default function App() {
           )}
         </div>
 
-        <div style={{ display: "flex", marginBottom: "28px", background: "#0a1628", borderRadius: "10px", padding: "4px" }}>
-          {["login", "register"].map(tab => (
-            <button key={tab} onClick={() => { setPage(tab); setMessage(""); setPasswordConfirm(""); }} style={{
-              flex: 1, padding: "10px", border: "none", borderRadius: "8px", cursor: "pointer",
-              background: page === tab ? PRIMARY : "transparent",
-              color: page === tab ? "white" : "#8899aa",
-              fontWeight: "600", fontSize: "14px", transition: "all 0.2s"
+        {/* ── Onglets mode connexion ─────────────────────────── */}
+        <div style={{ display: "flex", marginBottom: "28px", background: "#0a1628", borderRadius: "10px", padding: "4px", gap: "2px" }}>
+          {["login", "register", "join-team"].map(tab => (
+            <button key={tab} onClick={() => { setPage(tab === "join-team" ? "login" : tab); setLoginMode(tab === "join-team" ? "join-team" : "normal"); setMessage(""); setJoinMsg(""); setPasswordConfirm(""); }} style={{
+              flex: 1, padding: "9px 4px", border: "none", borderRadius: "8px", cursor: "pointer",
+              background: (tab === "join-team" ? loginMode === "join-team" : (tab === page && loginMode === "normal")) ? PRIMARY : "transparent",
+              color: (tab === "join-team" ? loginMode === "join-team" : (tab === page && loginMode === "normal")) ? "white" : "#8899aa",
+              fontWeight: "600", fontSize: "12px", transition: "all 0.2s", lineHeight: "1.2"
             }}>
-              {tab === "login" ? "Connexion" : "Inscription"}
+              {tab === "login" ? "Connexion" : tab === "register" ? "Inscription" : "👥 Rejoindre"}
             </button>
           ))}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {page === "register" && (
-            <input placeholder="Nom complet" value={nom}
-              onChange={e => setNom(e.target.value)} style={inputStyle} />
-          )}
-          <input placeholder="Email" value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !loading && (page === "login" ? handleLogin() : handleRegister())}
-            style={inputStyle} />
-          <input placeholder="Mot de passe" type="password" value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !loading && page === "login" && handleLogin()}
-            style={inputStyle} />
-          {page === "register" && (
-            <>
-              <input
-                placeholder="Confirmer le mot de passe"
-                type="password"
-                value={passwordConfirm}
-                onChange={e => setPasswordConfirm(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && !loading && handleRegister()}
-                style={inputStyle}
-              />
-              <div style={{ position: "relative" }}>
-                <input
-                  placeholder="Code de parrainage (optionnel)"
-                  value={referralInput}
-                  onChange={e => setReferralInput(e.target.value.toUpperCase())}
-                  style={{
-                    ...inputStyle,
-                    border: referralInput
-                      ? "1px solid rgba(255,140,0,0.5)"
-                      : "1px solid rgba(255,255,255,0.08)",
-                    paddingLeft: referralInput ? "36px" : "16px",
-                  }}
-                />
-                {referralInput && (
-                  <span style={{
-                    position: "absolute", left: "12px", top: "50%",
-                    transform: "translateY(-50%)", fontSize: "15px",
-                  }}>🎁</span>
-                )}
-              </div>
-            </>
-          )}
-
-          {message && (
-            <div style={{ color: message.includes("✅") ? "#4CAF50" : "#ff6b6b",
-              fontSize: "13px", textAlign: "center" }}>
-              {message}
+        {/* ── Mode rejoindre une équipe ──────────────────────── */}
+        {loginMode === "join-team" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "12px", padding: "14px 16px" }}>
+              <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px", marginBottom: "4px" }}>👥 Rejoindre l'équipe d'un artisan</div>
+              <div style={{ color: "#8899aa", fontSize: "12px" }}>Entrez le code d'invitation reçu par email, puis connectez-vous ou créez votre compte.</div>
             </div>
-          )}
-
-          <button onClick={page === "login" ? handleLogin : handleRegister}
-            disabled={loading} style={{
-              background: loading ? "#888" : PRIMARY, color: "white",
-              border: "none", borderRadius: "10px", padding: "14px",
-              fontSize: "16px", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer",
-              marginTop: "8px"
+            <input placeholder="Code d'invitation (ex: EQUIP-ABC123)" value={inviteCode}
+              onChange={e => setInviteCode(e.target.value.toUpperCase())} style={{ ...inputStyle, textAlign: "center", fontWeight: "700", fontSize: "16px", letterSpacing: "2px" }} />
+            <input placeholder="Votre nom complet" value={nom}
+              onChange={e => setNom(e.target.value)} style={inputStyle} />
+            <input placeholder="Email" value={email}
+              onChange={e => setEmail(e.target.value)} style={inputStyle} />
+            <input placeholder="Mot de passe" type="password" value={password}
+              onChange={e => setPassword(e.target.value)} style={inputStyle} />
+            {joinMsg && (
+              <div style={{ color: joinMsg.includes("✅") ? "#4CAF50" : joinMsg.includes("⚠️") ? PRIMARY : "#ff6b6b", fontSize: "13px", textAlign: "center" }}>
+                {joinMsg}
+              </div>
+            )}
+            <button onClick={handleJoinTeam} disabled={loading} style={{
+              background: loading ? "#888" : PRIMARY, color: "white", border: "none",
+              borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "700",
+              cursor: loading ? "not-allowed" : "pointer"
             }}>
-            {loading ? "Chargement..." : page === "login" ? "Se connecter" : "Créer mon compte"}
-          </button>
-        </div>
-
-        {page === "login" && (
-          <div style={{ textAlign: "center", marginTop: "16px" }}>
-            <span style={{ color: "#8899aa", fontSize: "13px" }}>Pas encore de compte ? </span>
-            <span onClick={() => setPage("register")} style={{
-              color: PRIMARY, fontSize: "13px", cursor: "pointer", fontWeight: "600"
-            }}>
-              S'inscrire gratuitement
-            </span>
+              {loading ? "Connexion…" : "🚀 Rejoindre l'équipe"}
+            </button>
           </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {page === "register" && (
+                <input placeholder="Nom complet" value={nom}
+                  onChange={e => setNom(e.target.value)} style={inputStyle} />
+              )}
+              <input placeholder="Email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !loading && (page === "login" ? handleLogin() : handleRegister())}
+                style={inputStyle} />
+              <input placeholder="Mot de passe" type="password" value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !loading && page === "login" && handleLogin()}
+                style={inputStyle} />
+              {page === "register" && (
+                <>
+                  <input
+                    placeholder="Confirmer le mot de passe"
+                    type="password"
+                    value={passwordConfirm}
+                    onChange={e => setPasswordConfirm(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !loading && handleRegister()}
+                    style={inputStyle}
+                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      placeholder="Code de parrainage (optionnel)"
+                      value={referralInput}
+                      onChange={e => setReferralInput(e.target.value.toUpperCase())}
+                      style={{
+                        ...inputStyle,
+                        border: referralInput
+                          ? "1px solid rgba(255,140,0,0.5)"
+                          : "1px solid rgba(255,255,255,0.08)",
+                        paddingLeft: referralInput ? "36px" : "16px",
+                      }}
+                    />
+                    {referralInput && (
+                      <span style={{
+                        position: "absolute", left: "12px", top: "50%",
+                        transform: "translateY(-50%)", fontSize: "15px",
+                      }}>🎁</span>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {message && (
+                <div style={{ color: message.includes("✅") ? "#4CAF50" : "#ff6b6b",
+                  fontSize: "13px", textAlign: "center" }}>
+                  {message}
+                </div>
+              )}
+
+              <button onClick={page === "login" ? handleLogin : handleRegister}
+                disabled={loading} style={{
+                  background: loading ? "#888" : PRIMARY, color: "white",
+                  border: "none", borderRadius: "10px", padding: "14px",
+                  fontSize: "16px", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer",
+                  marginTop: "8px"
+                }}>
+                {loading ? "Chargement..." : page === "login" ? "Se connecter" : "Créer mon compte artisan"}
+              </button>
+            </div>
+
+            {page === "login" && (
+              <div style={{ textAlign: "center", marginTop: "16px" }}>
+                <span style={{ color: "#8899aa", fontSize: "13px" }}>Pas encore de compte ? </span>
+                <span onClick={() => setPage("register")} style={{
+                  color: PRIMARY, fontSize: "13px", cursor: "pointer", fontWeight: "600"
+                }}>
+                  S'inscrire gratuitement
+                </span>
+              </div>
+            )}
+          </>
         )}
 
         {/* ── Séparateur + bouton invité ── */}
