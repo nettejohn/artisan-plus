@@ -12,6 +12,7 @@ import { QRCodeCanvas } from "qrcode.react";
 import Outils from "./Outils";
 import Agenda from "./Agenda";
 import RecapMensuel from "./RecapMensuel";
+import CataloguePrestations from "./CataloguePrestations";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -26,13 +27,13 @@ const TOUR_STEPS = [
     desc: "Suivez en temps réel votre CA encaissé, les factures à encaisser, vos devis en attente et vos chantiers actifs. Le graphique CA affiche l'évolution sur les 6 derniers mois.",
   },
   {
-    tab: "factures",
+    tab: "documents",
     emoji: "📄",
     title: "Factures — PDFs pro en 1 minute",
     desc: "Créez une facture professionnelle en quelques secondes. 5 thèmes visuels (Moderne, Classique, Élégant…), numérotation automatique, téléchargement PDF. Convertissez un devis accepté en facture d'un seul clic.",
   },
   {
-    tab: "devis",
+    tab: "documents",
     emoji: "✍️",
     title: "Devis — signature électronique",
     desc: "Créez un devis et envoyez le lien de signature à votre client par SMS, WhatsApp ou email. Il signe directement sur son téléphone avec son doigt. La signature est horodatée et légalement valable.",
@@ -56,11 +57,11 @@ const TOUR_STEPS = [
     desc: "Chaque chantier affiche la météo en temps réel : température, conditions et risque de pluie. Planifiez vos journées de travail selon les prévisions directement depuis la liste des chantiers.",
   },
   {
-    tab: "factures",
+    tab: "documents",
     emoji: "📦",
     title: "Catalogue de prestations",
     desc: "Enregistrez vos articles, fournitures et prestations habituelles avec leurs prix unitaires. Lors d'un devis ou d'une facture, insérez-les en 1 clic — fini de tout ressaisir à chaque fois !",
-    note: "Accessible depuis ➜ Nouveau devis / Nouvelle facture",
+    note: "Accessible depuis ➜ Documents › Catalogue",
   },
   {
     tab: null,
@@ -90,9 +91,9 @@ const TOUR_STEPS = [
 
 // Droits d'accès par rôle équipe
 const ROLE_TABS = {
-  associe:       ["accueil", "factures", "devis", "clients", "chantiers", "outils", "agenda"],
+  associe:       ["accueil", "documents", "clients", "chantiers", "outils"],
   collaborateur: ["accueil", "chantiers"],
-  comptable:     ["accueil", "factures"],
+  comptable:     ["accueil", "documents"],
 };
 
 export default function Dashboard({
@@ -157,6 +158,10 @@ export default function Dashboard({
   // Menu hamburger
   const [hamburgerOpen, setHamburgerOpen]       = useState(false);
   const [parametresSection, setParametresSection] = useState("profil");
+
+  // Documents sous-onglets
+  const [docSub, setDocSub] = useState("factures");
+  const [showCatalogueModal, setShowCatalogueModal] = useState(false);
 
   // ── Récap mensuel ─────────────────────────────────────────────
   const [showRecap,      setShowRecap]      = useState(false);
@@ -707,7 +712,7 @@ export default function Dashboard({
     await supabase.from("lignes_facture").insert(lignesFacture);
     await supabase.from("devis").update({ statut: "accepte" }).eq("id", d.id);
     chargerDonnees();
-    setActiveTab("factures");
+    setActiveTab("documents"); setDocSub("factures");
     alert("✅ Devis converti en facture !");
   };
 
@@ -755,7 +760,7 @@ export default function Dashboard({
     setAcompteModal(null);
     setAcompteLoading(false);
     chargerDonnees();
-    setActiveTab("factures");
+    setActiveTab("documents"); setDocSub("factures");
     alert(`✅ Facture d'acompte ${pct}% créée ! (${Math.round(total_ttc * 100) / 100} € TTC)`);
   };
 
@@ -933,11 +938,9 @@ export default function Dashboard({
           <div style={{ display: "flex", gap: "4px", flex: 1 }}>
             {[
               { id: "accueil",   icon: "🏠",  label: "Accueil"   },
-              { id: "factures",  icon: "📄",  label: "Factures"  },
-              { id: "devis",     icon: "📝",  label: "Devis"     },
+              { id: "documents", icon: "📄",  label: "Documents" },
               { id: "clients",   icon: "👥",  label: "Clients"   },
               { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-              { id: "agenda",    icon: "📅",  label: "Agenda"    },
               { id: "outils",    icon: "🔧",  label: "Outils"    },
             ].filter(tab => canAccess(tab.id)).map(tab => {
               const isActive = activeTab === tab.id && page !== "parametres";
@@ -1408,7 +1411,7 @@ export default function Dashboard({
                   color: PRIMARY,
                   accent: "rgba(255,140,0,0.15)",
                   border: "rgba(255,140,0,0.25)",
-                  action: () => setActiveTab("factures"),
+                  action: () => { setActiveTab("documents"); setDocSub("factures"); },
                 },
                 {
                   label: "À encaisser",
@@ -1418,7 +1421,7 @@ export default function Dashboard({
                   color: mtImpaye > 0 ? "#ff6b6b" : "#4CAF50",
                   accent: mtImpaye > 0 ? "rgba(255,107,107,0.12)" : "rgba(76,175,80,0.10)",
                   border: mtImpaye > 0 ? "rgba(255,107,107,0.28)" : "rgba(76,175,80,0.25)",
-                  action: () => setActiveTab("factures"),
+                  action: () => { setActiveTab("documents"); setDocSub("factures"); },
                 },
                 {
                   label: "Devis en attente",
@@ -1428,7 +1431,7 @@ export default function Dashboard({
                   color: "#7ec8e3",
                   accent: "rgba(126,200,227,0.10)",
                   border: "rgba(126,200,227,0.22)",
-                  action: () => setActiveTab("devis"),
+                  action: () => { setActiveTab("documents"); setDocSub("devis"); },
                 },
                 {
                   label: "Chantiers actifs",
@@ -1677,7 +1680,7 @@ export default function Dashboard({
                 {
                   done: devis.length > 0,
                   label: "Créer mon premier devis",
-                  action: () => setActiveTab("devis"),
+                  action: () => { setActiveTab("documents"); setDocSub("devis"); },
                 },
                 {
                   done: chantiers.length > 0,
@@ -1890,8 +1893,42 @@ export default function Dashboard({
           </div>
         )}
 
+        {/* DOCUMENTS — sous-onglets */}
+        {activeTab === "documents" && (
+          <div style={{
+            display: "flex", gap: "8px", marginBottom: "20px",
+            background: CARD, borderRadius: "14px", padding: "6px",
+            border: "1px solid rgba(255,140,0,0.15)",
+            overflowX: "auto",
+          }}>
+            {[
+              { id: "factures",  icon: "📄", label: "Factures"  },
+              { id: "devis",     icon: "📝", label: "Devis"     },
+              { id: "catalogue", icon: "📦", label: "Catalogue" },
+            ].map(sub => (
+              <button
+                key={sub.id}
+                onClick={() => setDocSub(sub.id)}
+                style={{
+                  flex: 1, background: docSub === sub.id ? "rgba(255,140,0,0.15)" : "transparent",
+                  border: `1.5px solid ${docSub === sub.id ? "rgba(255,140,0,0.4)" : "transparent"}`,
+                  color: docSub === sub.id ? PRIMARY : "#8899aa",
+                  borderRadius: "10px", padding: "9px 12px",
+                  cursor: "pointer", fontSize: "14px", fontWeight: "700",
+                  transition: "all 0.15s",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span>{sub.icon}</span>
+                <span>{sub.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* FACTURES */}
-        {activeTab === "factures" && (
+        {activeTab === "documents" && docSub === "factures" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
@@ -1972,7 +2009,7 @@ export default function Dashboard({
         )}
 
         {/* DEVIS */}
-        {activeTab === "devis" && (
+        {activeTab === "documents" && docSub === "devis" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
@@ -2070,6 +2107,45 @@ export default function Dashboard({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* CATALOGUE */}
+        {activeTab === "documents" && docSub === "catalogue" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px", flexWrap: "wrap" }}>
+              <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📦 Catalogue de prestations</h2>
+              <button
+                onClick={() => setShowCatalogueModal(true)}
+                style={{
+                  background: PRIMARY, color: "white", border: "none",
+                  borderRadius: "10px", padding: "11px 18px",
+                  fontSize: "14px", fontWeight: "700", cursor: "pointer", flexShrink: 0,
+                }}
+              >✏️ Gérer le catalogue</button>
+            </div>
+            <div style={{
+              background: CARD, borderRadius: "16px", padding: "40px 32px",
+              border: "1px solid rgba(255,140,0,0.15)", textAlign: "center",
+            }}>
+              <div style={{ fontSize: "52px", marginBottom: "16px" }}>📦</div>
+              <div style={{ color: "white", fontWeight: "700", fontSize: "17px", marginBottom: "8px" }}>
+                Vos prestations habituelles
+              </div>
+              <div style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.6", marginBottom: "24px", maxWidth: "360px", margin: "0 auto 24px" }}>
+                Enregistrez vos articles, fournitures et prestations avec leurs prix unitaires.
+                Insérez-les ensuite en 1 clic dans vos devis et factures.
+              </div>
+              <button
+                onClick={() => setShowCatalogueModal(true)}
+                style={{
+                  background: "rgba(255,140,0,0.12)", color: PRIMARY,
+                  border: "1.5px solid rgba(255,140,0,0.35)",
+                  borderRadius: "12px", padding: "13px 28px",
+                  fontSize: "15px", fontWeight: "700", cursor: "pointer",
+                }}
+              >📋 Ouvrir le catalogue</button>
+            </div>
           </div>
         )}
 
@@ -2692,6 +2768,15 @@ export default function Dashboard({
         </>}
       </div>
 
+      {/* ── CATALOGUE PRESTATIONS (modal) ───────────────────────── */}
+      {showCatalogueModal && (
+        <CataloguePrestations
+          user={user}
+          onSelectArticle={() => {}}
+          onClose={() => setShowCatalogueModal(false)}
+        />
+      )}
+
       {/* ── RÉCAP MENSUEL (overlay plein écran) ─────────────────── */}
       {showRecap && (
         <div style={{
@@ -2713,11 +2798,9 @@ export default function Dashboard({
       }}>
         {[
           { id: "accueil",   icon: "🏠",  label: "Accueil"   },
-          { id: "factures",  icon: "📄",  label: "Factures"  },
-          { id: "devis",     icon: "📝",  label: "Devis"     },
+          { id: "documents", icon: "📄",  label: "Docs"      },
           { id: "clients",   icon: "👥",  label: "Clients"   },
           { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-          { id: "agenda",    icon: "📅",  label: "Agenda"    },
           { id: "outils",    icon: "🔧",  label: "Outils"    },
         ].filter(tab => canAccess(tab.id)).map(tab => {
           const isActive = activeTab === tab.id && page !== "parametres";
@@ -2732,10 +2815,11 @@ export default function Dashboard({
                 color: isActive ? PRIMARY : "#8899aa",
                 transition: "color 0.15s",
                 position: "relative",
+                minWidth: 0, padding: "4px 2px",
               }}
             >
               <span style={{ fontSize: "20px", lineHeight: 1 }}>{tab.icon}</span>
-              <span style={{ fontSize: "9px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.3px" }}>
+              <span style={{ fontSize: "9px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
                 {tab.label}
               </span>
               {isActive && (
@@ -2827,6 +2911,9 @@ export default function Dashboard({
             {/* Items de navigation */}
             <div style={{ flex: 1 }}>
               {[
+                { icon: "📅", label: "Agenda",         action: () => { setPage("dashboard"); setActiveTab("agenda"); setHamburgerOpen(false); } },
+                { icon: "👥", label: "Mon équipe",     action: () => { setParametresSection("equipe"); setPage("parametres"); setHamburgerOpen(false); } },
+                { icon: "🌐", label: "Mon site web",   action: () => { setParametresSection("minisite"); setPage("parametres"); setHamburgerOpen(false); } },
                 { icon: "👤", label: "Mon profil",     action: () => { setPage("profil");      setHamburgerOpen(false); } },
                 { icon: "💎", label: "Mon abonnement", action: () => { setParametresSection("abonnement"); setPage("parametres"); setHamburgerOpen(false); } },
                 { icon: "⚙️", label: "Paramètres",     action: () => { setParametresSection("profil");     setPage("parametres"); setHamburgerOpen(false); } },
