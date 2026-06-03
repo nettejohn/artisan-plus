@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
     try {
       const msg = await client.messages.create({
-        model: "claude-opus-4-5",
+        model: "claude-opus-4-7",
         max_tokens: 400,
         messages: [{
           role: "user",
@@ -72,7 +72,7 @@ Réponds UNIQUEMENT avec le texte du message, sans guillemets ni explication.`
 
     try {
       const msg = await client.messages.create({
-        model: "claude-opus-4-5",
+        model: "claude-opus-4-7",
         max_tokens: 800,
         messages: [{
           role: "user",
