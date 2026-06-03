@@ -137,10 +137,10 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       const base64 = await compresserImage(fichier);
       if (!base64) { setPhotoError("❌ Impossible de lire l'image."); setPhotoAnalyzing(false); return; }
 
-      const res = await fetch("/api/analyze-devis-photo", {
+      const res = await fetch("/api/vision-assist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+        body: JSON.stringify({ type: "devis-photo", imageBase64: base64, mimeType: "image/jpeg" }),
       });
       const json = await res.json();
 

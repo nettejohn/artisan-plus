@@ -159,8 +159,10 @@ export default function Dashboard({
   const [parametresSection, setParametresSection] = useState("profil");
 
   // ── Récap mensuel ─────────────────────────────────────────────
-  const [showRecap,  setShowRecap]  = useState(false);
-  const [recapBadge, setRecapBadge] = useState(false);
+  const [showRecap,      setShowRecap]      = useState(false);
+  const [recapBadge,     setRecapBadge]     = useState(false);
+  // ── Assistant Comptable ────────────────────────────────────────
+  const [showComptable,  setShowComptable]  = useState(false);
 
   // ── États chantiers (pour affichage dans la fiche client) ─────
   const [chantiers, setChantiers] = useState([]);
@@ -1740,6 +1742,148 @@ export default function Dashboard({
                       </div>
                     ))}
                   </div>
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════
+                  ASSISTANT COMPTABLE
+            ══════════════════════════════════════════════════ */}
+            {(() => {
+              const now   = new Date();
+              const annee = now.getFullYear();
+              const mois  = now.getMonth(); // 0-based
+              // Trimestre actuel (0=Q1, 1=Q2, 2=Q3, 3=Q4)
+              const q       = Math.floor(mois / 3);
+              const qStart  = new Date(annee, q * 3, 1);
+              const qEnd    = new Date(annee, q * 3 + 3, 0, 23, 59, 59);
+              const yrStart = new Date(annee, 0, 1);
+
+              // Factures payées ce trimestre
+              const facturesPayeesQ = factures.filter(f => {
+                if (f.statut !== "payee") return false;
+                const d = new Date(f.created_at);
+                return d >= qStart && d <= qEnd;
+              });
+              const caHtQ  = facturesPayeesQ.reduce((s, f) => s + (f.total_ht  || 0), 0);
+              const tvaTauxQ = facturesPayeesQ.reduce((s, f) => s + (f.tva || 20) * (f.total_ht || 0), 0) / (facturesPayeesQ.reduce((s, f) => s + (f.total_ht || 0), 0) || 1) / 100;
+              const tvaQ   = facturesPayeesQ.reduce((s, f) => s + ((f.total_ttc || 0) - (f.total_ht || 0)), 0);
+
+              // CA annuel HT
+              const caHtAn = factures.filter(f => f.statut === "payee" && new Date(f.created_at) >= yrStart)
+                              .reduce((s, f) => s + (f.total_ht || 0), 0);
+              const SEUIL_AE = 77700;
+              const caRestant = Math.max(0, SEUIL_AE - caHtAn);
+              const pctUtilise = Math.min(100, (caHtAn / SEUIL_AE) * 100);
+
+              // URSSAF (artisan BTP, régime auto-entrepreneur : 21.2%)
+              const urssafQ = caHtQ * 0.212;
+
+              // Trésorerie prévisionnelle 3 mois (factures en attente)
+              const impayees = factures.filter(f => f.statut !== "payee" && f.statut !== "annulee");
+              const mois1Start = new Date(now); mois1Start.setHours(0,0,0,0);
+              const mois1End   = new Date(now); mois1End.setDate(mois1End.getDate() + 30);
+              const mois2End   = new Date(now); mois2End.setDate(mois2End.getDate() + 60);
+              const mois3End   = new Date(now); mois3End.setDate(mois3End.getDate() + 90);
+              const estimDate  = (f) => { const d = new Date(f.created_at); d.setDate(d.getDate() + 30); return d; };
+              const trM1 = impayees.filter(f => { const d = estimDate(f); return d >= mois1Start && d <= mois1End; }).reduce((s,f) => s + (f.total_ttc || 0), 0);
+              const trM2 = impayees.filter(f => { const d = estimDate(f); return d > mois1End && d <= mois2End; }).reduce((s,f) => s + (f.total_ttc || 0), 0);
+              const trM3 = impayees.filter(f => { const d = estimDate(f); return d > mois2End && d <= mois3End; }).reduce((s,f) => s + (f.total_ttc || 0), 0);
+
+              const fmt   = (v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
+              const nomQ  = ["1er", "2e", "3e", "4e"][q] + " trimestre " + annee;
+              const alerteSeuil = caRestant < 10000 && caRestant >= 0;
+              const alerteCreux = trM1 < 500 || trM2 < 500 || trM3 < 500;
+
+              return (
+                <div style={{ marginTop: "24px" }}>
+                  {/* Toggle */}
+                  <button onClick={() => setShowComptable(v => !v)} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+                    background: CARD, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "16px",
+                    padding: "16px 20px", cursor: "pointer", color: "white",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <span style={{ fontSize: "22px" }}>💶</span>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontWeight: "700", fontSize: "15px" }}>Assistant Comptable</div>
+                        <div style={{ color: "#8899aa", fontSize: "12px" }}>TVA, URSSAF, trésorerie prévisionnelle</div>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {(alerteSeuil || alerteCreux) && <span style={{ background: "#ff6b6b", color: "white", borderRadius: "20px", padding: "2px 8px", fontSize: "11px", fontWeight: "700" }}>⚠️</span>}
+                      <span style={{ color: PRIMARY, fontSize: "18px", transition: "transform 0.2s", transform: showComptable ? "rotate(180deg)" : "none" }}>▾</span>
+                    </div>
+                  </button>
+
+                  {showComptable && (
+                    <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "10px" }}>
+
+                      {/* TVA + URSSAF */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        <div style={{ background: CARD, borderRadius: "14px", padding: "16px", border: "1px solid rgba(255,140,0,0.15)" }}>
+                          <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>TVA à reverser</div>
+                          <div style={{ color: "#ff6b6b", fontSize: "22px", fontWeight: "900" }}>{fmt(tvaQ)}</div>
+                          <div style={{ color: "#8899aa", fontSize: "11px", marginTop: "4px" }}>{nomQ}</div>
+                        </div>
+                        <div style={{ background: CARD, borderRadius: "14px", padding: "16px", border: "1px solid rgba(255,140,0,0.15)" }}>
+                          <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>URSSAF estimé</div>
+                          <div style={{ color: "#FFA500", fontSize: "22px", fontWeight: "900" }}>{fmt(urssafQ)}</div>
+                          <div style={{ color: "#8899aa", fontSize: "11px", marginTop: "4px" }}>21,2% · {nomQ}</div>
+                        </div>
+                      </div>
+
+                      {/* Seuil auto-entrepreneur */}
+                      <div style={{ background: CARD, borderRadius: "14px", padding: "16px", border: alerteSeuil ? "1px solid rgba(255,107,107,0.4)" : "1px solid rgba(255,140,0,0.15)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                          <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" }}>CA Auto-Entrepreneur {annee}</div>
+                          <div style={{ color: alerteSeuil ? "#ff6b6b" : "white", fontWeight: "700", fontSize: "13px" }}>{fmt(caHtAn)} / {fmt(SEUIL_AE)}</div>
+                        </div>
+                        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: "6px", height: "10px", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${pctUtilise}%`, background: alerteSeuil ? "linear-gradient(90deg, #ff6b6b, #ff4444)" : `linear-gradient(90deg, ${PRIMARY}, #ffb347)`, borderRadius: "6px", transition: "width 0.5s" }} />
+                        </div>
+                        <div style={{ marginTop: "6px", display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ color: "#8899aa", fontSize: "11px" }}>{pctUtilise.toFixed(0)}% utilisé</span>
+                          <span style={{ color: alerteSeuil ? "#ff6b6b" : "#4CAF50", fontWeight: "700", fontSize: "12px" }}>
+                            {alerteSeuil ? `⚠️ Plus que ${fmt(caRestant)} restant !` : `${fmt(caRestant)} restant`}
+                          </span>
+                        </div>
+                        {alerteSeuil && (
+                          <div style={{ marginTop: "8px", padding: "8px 10px", background: "rgba(255,107,107,0.1)", borderRadius: "8px", color: "#ff6b6b", fontSize: "12px" }}>
+                            ⚠️ Vous approchez du seuil auto-entrepreneur. Consultez votre comptable pour envisager un changement de régime.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Trésorerie prévisionnelle */}
+                      <div style={{ background: CARD, borderRadius: "14px", padding: "16px", border: alerteCreux ? "1px solid rgba(255,107,107,0.3)" : "1px solid rgba(255,140,0,0.15)" }}>
+                        <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+                          📈 Trésorerie prévisionnelle (factures en attente)
+                        </div>
+                        {[
+                          { label: "30 prochains jours", val: trM1 },
+                          { label: "31–60 jours",        val: trM2 },
+                          { label: "61–90 jours",        val: trM3 },
+                        ].map((m, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                            <span style={{ color: "#aabbcc", fontSize: "13px" }}>{m.label}</span>
+                            <span style={{ color: m.val < 500 ? "#ff6b6b" : m.val > 2000 ? "#4CAF50" : PRIMARY, fontWeight: "700", fontSize: "15px" }}>
+                              {m.val < 500 ? "⚠️ " : ""}{fmt(m.val)}
+                            </span>
+                          </div>
+                        ))}
+                        {alerteCreux && (
+                          <div style={{ marginTop: "10px", padding: "8px 10px", background: "rgba(255,107,107,0.1)", borderRadius: "8px", color: "#ff6b6b", fontSize: "12px" }}>
+                            ⚠️ Creux de trésorerie détecté. Relancez vos factures impayées ou créez de nouveaux devis.
+                          </div>
+                        )}
+                        <div style={{ marginTop: "10px", color: "#556677", fontSize: "11px" }}>
+                          * Estimation basée sur les factures émises non encore payées (délai moyen 30 j)
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
                 </div>
               );
             })()}

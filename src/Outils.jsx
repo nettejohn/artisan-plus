@@ -543,10 +543,10 @@ export default function Outils({ user, profil }) {
     const b64 = await compresserImage(file);
     if (!b64) { setMesureError("❌ Impossible de lire l'image."); setMesureAnalyzing(false); return; }
     try {
-      const r = await fetch("/api/analyze-photo-measure", {
+      const r = await fetch("/api/vision-assist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: b64, mimeType: "image/jpeg", objet_reference: mesureRef }),
+        body: JSON.stringify({ type: "photo-measure", imageBase64: b64, mimeType: "image/jpeg", objet_reference: mesureRef }),
       });
       const j = await r.json();
       if (!j.ok) setMesureError("❌ " + (j.error || "Erreur IA"));
@@ -561,10 +561,10 @@ export default function Outils({ user, profil }) {
     const b64 = await compresserImage(file);
     if (!b64) { setMatError("❌ Impossible de lire l'image."); setMatAnalyzing(false); return; }
     try {
-      const r = await fetch("/api/identify-material", {
+      const r = await fetch("/api/vision-assist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: b64, mimeType: "image/jpeg" }),
+        body: JSON.stringify({ type: "identify-material", imageBase64: b64, mimeType: "image/jpeg" }),
       });
       const j = await r.json();
       if (!j.ok) setMatError("❌ " + (j.error || "Erreur IA"));

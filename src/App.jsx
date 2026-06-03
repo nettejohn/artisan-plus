@@ -3,6 +3,8 @@ import { supabase } from "./supabase";
 import Dashboard from "./Dashboard";
 import SignatureDevis from "./SignatureDevis";
 import SuiviChantier from "./SuiviChantier";
+import MiniSite from "./MiniSite";
+import OuvrierChantier from "./OuvrierChantier";
 import { usePWA } from "./usePWA";
 
 const PRIMARY = "#FF8C00";
@@ -420,6 +422,18 @@ export default function App() {
   if (suiviPath.startsWith("/suivi/")) {
     const suiviToken = suiviPath.replace("/suivi/", "").split("?")[0];
     if (suiviToken) return <SuiviChantier token={suiviToken} />;
+  }
+
+  // Mini-site artisan public — /artisan/:slug
+  if (suiviPath.startsWith("/artisan/")) {
+    const artisanSlug = suiviPath.replace("/artisan/", "").split("?")[0];
+    if (artisanSlug) return <MiniSite slug={artisanSlug} />;
+  }
+
+  // Accès ouvrier — /ouvrier/:token
+  if (suiviPath.startsWith("/ouvrier/")) {
+    const ouvrierToken = suiviPath.replace("/ouvrier/", "").split("?")[0];
+    if (ouvrierToken) return <OuvrierChantier token={ouvrierToken} />;
   }
 
   // Détection compte invité : email déterministe généré par handleGuestLogin

@@ -160,6 +160,21 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const [pointageLoading,       setPointageLoading]       = useState(false);
   const [showPointageHistorique,setShowPointageHistorique]= useState(false);
 
+  // ── Compte-rendu ───────────────────────────────────────────────
+  const [crModal,       setCrModal]       = useState(false);
+  const [crPhotosSelec, setCrPhotosSelec] = useState([]);
+  const [crNotes,       setCrNotes]       = useState("");
+  const [crGenerating,  setCrGenerating]  = useState(false);
+  const [crTexte,       setCrTexte]       = useState("");
+  const [crMsg,         setCrMsg]         = useState("");
+
+  // ── Partage ouvrier ────────────────────────────────────────────
+  const [ouvrierModal,  setOuvrierModal]  = useState(false);
+  const [ouvrierNom,    setOuvrierNom]    = useState("");
+  const [ouvrierListe,  setOuvrierListe]  = useState([]);
+  const [ouvrierSaving, setOuvrierSaving] = useState(false);
+  const [ouvrierCopied, setOuvrierCopied] = useState(null);
+
   // ── Suivi chantier client ──────────────────────────────────────
   const [suiviToken,   setSuiviToken]   = useState(null);
   const [suiviActif,   setSuiviActif]   = useState(false);
@@ -359,10 +374,146 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     chargerDocs(ch.client_id);
     fetchMeteo(ch.adresse);
     chargerPointages(ch.id);
+    chargerOuvriers(ch.id);
+    // Reset compte-rendu
+    setCrModal(false); setCrPhotosSelec([]); setCrNotes(""); setCrTexte(""); setCrMsg("");
   };
 
   // Setter qui marque la fiche comme modifiée
   const ff = (k, v) => { setFicheForm(p => ({ ...p, [k]: v })); setFicheModifie(true); };
+
+  // ── Charger ouvriers de ce chantier ───────────────────────────
+  const chargerOuvriers = async (chantierId) => {
+    const { data } = await supabase
+      .from("ouvrier_acces")
+      .select("*")
+      .eq("chantier_id", chantierId)
+      .order("created_at", { ascending: false });
+    setOuvrierListe(data || []);
+  };
+
+  // ── Génération token ouvrier ───────────────────────────────────
+  const genererTokenOuvrier = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  // ── Partager avec un ouvrier ───────────────────────────────────
+  const partagerAvecOuvrier = async () => {
+    if (!ouvrierNom.trim()) { alert("Entrez le prénom/nom de l'ouvrier"); return; }
+    setOuvrierSaving(true);
+    const token = genererTokenOuvrier();
+    const { data, error } = await supabase
+      .from("ouvrier_acces")
+      .insert({ chantier_id: fiche.id, token, nom_ouvrier: ouvrierNom.trim() })
+      .select()
+      .single();
+    if (error) { alert("Erreur : " + error.message); setOuvrierSaving(false); return; }
+    setOuvrierListe(prev => [data, ...prev]);
+    setOuvrierNom("");
+    setOuvrierSaving(false);
+  };
+
+  const revoquerOuvrier = async (id) => {
+    if (!window.confirm("Révoquer cet accès ?")) return;
+    await supabase.from("ouvrier_acces").update({ actif: false }).eq("id", id);
+    setOuvrierListe(prev => prev.map(o => o.id === id ? { ...o, actif: false } : o));
+  };
+
+  const copierLienOuvrier = (token) => {
+    const lien = `${window.location.origin}/ouvrier/${token}`;
+    navigator.clipboard.writeText(lien).then(() => {
+      setOuvrierCopied(token);
+      setTimeout(() => setOuvrierCopied(null), 2500);
+    });
+  };
+
+  // ── Compte-rendu : compression image ─────────────────────────
+  const compresserPhotoB64 = (url) => new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const maxDim = 1200;
+      const ratio  = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+
+  // ── Générer compte-rendu via IA ────────────────────────────────
+  const genererCompteRendu = async () => {
+    if (crPhotosSelec.length === 0) { setCrMsg("❌ Sélectionnez au moins une photo"); return; }
+    setCrGenerating(true); setCrMsg(""); setCrTexte("");
+    try {
+      const imagesB64 = (await Promise.all(crPhotosSelec.map(url => compresserPhotoB64(url)))).filter(Boolean);
+      if (imagesB64.length === 0) { setCrMsg("❌ Photos non chargées"); setCrGenerating(false); return; }
+      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const resp = await fetch(`${API_URL}/api/vision-assist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "compte-rendu",
+          imagesBase64: imagesB64,
+          nom_chantier: fiche.nom,
+          avancement:   fiche.avancement || ficheForm.statut,
+          statut:       ficheForm.statut,
+          notes:        crNotes,
+          date:         new Date().toLocaleDateString("fr-FR"),
+        }),
+      });
+      const json = await resp.json();
+      if (json.ok) setCrTexte(json.texte);
+      else setCrMsg("❌ " + (json.error || "Erreur IA"));
+    } catch (e) { setCrMsg("❌ Réseau : " + e.message); }
+    setCrGenerating(false);
+  };
+
+  // ── Télécharger compte-rendu PDF ───────────────────────────────
+  const telechargerCRPDF = async () => {
+    if (!crTexte) return;
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const PRIMARY_RGB = [255, 140, 0];
+    const DARK_RGB    = [10, 22, 40];
+
+    // Fond
+    doc.setFillColor(...DARK_RGB);
+    doc.rect(0, 0, 210, 297, "F");
+
+    // Header
+    doc.setFillColor(...PRIMARY_RGB);
+    doc.rect(0, 0, 210, 18, "F");
+    doc.setFontSize(13); doc.setFont("helvetica", "bold"); doc.setTextColor(255,255,255);
+    doc.text("COMPTE-RENDU DE CHANTIER", 14, 12);
+    doc.setFontSize(9); doc.text(`Artisan+  ·  ${new Date().toLocaleDateString("fr-FR")}`, 197, 12, { align: "right" });
+
+    // Chantier info
+    doc.setTextColor(255, 255, 255); doc.setFontSize(16); doc.setFont("helvetica", "bold");
+    doc.text(fiche.nom || "", 14, 30);
+    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(136, 153, 170);
+    if (fiche.adresse) doc.text(`📍 ${fiche.adresse}`, 14, 37);
+
+    // Corps
+    doc.setTextColor(200, 215, 230); doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    const lignes = doc.splitTextToSize(crTexte.replace(/##\s/g, "").replace(/\*\*/g, ""), 182);
+    let y = 50;
+    for (const l of lignes) {
+      if (y > 275) { doc.addPage(); doc.setFillColor(...DARK_RGB); doc.rect(0,0,210,297,"F"); y = 20; }
+      doc.text(l, 14, y); y += 6;
+    }
+
+    // Footer
+    doc.setFillColor(...PRIMARY_RGB); doc.rect(0, 288, 210, 9, "F");
+    doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(255,255,255);
+    doc.text("Généré par Artisan+  ·  artisan-plus.vercel.app", 105, 294, { align: "center" });
+
+    doc.save(`compte-rendu-${fiche.nom.replace(/\s+/g,"-").toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`);
+  };
 
   // ── Sauvegarde fiche ───────────────────────────────────────────
 
@@ -521,10 +672,10 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     try {
       const base64 = await compresserPlan(file);
       const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
-      const resp = await fetch(`${API_URL}/api/analyze-plan-chantier`, {
+      const resp = await fetch(`${API_URL}/api/vision-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+        body: JSON.stringify({ type: "plan-chantier", imageBase64: base64, mimeType: "image/jpeg" }),
       });
       const json = await resp.json();
       if (json.ok) {
@@ -628,10 +779,10 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     try {
       const base64 = await compresserImageFr(file);
       const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
-      const resp = await fetch(`${API_URL}/api/analyze-facture-fournisseur`, {
+      const resp = await fetch(`${API_URL}/api/vision-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: "image/jpeg" }),
+        body: JSON.stringify({ type: "facture-fournisseur", imageBase64: base64, mimeType: "image/jpeg" }),
       });
       const json = await resp.json();
       if (!json.ok) {
@@ -1642,6 +1793,137 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             </div>
           </Card>
         )}
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION : COMPTE-RENDU IA
+        ══════════════════════════════════════════════════════ */}
+        <Card titre="📋 Compte-rendu automatique">
+          <p style={{ color: "#8899aa", fontSize: "13px", margin: "0 0 14px" }}>
+            Sélectionnez des photos du chantier — l'IA génère un compte-rendu professionnel que vous pouvez télécharger en PDF ou envoyer au client.
+          </p>
+          {/* Sélection photos */}
+          {(ficheForm.photos || []).length > 0 ? (
+            <>
+              <div style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.4px", marginBottom: "8px" }}>
+                Sélectionnez les photos à inclure ({crPhotosSelec.length} choisie{crPhotosSelec.length > 1 ? "s" : ""})
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: "6px", marginBottom: "12px" }}>
+                {(ficheForm.photos || []).map((p, i) => {
+                  const sel = crPhotosSelec.includes(p.url);
+                  return (
+                    <div key={i} onClick={() => setCrPhotosSelec(prev => sel ? prev.filter(u => u !== p.url) : [...prev, p.url])}
+                      style={{ cursor: "pointer", borderRadius: "8px", overflow: "hidden", aspectRatio: "1", position: "relative", border: sel ? `2.5px solid ${PRIMARY}` : "2.5px solid transparent", boxSizing: "border-box" }}>
+                      <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {sel && <div style={{ position: "absolute", top: "4px", right: "4px", background: PRIMARY, borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "white", fontWeight: "900" }}>✓</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div style={{ color: "#8899aa", fontSize: "13px", marginBottom: "12px" }}>📷 Ajoutez des photos au chantier pour générer un compte-rendu illustré.</div>
+          )}
+
+          <div>
+            <label style={lbl}>Notes supplémentaires (optionnel)</label>
+            <textarea value={crNotes} onChange={e => setCrNotes(e.target.value)} rows={2}
+              placeholder="Travaux réalisés, observations particulières…"
+              style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+          </div>
+
+          <button onClick={genererCompteRendu} disabled={crGenerating || crPhotosSelec.length === 0}
+            style={{ background: crGenerating || crPhotosSelec.length === 0 ? "#888" : PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "12px 20px", cursor: crGenerating || crPhotosSelec.length === 0 ? "not-allowed" : "pointer", fontWeight: "700", fontSize: "14px", marginTop: "10px" }}>
+            {crGenerating ? "⏳ Génération en cours…" : "🤖 Générer le compte-rendu"}
+          </button>
+
+          {crMsg && <div style={{ color: "#ff6b6b", fontSize: "13px", marginTop: "8px" }}>{crMsg}</div>}
+
+          {crTexte && (
+            <div style={{ marginTop: "16px" }}>
+              <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", marginBottom: "8px" }}>Compte-rendu généré — modifiable</div>
+              <textarea value={crTexte} onChange={e => setCrTexte(e.target.value)} rows={12}
+                style={{ ...inp, resize: "vertical", fontFamily: "monospace", fontSize: "12px", lineHeight: "1.6", whiteSpace: "pre-wrap" }} />
+              <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
+                <button onClick={telechargerCRPDF}
+                  style={{ background: "#4CAF50", color: "white", border: "none", borderRadius: "10px", padding: "11px 18px", cursor: "pointer", fontWeight: "700", fontSize: "13px" }}>
+                  📥 Télécharger PDF
+                </button>
+                <button onClick={() => {
+                  const client = fiche.clients;
+                  if (!client?.email) { alert("Pas d'email client renseigné"); return; }
+                  const API = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+                  fetch(`${API}/api/send-email`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ to: client.email, subject: `Compte-rendu chantier — ${fiche.nom}`, html: `<pre style="font-family:Arial;font-size:14px;white-space:pre-wrap">${crTexte}</pre>` }),
+                  }).then(r => r.json()).then(j => alert(j.ok ? "✅ Email envoyé !" : "❌ " + j.error));
+                }} style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "10px", padding: "11px 18px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
+                  📧 Envoyer au client
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* ══════════════════════════════════════════════════════
+            SECTION : PARTAGE OUVRIER
+        ══════════════════════════════════════════════════════ */}
+        <Card titre="👷 Partager avec un ouvrier">
+          <p style={{ color: "#8899aa", fontSize: "13px", margin: "0 0 14px" }}>
+            L'ouvrier reçoit un lien unique pour voir le chantier, pointer ses heures et ajouter des photos — sans créer de compte.
+          </p>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+            <input value={ouvrierNom} onChange={e => setOuvrierNom(e.target.value)} placeholder="Prénom Nom de l'ouvrier"
+              style={{ ...inp, flex: 1 }} />
+            <button onClick={partagerAvecOuvrier} disabled={ouvrierSaving || !ouvrierNom.trim()}
+              style={{ background: ouvrierSaving || !ouvrierNom.trim() ? "#888" : PRIMARY, color: "white", border: "none", borderRadius: "8px", padding: "0 18px", cursor: ouvrierSaving || !ouvrierNom.trim() ? "not-allowed" : "pointer", fontWeight: "700", fontSize: "13px", whiteSpace: "nowrap" }}>
+              {ouvrierSaving ? "…" : "➕ Ajouter"}
+            </button>
+          </div>
+
+          {ouvrierListe.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {ouvrierListe.map(o => {
+                const lien = `${window.location.origin}/ouvrier/${o.token}`;
+                const copied = ouvrierCopied === o.token;
+                return (
+                  <div key={o.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "10px", padding: "12px 14px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", opacity: o.actif ? 1 : 0.4 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>👷 {o.nom_ouvrier}</div>
+                      <div style={{ color: "#8899aa", fontSize: "11px", wordBreak: "break-all" }}>{lien}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                      {o.actif && (
+                        <>
+                          <button onClick={() => copierLienOuvrier(o.token)}
+                            style={{ background: copied ? "#4CAF50" : "rgba(255,255,255,0.08)", color: "white", border: "none", borderRadius: "8px", padding: "7px 12px", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}>
+                            {copied ? "✓ Copié" : "📋 Copier"}
+                          </button>
+                          {navigator.share && (
+                            <button onClick={() => navigator.share({ title: `Chantier ${fiche.nom}`, url: lien })}
+                              style={{ background: "rgba(255,140,0,0.12)", color: PRIMARY, border: "1px solid rgba(255,140,0,0.3)", borderRadius: "8px", padding: "7px 12px", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}>
+                              📤 Partager
+                            </button>
+                          )}
+                          <button onClick={() => revoquerOuvrier(o.id)}
+                            style={{ background: "rgba(255,107,107,0.1)", color: "#ff6b6b", border: "none", borderRadius: "8px", padding: "7px 10px", cursor: "pointer", fontSize: "12px" }}>
+                            🚫
+                          </button>
+                        </>
+                      )}
+                      {!o.actif && <span style={{ color: "#ff6b6b", fontSize: "12px" }}>Révoqué</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {ouvrierListe.length === 0 && (
+            <div style={{ color: "#556677", fontSize: "13px", textAlign: "center", padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: "10px" }}>
+              Aucun ouvrier n'a encore accès à ce chantier
+            </div>
+          )}
+        </Card>
 
         {/* ══════════════════════════════════════════════════════
             SECTION : SUIVI CLIENT EN TEMPS RÉEL

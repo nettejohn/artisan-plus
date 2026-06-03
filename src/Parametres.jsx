@@ -15,6 +15,7 @@ const THEMES_PDF = [
 
 const SECTIONS = [
   { id: "profil",        label: "Mon profil",    emoji: "👤" },
+  { id: "minisite",      label: "Mini site web", emoji: "🌐" },
   { id: "equipe",        label: "Mon équipe",    emoji: "👥" },
   { id: "verif",         label: "Vérification",  emoji: "✅" },
   { id: "apparence",     label: "Apparence",     emoji: "🎨" },
@@ -152,6 +153,17 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
 
+  // ── Mini Site ─────────────────────────────────────
+  const [miniSite, setMiniSite] = useState({
+    actif:        false,
+    slug:         "",
+    metier:       "",
+    zone:         "",
+    description:  "",
+  });
+  const [miniSiteSaving, setMiniSiteSaving] = useState(false);
+  const [miniSiteMsg,    setMiniSiteMsg]    = useState({ text: "", ok: true });
+
   // ── Vérification artisan ──────────────────────────
   const [verificationStatut, setVerificationStatut] = useState("non_soumis"); // non_soumis | en_attente | verifie | rejete
   const [verifDocUrl,        setVerifDocUrl]        = useState("");
@@ -188,6 +200,13 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       });
       setVerificationStatut(p.verification_statut || "non_soumis");
       setVerifDocUrl(p.verification_document_url  || "");
+      setMiniSite({
+        actif:       p.mini_site_actif       || false,
+        slug:        p.mini_site_slug        || "",
+        metier:      p.metier               || "",
+        zone:        p.zone_intervention    || "",
+        description: p.description_mini_site || "",
+      });
     }
     if (pm) {
       setParams({
@@ -627,6 +646,121 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
             {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
             <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les préférences" />
+          </SCard>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MINI SITE WEB
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "minisite" && (
+        <div>
+          <SCard titre="🌐 Mon mini site web Artisan+">
+            <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
+              Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.vercel.app/artisan/votre-lien</strong>.
+              Vos clients peuvent vous contacter et demander un devis directement.
+            </p>
+
+            {/* Activer / désactiver */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", padding: "14px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px" }}>
+              <div>
+                <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>Activer mon mini site</div>
+                <div style={{ color: "#8899aa", fontSize: "12px" }}>Votre page sera accessible publiquement</div>
+              </div>
+              <button onClick={() => setMiniSite(p => ({ ...p, actif: !p.actif }))} style={{
+                width: "48px", height: "28px", borderRadius: "14px", border: "none", cursor: "pointer",
+                background: miniSite.actif ? PRIMARY : "rgba(255,255,255,0.15)", transition: "background 0.2s",
+                position: "relative",
+              }}>
+                <div style={{ position: "absolute", top: "4px", left: miniSite.actif ? "24px" : "4px", width: "20px", height: "20px", background: "white", borderRadius: "50%", transition: "left 0.2s" }} />
+              </button>
+            </div>
+
+            {/* Lien personnalisé */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={lbl}>Votre lien personnalisé</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "0", background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", overflow: "hidden" }}>
+                <span style={{ color: "#556677", fontSize: "12px", padding: "12px 12px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.06)" }}>/artisan/</span>
+                <input value={miniSite.slug} onChange={e => setMiniSite(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-") }))}
+                  placeholder="jean-dupont-plombier" style={{ flex: 1, background: "transparent", border: "none", padding: "12px 14px", color: "white", fontSize: "14px", outline: "none" }} />
+              </div>
+              {!miniSite.slug && profil.nom && (
+                <button onClick={() => setMiniSite(p => ({ ...p, slug: profil.nom.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") }))}
+                  style={{ background: "none", border: "none", color: PRIMARY, fontSize: "12px", cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}>
+                  ✨ Générer depuis mon nom
+                </button>
+              )}
+            </div>
+
+            {/* Métier */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={lbl}>Métier affiché sur la page</label>
+              <input value={miniSite.metier} onChange={e => setMiniSite(p => ({ ...p, metier: e.target.value }))}
+                placeholder="ex : Plombier-chauffagiste, Électricien, Maçon…" style={inp} />
+            </div>
+
+            {/* Zone */}
+            <div style={{ marginBottom: "14px" }}>
+              <label style={lbl}>Zone d'intervention</label>
+              <input value={miniSite.zone} onChange={e => setMiniSite(p => ({ ...p, zone: e.target.value }))}
+                placeholder="ex : Lyon et alentours, Île-de-France…" style={inp} />
+            </div>
+
+            {/* Description */}
+            <div style={{ marginBottom: "18px" }}>
+              <label style={lbl}>Description professionnelle</label>
+              <textarea value={miniSite.description} onChange={e => setMiniSite(p => ({ ...p, description: e.target.value }))}
+                rows={4} placeholder="Artisan qualifié avec X ans d'expérience, spécialisé dans… Décrivez vos services, votre approche et ce qui vous différencie."
+                style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+            </div>
+
+            {/* Aperçu du lien */}
+            {miniSite.slug && miniSite.actif && (
+              <div style={{ marginBottom: "16px", padding: "12px 16px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.25)", borderRadius: "10px" }}>
+                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>Votre lien public</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <a href={`/artisan/${miniSite.slug}`} target="_blank" rel="noreferrer"
+                    style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600", flex: 1, wordBreak: "break-all" }}>
+                    artisan-plus.vercel.app/artisan/{miniSite.slug}
+                  </a>
+                  <button onClick={() => { navigator.clipboard.writeText(`https://artisan-plus.vercel.app/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
+                    style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap" }}>
+                    📋 Copier
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* SEO info */}
+            <div style={{ marginBottom: "16px", padding: "12px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", display: "flex", gap: "12px", alignItems: "flex-start" }}>
+              <span style={{ fontSize: "18px" }}>🔍</span>
+              <div>
+                <div style={{ color: "white", fontSize: "13px", fontWeight: "600", marginBottom: "2px" }}>Optimisé pour Google (SEO)</div>
+                <div style={{ color: "#8899aa", fontSize: "12px" }}>Votre page génère automatiquement un titre, une description et les balises meta Open Graph basés sur votre métier et votre zone.</div>
+              </div>
+            </div>
+
+            {miniSiteMsg.text && (
+              <div style={{ color: miniSiteMsg.ok ? "#4CAF50" : "#ff6b6b", fontSize: "13px", marginBottom: "10px" }}>{miniSiteMsg.text}</div>
+            )}
+
+            <SaveBtn onClick={async () => {
+              setMiniSiteSaving(true); setMiniSiteMsg({ text: "", ok: true });
+              if (miniSite.actif && !miniSite.slug.trim()) {
+                setMiniSiteMsg({ text: "❌ Entrez un lien personnalisé", ok: false }); setMiniSiteSaving(false); return;
+              }
+              const { error } = await supabase.from("profils").upsert({
+                user_id:              user.id,
+                mini_site_actif:      miniSite.actif,
+                mini_site_slug:       miniSite.slug.trim() || null,
+                metier:               miniSite.metier.trim() || null,
+                zone_intervention:    miniSite.zone.trim() || null,
+                description_mini_site: miniSite.description.trim() || null,
+              }, { onConflict: "user_id" });
+              if (error) setMiniSiteMsg({ text: "❌ " + (error.code === "23505" ? "Ce lien est déjà pris, choisissez-en un autre" : error.message), ok: false });
+              else setMiniSiteMsg({ text: "✅ Mini site sauvegardé !", ok: true });
+              setMiniSiteSaving(false);
+            }} saving={miniSiteSaving} label="Sauvegarder le mini site" />
           </SCard>
         </div>
       )}
