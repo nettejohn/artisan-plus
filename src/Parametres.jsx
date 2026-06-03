@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
+import EditeurSite from "./EditeurSite";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -152,6 +153,9 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Mode simplifié ────────────────────────────────
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
+
+  // ── Éditeur visuel ───────────────────────────────────
+  const [editeurOuvert, setEditeurOuvert] = useState(false);
 
   // ── Mini Site ─────────────────────────────────────
   const [miniSite, setMiniSite] = useState({
@@ -743,6 +747,20 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
             {miniSiteMsg.text && (
               <div style={{ color: miniSiteMsg.ok ? "#4CAF50" : "#ff6b6b", fontSize: "13px", marginBottom: "10px" }}>{miniSiteMsg.text}</div>
             )}
+
+            {/* Bouton éditeur visuel */}
+            <div style={{ marginBottom: "16px", padding: "16px", background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "12px" }}>
+              <div style={{ color: "white", fontWeight: "700", fontSize: "14px", marginBottom: "4px" }}>🎨 Personnalisation avancée</div>
+              <div style={{ color: "#8899aa", fontSize: "12px", marginBottom: "12px" }}>Templates, polices, couleurs, galerie, avis clients, avant/après, réseaux sociaux et plus encore.</div>
+              <button onClick={() => setEditeurOuvert(true)} style={{
+                display: "flex", alignItems: "center", gap: "8px",
+                background: PRIMARY, color: "white", border: "none",
+                borderRadius: "10px", padding: "11px 20px", cursor: "pointer",
+                fontWeight: "700", fontSize: "14px",
+              }}>
+                🎨 Ouvrir l'éditeur visuel
+              </button>
+            </div>
 
             <SaveBtn onClick={async () => {
               setMiniSiteSaving(true); setMiniSiteMsg({ text: "", ok: true });
@@ -2134,7 +2152,7 @@ ALTER TABLE profils
     </div>
   );
 
-  return (
+  const mainContent = (
     <div style={isDesktop
       ? { display: "flex", gap: "32px", alignItems: "flex-start" }
       : { maxWidth: "700px", margin: "0 auto", paddingBottom: "20px" }
@@ -2203,5 +2221,17 @@ ALTER TABLE profils
       {/* ── CONTENU DE LA SECTION ────────────────────────── */}
       {sectionContent}
     </div>
+  );
+
+  // ── Éditeur visuel plein écran ─────────────────────────────────────────────
+  return (
+    <>
+      {mainContent}
+      {editeurOuvert && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "#0a1628", overflow: "hidden" }}>
+          <EditeurSite user={user} onClose={() => { setEditeurOuvert(false); charger(); }} />
+        </div>
+      )}
+    </>
   );
 }

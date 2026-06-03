@@ -417,6 +417,11 @@ export default function App() {
   // Page de signature — pas de splash
   if (signatureToken) return <SignatureDevis token={signatureToken} />;
 
+  // ── Sous-domaine automatique — [slug].artisan-plus.fr ────────────────────
+  const hostname = window.location.hostname;
+  const subMatch = hostname.match(/^([a-z0-9-]+)\.artisan-plus\.fr$/);
+  if (subMatch && subMatch[1] !== "www") return <MiniSite slug={subMatch[1]} />;
+
   // Page de suivi chantier — publique, pas d'auth
   const suiviPath = window.location.pathname;
   if (suiviPath.startsWith("/suivi/")) {

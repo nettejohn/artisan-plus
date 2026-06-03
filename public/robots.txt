@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://artisan-plus.vercel.app/sitemap.xml
