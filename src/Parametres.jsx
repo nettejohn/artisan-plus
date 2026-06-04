@@ -470,22 +470,26 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   // ── Stripe Connect : fonctions ───────────────────────
 
+  const connectApi = async (action, extra = {}) => {
+    const res = await fetch("/api/stripe-connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, userId: user.id, ...extra }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+    return data;
+  };
+
   const rafraichirConnectStatus = async () => {
     try {
-      const res = await fetch("/api/stripe-connect-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setConnectInfo({ accountId: data.accountId, onboarded: data.onboarded });
-        if (data.onboarded) {
-          setConnectMsg({ text: "✅ Compte Stripe connecté et actif ! Vos clients peuvent maintenant payer en ligne.", ok: true });
-          onStripeConnectStatusCleared?.();
-        } else if (data.accountId) {
-          setConnectMsg({ text: "⏳ Compte Stripe créé mais l'onboarding n'est pas terminé. Cliquez sur 'Reprendre l'onboarding'.", ok: false });
-        }
+      const data = await connectApi("status");
+      setConnectInfo({ accountId: data.accountId, onboarded: data.onboarded });
+      if (data.onboarded) {
+        setConnectMsg({ text: "✅ Compte Stripe connecté et actif ! Vos clients peuvent maintenant payer en ligne.", ok: true });
+        onStripeConnectStatusCleared?.();
+      } else if (data.accountId) {
+        setConnectMsg({ text: "⏳ Compte Stripe créé mais l'onboarding n'est pas terminé. Cliquez sur 'Reprendre l'onboarding'.", ok: false });
       }
     } catch { /* silencieux */ }
   };
@@ -494,31 +498,24 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     setConnectLoading(true);
     setConnectMsg({ text: "", ok: true });
     try {
-      const res = await fetch("/api/stripe-connect-onboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+      const data = await connectApi("onboard");
       setConnectInfo(prev => ({ ...prev, accountId: data.accountId }));
-      // Rediriger vers Stripe Express onboarding
       window.location.href = data.onboardingUrl;
     } catch (err) {
       setConnectMsg({ text: "❌ " + err.message, ok: false });
-    } finally {
       setConnectLoading(false);
     }
   };
 
   const deconnecterStripe = async () => {
     if (!window.confirm("Déconnecter votre compte Stripe ? Les liens de paiement générés resteront actifs, mais vous ne pourrez plus en créer de nouveaux.")) return;
-    await supabase.from("profils").upsert(
-      { user_id: user.id, stripe_connect_account_id: null, stripe_connect_onboarded: false },
-      { onConflict: "user_id" }
-    );
-    setConnectInfo({ accountId: null, onboarded: false });
-    setConnectMsg({ text: "Compte Stripe déconnecté.", ok: true });
+    try {
+      await connectApi("disconnect");
+      setConnectInfo({ accountId: null, onboarded: false });
+      setConnectMsg({ text: "Compte Stripe déconnecté.", ok: true });
+    } catch (err) {
+      setConnectMsg({ text: "❌ " + err.message, ok: false });
+    }
   };
 
   // ── Stripe : Checkout ────────────────────────────────
