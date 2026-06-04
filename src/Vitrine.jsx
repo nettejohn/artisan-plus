@@ -11,43 +11,299 @@ const C  = "#111e35";
 const G  = "#8899aa";
 const BASE = "https://www.artisan-plus.fr";
 
-// ── Données métiers ───────────────────────────────────────────────────────────
+// ── Données métiers (50 métiers) ──────────────────────────────────────────────
 const METIERS = [
-  { slug: "plombier",     label: "Plombier",     emoji: "🔧", art: "le",  accroche: "devis plomberie",  kw: "plombier",     desc: "plomberie et sanitaires" },
-  { slug: "electricien",  label: "Électricien",  emoji: "⚡", art: "l'",  accroche: "devis électricité",kw: "électricien",  desc: "travaux électriques" },
-  { slug: "macon",        label: "Maçon",        emoji: "🧱", art: "le",  accroche: "devis maçonnerie", kw: "maçon",        desc: "gros œuvre et maçonnerie" },
-  { slug: "carreleur",    label: "Carreleur",    emoji: "🏠", art: "le",  accroche: "devis carrelage",  kw: "carreleur",    desc: "pose de carrelage et faïence" },
-  { slug: "peintre",      label: "Peintre",      emoji: "🎨", art: "le",  accroche: "devis peinture",   kw: "peintre",      desc: "peinture et décoration" },
-  { slug: "menuisier",    label: "Menuisier",    emoji: "🪚", art: "le",  accroche: "devis menuiserie", kw: "menuisier",    desc: "menuiserie et ébénisterie" },
-  { slug: "chauffagiste", label: "Chauffagiste", emoji: "🔥", art: "le",  accroche: "devis chauffage",  kw: "chauffagiste", desc: "chauffage et climatisation" },
-  { slug: "serrurier",    label: "Serrurier",    emoji: "🔑", art: "le",  accroche: "devis serrurerie", kw: "serrurier",    desc: "serrurerie et sécurité" },
-  { slug: "couvreur",     label: "Couvreur",     emoji: "🏠", art: "le",  accroche: "devis toiture",    kw: "couvreur",     desc: "couverture et toiture" },
-  { slug: "jardinier",    label: "Jardinier",    emoji: "🌿", art: "le",  accroche: "devis jardinage",  kw: "jardinier",    desc: "jardinage et espaces verts" },
+  // ── Top 20 (pages combinées métier+ville) ────────────────────────────────────
+  { slug:"plombier",           label:"Plombier",             emoji:"🔧", art:"le",  accroche:"devis plomberie",          kw:"plombier",            desc:"plomberie et sanitaires" },
+  { slug:"electricien",        label:"Électricien",          emoji:"⚡", art:"l'",  accroche:"devis électricité",         kw:"électricien",         desc:"travaux électriques" },
+  { slug:"macon",              label:"Maçon",                emoji:"🧱", art:"le",  accroche:"devis maçonnerie",          kw:"maçon",               desc:"gros œuvre et maçonnerie" },
+  { slug:"carreleur",          label:"Carreleur",            emoji:"🏠", art:"le",  accroche:"devis carrelage",           kw:"carreleur",           desc:"pose de carrelage et faïence" },
+  { slug:"peintre",            label:"Peintre",              emoji:"🎨", art:"le",  accroche:"devis peinture",            kw:"peintre",             desc:"peinture et décoration" },
+  { slug:"menuisier",          label:"Menuisier",            emoji:"🪚", art:"le",  accroche:"devis menuiserie",          kw:"menuisier",           desc:"menuiserie et ébénisterie" },
+  { slug:"chauffagiste",       label:"Chauffagiste",         emoji:"🔥", art:"le",  accroche:"devis chauffage",           kw:"chauffagiste",        desc:"chauffage et climatisation" },
+  { slug:"serrurier",          label:"Serrurier",            emoji:"🔑", art:"le",  accroche:"devis serrurerie",          kw:"serrurier",           desc:"serrurerie et sécurité" },
+  { slug:"couvreur",           label:"Couvreur",             emoji:"🏗️", art:"le",  accroche:"devis toiture",             kw:"couvreur",            desc:"couverture et toiture" },
+  { slug:"jardinier",          label:"Jardinier",            emoji:"🌿", art:"le",  accroche:"devis jardinage",           kw:"jardinier",           desc:"jardinage et espaces verts" },
+  { slug:"charpentier",        label:"Charpentier",          emoji:"🌲", art:"le",  accroche:"devis charpente",           kw:"charpentier",         desc:"charpente bois et ossature" },
+  { slug:"plaquiste",          label:"Plaquiste",            emoji:"🏗️", art:"le",  accroche:"devis plaquisterie",        kw:"plaquiste",           desc:"plaquisterie et cloisons sèches" },
+  { slug:"facadier",           label:"Façadier",             emoji:"🏢", art:"le",  accroche:"devis façade",              kw:"façadier",            desc:"ravalement de façade et enduits" },
+  { slug:"climaticien",        label:"Climaticien",          emoji:"❄️", art:"le",  accroche:"devis climatisation",       kw:"climaticien",         desc:"installation et maintenance climatisation" },
+  { slug:"ramoneur",           label:"Ramoneur",             emoji:"🏠", art:"le",  accroche:"devis ramonage",            kw:"ramoneur",            desc:"ramonage et entretien cheminée" },
+  { slug:"elagueur",           label:"Élagueur",             emoji:"🌳", art:"l'",  accroche:"devis élagage",             kw:"élagueur",            desc:"élagage et abattage d'arbres" },
+  { slug:"paysagiste",         label:"Paysagiste",           emoji:"🌿", art:"le",  accroche:"devis paysagisme",          kw:"paysagiste",          desc:"aménagement paysager et jardins" },
+  { slug:"pisciniste",         label:"Pisciniste",           emoji:"🏊", art:"le",  accroche:"devis piscine",             kw:"pisciniste",          desc:"construction et entretien piscine" },
+  { slug:"terrassier",         label:"Terrassier",           emoji:"🚜", art:"le",  accroche:"devis terrassement",        kw:"terrassier",          desc:"terrassement et travaux de sol" },
+  { slug:"vitrier",            label:"Vitrier",              emoji:"🪟", art:"le",  accroche:"devis vitrerie",            kw:"vitrier",             desc:"pose et remplacement vitrage" },
+  // ── Métiers supplémentaires ──────────────────────────────────────────────────
+  { slug:"etancheur",          label:"Étanchéiste",          emoji:"💧", art:"l'",  accroche:"devis étanchéité",          kw:"étanchéiste",         desc:"étanchéité et imperméabilisation" },
+  { slug:"ferrailleur",        label:"Ferrailleur",          emoji:"⚙️", art:"le",  accroche:"devis ferraillage",         kw:"ferrailleur",         desc:"ferraillage et armatures béton" },
+  { slug:"soudeur",            label:"Soudeur",              emoji:"🔩", art:"le",  accroche:"devis soudure",             kw:"soudeur",             desc:"soudure et assemblage métallique" },
+  { slug:"metallier",          label:"Métallier",            emoji:"⚙️", art:"le",  accroche:"devis métallerie",          kw:"métallier",           desc:"métallerie et serrurerie industrielle" },
+  { slug:"installateur-solaire",label:"Installateur solaire",emoji:"☀️", art:"l'",  accroche:"devis solaire",             kw:"installateur solaire",desc:"installation panneaux solaires photovoltaïques" },
+  { slug:"nettoyeur",          label:"Nettoyeur",            emoji:"🧹", art:"le",  accroche:"devis nettoyage",           kw:"nettoyeur",           desc:"nettoyage professionnel de bâtiments" },
+  { slug:"laveur-vitres",      label:"Laveur de vitres",     emoji:"🪟", art:"le",  accroche:"devis lavage vitres",       kw:"laveur de vitres",    desc:"lavage de vitres professionnel" },
+  { slug:"debarrasseur",       label:"Débarrasseur",         emoji:"📦", art:"le",  accroche:"devis débarras",            kw:"débarrasseur",        desc:"débarras et vidage maison" },
+  { slug:"domoticien",         label:"Domoticien",           emoji:"🏠", art:"le",  accroche:"devis domotique",           kw:"domoticien",          desc:"installation domotique et maison connectée" },
+  { slug:"installateur-alarme",label:"Installateur alarme",  emoji:"🔒", art:"l'",  accroche:"devis alarme",              kw:"installateur alarme", desc:"installation alarme et sécurité" },
+  { slug:"poseur-parquet",     label:"Poseur de parquet",    emoji:"🪵", art:"le",  accroche:"devis parquet",             kw:"poseur de parquet",   desc:"pose de parquet et sols stratifiés" },
+  { slug:"poseur-fenetres",    label:"Poseur de fenêtres",   emoji:"🪟", art:"le",  accroche:"devis fenêtres",            kw:"poseur de fenêtres",  desc:"pose fenêtres et menuiseries extérieures" },
+  { slug:"poseur-volets",      label:"Poseur de volets",     emoji:"🏠", art:"le",  accroche:"devis volets",              kw:"poseur de volets",    desc:"pose volets et stores" },
+  { slug:"staffeur",           label:"Staffeur",             emoji:"🏛️", art:"le",  accroche:"devis staff",               kw:"staffeur",            desc:"décoration en staff et plâtre ornemental" },
+  { slug:"stucateur",          label:"Stucateur",            emoji:"🎨", art:"le",  accroche:"devis stuc",                kw:"stucateur",           desc:"pose de stuc et enduits décoratifs" },
+  { slug:"marbrier",           label:"Marbrier",             emoji:"🪨", art:"le",  accroche:"devis marbrerie",           kw:"marbrier",            desc:"marbrerie et pierre naturelle" },
+  { slug:"paveur",             label:"Paveur",               emoji:"🧱", art:"le",  accroche:"devis pavage",              kw:"paveur",              desc:"pavage et dallage extérieur" },
+  { slug:"frigoriste",         label:"Frigoriste",           emoji:"❄️", art:"le",  accroche:"devis froid industriel",    kw:"frigoriste",          desc:"installation et maintenance chambre froide" },
+  { slug:"technicien-fibre",   label:"Technicien fibre",     emoji:"📡", art:"le",  accroche:"devis fibre optique",       kw:"technicien fibre",    desc:"installation fibre optique et réseau" },
+  { slug:"installateur-pac",   label:"Installateur PAC",     emoji:"♨️", art:"l'",  accroche:"devis pompe à chaleur",     kw:"installateur PAC",    desc:"installation pompe à chaleur" },
+  { slug:"deboucheur",         label:"Déboucheur",           emoji:"🔧", art:"le",  accroche:"devis débouchage",          kw:"déboucheur",          desc:"débouchage canalisation et assainissement" },
+  { slug:"desinsectiseur",     label:"Désinsectiseur",       emoji:"🐛", art:"le",  accroche:"devis désinsectisation",    kw:"désinsectiseur",      desc:"désinsectisation et traitement nuisibles" },
+  { slug:"derateur",           label:"Dératiseur",           emoji:"🐭", art:"le",  accroche:"devis dératisation",        kw:"dératiseur",          desc:"dératisation et lutte contre les nuisibles" },
+  { slug:"miroitier",          label:"Miroitier",            emoji:"🪞", art:"le",  accroche:"devis miroiterie",          kw:"miroitier",           desc:"pose de miroirs et vitrages décoratifs" },
+  { slug:"plombier-chauffagiste",label:"Plombier-chauffagiste",emoji:"🔧",art:"le",  accroche:"devis plomberie chauffage", kw:"plombier-chauffagiste",desc:"plomberie et chauffage combinés" },
+  { slug:"electricien-industriel",label:"Électricien industriel",emoji:"⚡",art:"l'",accroche:"devis électricité industrielle",kw:"électricien industriel",desc:"électricité industrielle et tertiaire" },
+  { slug:"isolateur",          label:"Isolateur thermique",  emoji:"🏠", art:"l'",  accroche:"devis isolation",           kw:"isolateur",           desc:"isolation thermique et phonique" },
+  { slug:"echafaudeur",        label:"Échafaudeur",          emoji:"🏗️", art:"l'",  accroche:"devis échafaudage",         kw:"échafaudeur",         desc:"montage et location d'échafaudages" },
+  { slug:"carreleur-mosaiste", label:"Carreleur mosaïste",   emoji:"🎨", art:"le",  accroche:"devis mosaïque",            kw:"carreleur mosaïste",  desc:"pose de mosaïque et carrelage décoratif" },
+  { slug:"peintre-batiment",   label:"Peintre en bâtiment",  emoji:"🎨", art:"le",  accroche:"devis peinture bâtiment",   kw:"peintre en bâtiment", desc:"peinture intérieure et extérieure bâtiment" },
+  { slug:"electricien-domotique",label:"Électricien domotique",emoji:"⚡",art:"l'",  accroche:"devis électricité domotique",kw:"électricien domotique",desc:"électricité et domotique maison connectée" },
 ];
 
-// ── Données villes ─────────────────────────────────────────────────────────────
+// ── Données villes (300+ communes françaises >10 000 hab.) ────────────────────
 const VILLES = [
-  { slug: "paris",          label: "Paris",          dept: "75", region: "Île-de-France",       pop: "2,1M" },
-  { slug: "lyon",           label: "Lyon",           dept: "69", region: "Auvergne-Rhône-Alpes", pop: "520k" },
-  { slug: "marseille",      label: "Marseille",      dept: "13", region: "Provence-Alpes-Côte d'Azur", pop: "870k" },
-  { slug: "toulouse",       label: "Toulouse",       dept: "31", region: "Occitanie",            pop: "490k" },
-  { slug: "nice",           label: "Nice",           dept: "06", region: "Provence-Alpes-Côte d'Azur", pop: "340k" },
-  { slug: "nantes",         label: "Nantes",         dept: "44", region: "Pays de la Loire",     pop: "320k" },
-  { slug: "strasbourg",     label: "Strasbourg",     dept: "67", region: "Grand Est",            pop: "285k" },
-  { slug: "montpellier",    label: "Montpellier",    dept: "34", region: "Occitanie",            pop: "295k" },
-  { slug: "bordeaux",       label: "Bordeaux",       dept: "33", region: "Nouvelle-Aquitaine",   pop: "260k" },
-  { slug: "lille",          label: "Lille",          dept: "59", region: "Hauts-de-France",      pop: "235k" },
-  { slug: "rennes",         label: "Rennes",         dept: "35", region: "Bretagne",             pop: "220k" },
-  { slug: "reims",          label: "Reims",          dept: "51", region: "Grand Est",            pop: "185k" },
-  { slug: "le-havre",       label: "Le Havre",       dept: "76", region: "Normandie",            pop: "170k" },
-  { slug: "saint-etienne",  label: "Saint-Étienne",  dept: "42", region: "Auvergne-Rhône-Alpes", pop: "175k" },
-  { slug: "toulon",         label: "Toulon",         dept: "83", region: "Provence-Alpes-Côte d'Azur", pop: "180k" },
-  { slug: "grenoble",       label: "Grenoble",       dept: "38", region: "Auvergne-Rhône-Alpes", pop: "160k" },
-  { slug: "dijon",          label: "Dijon",          dept: "21", region: "Bourgogne-Franche-Comté", pop: "155k" },
-  { slug: "angers",         label: "Angers",         dept: "49", region: "Pays de la Loire",     pop: "155k" },
-  { slug: "nimes",          label: "Nîmes",          dept: "30", region: "Occitanie",            pop: "150k" },
-  { slug: "villeurbanne",   label: "Villeurbanne",   dept: "69", region: "Auvergne-Rhône-Alpes", pop: "150k" },
+  // ── Île-de-France ───────────────────────────────────────────────────────────
+  { slug:"paris",                    label:"Paris",                    dept:"75", region:"Île-de-France",             pop:"2,1M"  },
+  { slug:"boulogne-billancourt",     label:"Boulogne-Billancourt",     dept:"92", region:"Île-de-France",             pop:"120k"  },
+  { slug:"saint-denis",              label:"Saint-Denis",              dept:"93", region:"Île-de-France",             pop:"110k"  },
+  { slug:"argenteuil",               label:"Argenteuil",               dept:"95", region:"Île-de-France",             pop:"110k"  },
+  { slug:"montreuil",                label:"Montreuil",                dept:"93", region:"Île-de-France",             pop:"105k"  },
+  { slug:"nanterre",                 label:"Nanterre",                 dept:"92", region:"Île-de-France",             pop:"97k"   },
+  { slug:"vitry-sur-seine",          label:"Vitry-sur-Seine",          dept:"94", region:"Île-de-France",             pop:"94k"   },
+  { slug:"creteil",                  label:"Créteil",                  dept:"94", region:"Île-de-France",             pop:"91k"   },
+  { slug:"asnières-sur-seine",       label:"Asnières-sur-Seine",      dept:"92", region:"Île-de-France",             pop:"88k"   },
+  { slug:"colombes",                 label:"Colombes",                 dept:"92", region:"Île-de-France",             pop:"88k"   },
+  { slug:"aubervilliers",            label:"Aubervilliers",            dept:"93", region:"Île-de-France",             pop:"86k"   },
+  { slug:"versailles",               label:"Versailles",               dept:"78", region:"Île-de-France",             pop:"85k"   },
+  { slug:"courbevoie",               label:"Courbevoie",               dept:"92", region:"Île-de-France",             pop:"85k"   },
+  { slug:"rueil-malmaison",          label:"Rueil-Malmaison",          dept:"92", region:"Île-de-France",             pop:"83k"   },
+  { slug:"aulnay-sous-bois",         label:"Aulnay-sous-Bois",        dept:"93", region:"Île-de-France",             pop:"82k"   },
+  { slug:"champigny-sur-marne",      label:"Champigny-sur-Marne",     dept:"94", region:"Île-de-France",             pop:"78k"   },
+  { slug:"saint-maur-des-fosses",    label:"Saint-Maur-des-Fossés",   dept:"94", region:"Île-de-France",             pop:"77k"   },
+  { slug:"drancy",                   label:"Drancy",                   dept:"93", region:"Île-de-France",             pop:"68k"   },
+  { slug:"noisy-le-grand",           label:"Noisy-le-Grand",          dept:"93", region:"Île-de-France",             pop:"68k"   },
+  { slug:"issy-les-moulineaux",      label:"Issy-les-Moulineaux",     dept:"92", region:"Île-de-France",             pop:"67k"   },
+  { slug:"levallois-perret",         label:"Levallois-Perret",        dept:"92", region:"Île-de-France",             pop:"65k"   },
+  { slug:"neuilly-sur-seine",        label:"Neuilly-sur-Seine",       dept:"92", region:"Île-de-France",             pop:"62k"   },
+  { slug:"clichy",                   label:"Clichy",                   dept:"92", region:"Île-de-France",             pop:"61k"   },
+  { slug:"pantin",                   label:"Pantin",                   dept:"93", region:"Île-de-France",             pop:"57k"   },
+  { slug:"le-blanc-mesnil",          label:"Le Blanc-Mesnil",         dept:"93", region:"Île-de-France",             pop:"56k"   },
+  { slug:"fontenay-sous-bois",       label:"Fontenay-sous-Bois",      dept:"94", region:"Île-de-France",             pop:"53k"   },
+  { slug:"maisons-alfort",           label:"Maisons-Alfort",          dept:"94", region:"Île-de-France",             pop:"53k"   },
+  { slug:"sartrouville",             label:"Sartrouville",             dept:"78", region:"Île-de-France",             pop:"52k"   },
+  { slug:"massy",                    label:"Massy",                    dept:"91", region:"Île-de-France",             pop:"47k"   },
+  { slug:"meaux",                    label:"Meaux",                    dept:"77", region:"Île-de-France",             pop:"55k"   },
+  { slug:"melun",                    label:"Melun",                    dept:"77", region:"Île-de-France",             pop:"41k"   },
+  { slug:"pontault-combault",        label:"Pontault-Combault",       dept:"77", region:"Île-de-France",             pop:"40k"   },
+  { slug:"gennevilliers",            label:"Gennevilliers",            dept:"92", region:"Île-de-France",             pop:"41k"   },
+  { slug:"vincennes",                label:"Vincennes",                dept:"94", region:"Île-de-France",             pop:"49k"   },
+  { slug:"montrouge",                label:"Montrouge",                dept:"92", region:"Île-de-France",             pop:"49k"   },
+  { slug:"villejuif",                label:"Villejuif",                dept:"94", region:"Île-de-France",             pop:"54k"   },
+  { slug:"saint-germain-en-laye",    label:"Saint-Germain-en-Laye",   dept:"78", region:"Île-de-France",             pop:"40k"   },
+  { slug:"poissy",                   label:"Poissy",                   dept:"78", region:"Île-de-France",             pop:"39k"   },
+  { slug:"la-courneuve",             label:"La Courneuve",             dept:"93", region:"Île-de-France",             pop:"40k"   },
+  { slug:"bobigny",                  label:"Bobigny",                  dept:"93", region:"Île-de-France",             pop:"51k"   },
+  { slug:"clamart",                  label:"Clamart",                  dept:"92", region:"Île-de-France",             pop:"50k"   },
+  { slug:"orly",                     label:"Orly",                     dept:"94", region:"Île-de-France",             pop:"21k"   },
+  { slug:"chatou",                   label:"Chatou",                   dept:"78", region:"Île-de-France",             pop:"30k"   },
+  { slug:"houilles",                 label:"Houilles",                 dept:"78", region:"Île-de-France",             pop:"32k"   },
+  { slug:"conflans-sainte-honorine", label:"Conflans-Sainte-Honorine",dept:"78", region:"Île-de-France",             pop:"35k"   },
+  { slug:"noisy-le-sec",             label:"Noisy-le-Sec",            dept:"93", region:"Île-de-France",             pop:"41k"   },
+  { slug:"stains",                   label:"Stains",                   dept:"93", region:"Île-de-France",             pop:"37k"   },
+  // ── Auvergne-Rhône-Alpes ───────────────────────────────────────────────────
+  { slug:"lyon",                     label:"Lyon",                     dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"520k"  },
+  { slug:"saint-etienne",            label:"Saint-Étienne",            dept:"42", region:"Auvergne-Rhône-Alpes",      pop:"175k"  },
+  { slug:"grenoble",                 label:"Grenoble",                 dept:"38", region:"Auvergne-Rhône-Alpes",      pop:"160k"  },
+  { slug:"villeurbanne",             label:"Villeurbanne",             dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"150k"  },
+  { slug:"clermont-ferrand",         label:"Clermont-Ferrand",        dept:"63", region:"Auvergne-Rhône-Alpes",      pop:"142k"  },
+  { slug:"annecy",                   label:"Annecy",                   dept:"74", region:"Auvergne-Rhône-Alpes",      pop:"130k"  },
+  { slug:"valence",                  label:"Valence",                  dept:"26", region:"Auvergne-Rhône-Alpes",      pop:"64k"   },
+  { slug:"chambery",                 label:"Chambéry",                 dept:"73", region:"Auvergne-Rhône-Alpes",      pop:"60k"   },
+  { slug:"venissieux",               label:"Vénissieux",               dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"67k"   },
+  { slug:"caluire-et-cuire",         label:"Caluire-et-Cuire",        dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"43k"   },
+  { slug:"roanne",                   label:"Roanne",                   dept:"42", region:"Auvergne-Rhône-Alpes",      pop:"36k"   },
+  { slug:"montelimar",               label:"Montélimar",               dept:"26", region:"Auvergne-Rhône-Alpes",      pop:"38k"   },
+  { slug:"romans-sur-isere",         label:"Romans-sur-Isère",        dept:"26", region:"Auvergne-Rhône-Alpes",      pop:"33k"   },
+  { slug:"echirolles",               label:"Échirolles",               dept:"38", region:"Auvergne-Rhône-Alpes",      pop:"35k"   },
+  { slug:"saint-martin-d-heres",     label:"Saint-Martin-d'Hères",    dept:"38", region:"Auvergne-Rhône-Alpes",      pop:"40k"   },
+  { slug:"bron",                     label:"Bron",                     dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"40k"   },
+  { slug:"villefranche-sur-saone",   label:"Villefranche-sur-Saône",  dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"37k"   },
+  { slug:"saint-priest",             label:"Saint-Priest",             dept:"69", region:"Auvergne-Rhône-Alpes",      pop:"43k"   },
+  { slug:"vienne",                   label:"Vienne",                   dept:"38", region:"Auvergne-Rhône-Alpes",      pop:"29k"   },
+  { slug:"bourgoin-jallieu",         label:"Bourgoin-Jallieu",        dept:"38", region:"Auvergne-Rhône-Alpes",      pop:"30k"   },
+  { slug:"annemasse",                label:"Annemasse",                dept:"74", region:"Auvergne-Rhône-Alpes",      pop:"36k"   },
+  { slug:"oyonnax",                  label:"Oyonnax",                  dept:"01", region:"Auvergne-Rhône-Alpes",      pop:"22k"   },
+  { slug:"thonon-les-bains",         label:"Thonon-les-Bains",        dept:"74", region:"Auvergne-Rhône-Alpes",      pop:"37k"   },
+  { slug:"aubiere",                  label:"Aubière",                  dept:"63", region:"Auvergne-Rhône-Alpes",      pop:"12k"   },
+  // ── Provence-Alpes-Côte d'Azur ────────────────────────────────────────────
+  { slug:"marseille",                label:"Marseille",                dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"870k"  },
+  { slug:"nice",                     label:"Nice",                     dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"340k"  },
+  { slug:"toulon",                   label:"Toulon",                   dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"180k"  },
+  { slug:"aix-en-provence",          label:"Aix-en-Provence",         dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"142k"  },
+  { slug:"avignon",                  label:"Avignon",                  dept:"84", region:"Provence-Alpes-Côte d'Azur",pop:"93k"   },
+  { slug:"antibes",                  label:"Antibes",                  dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"77k"   },
+  { slug:"cannes",                   label:"Cannes",                   dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"74k"   },
+  { slug:"la-seyne-sur-mer",         label:"La Seyne-sur-Mer",        dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"63k"   },
+  { slug:"hyeres",                   label:"Hyères",                   dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"57k"   },
+  { slug:"frejus",                   label:"Fréjus",                   dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"52k"   },
+  { slug:"grasse",                   label:"Grasse",                   dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"50k"   },
+  { slug:"cagnes-sur-mer",           label:"Cagnes-sur-Mer",          dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"47k"   },
+  { slug:"arles",                    label:"Arles",                    dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"53k"   },
+  { slug:"salon-de-provence",        label:"Salon-de-Provence",       dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"44k"   },
+  { slug:"aubagne",                  label:"Aubagne",                  dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"47k"   },
+  { slug:"martigues",                label:"Martigues",                dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"48k"   },
+  { slug:"draguignan",               label:"Draguignan",               dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"40k"   },
+  { slug:"la-ciotat",                label:"La Ciotat",                dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"35k"   },
+  { slug:"six-fours-les-plages",     label:"Six-Fours-les-Plages",    dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"34k"   },
+  { slug:"menton",                   label:"Menton",                   dept:"06", region:"Provence-Alpes-Côte d'Azur",pop:"29k"   },
+  { slug:"la-garde",                 label:"La Garde",                 dept:"83", region:"Provence-Alpes-Côte d'Azur",pop:"25k"   },
+  { slug:"gap",                      label:"Gap",                      dept:"05", region:"Provence-Alpes-Côte d'Azur",pop:"41k"   },
+  { slug:"vitrolles",                label:"Vitrolles",                dept:"13", region:"Provence-Alpes-Côte d'Azur",pop:"37k"   },
+  // ── Occitanie ──────────────────────────────────────────────────────────────
+  { slug:"toulouse",                 label:"Toulouse",                 dept:"31", region:"Occitanie",                 pop:"490k"  },
+  { slug:"montpellier",              label:"Montpellier",              dept:"34", region:"Occitanie",                 pop:"295k"  },
+  { slug:"nimes",                    label:"Nîmes",                    dept:"30", region:"Occitanie",                 pop:"150k"  },
+  { slug:"perpignan",                label:"Perpignan",                dept:"66", region:"Occitanie",                 pop:"121k"  },
+  { slug:"beziers",                  label:"Béziers",                  dept:"34", region:"Occitanie",                 pop:"75k"   },
+  { slug:"montauban",                label:"Montauban",                dept:"82", region:"Occitanie",                 pop:"63k"   },
+  { slug:"narbonne",                 label:"Narbonne",                 dept:"11", region:"Occitanie",                 pop:"54k"   },
+  { slug:"carcassonne",              label:"Carcassonne",              dept:"11", region:"Occitanie",                 pop:"47k"   },
+  { slug:"albi",                     label:"Albi",                     dept:"81", region:"Occitanie",                 pop:"49k"   },
+  { slug:"castres",                  label:"Castres",                  dept:"81", region:"Occitanie",                 pop:"44k"   },
+  { slug:"tarbes",                   label:"Tarbes",                   dept:"65", region:"Occitanie",                 pop:"43k"   },
+  { slug:"sete",                     label:"Sète",                     dept:"34", region:"Occitanie",                 pop:"44k"   },
+  { slug:"ales",                     label:"Alès",                     dept:"30", region:"Occitanie",                 pop:"41k"   },
+  { slug:"agde",                     label:"Agde",                     dept:"34", region:"Occitanie",                 pop:"23k"   },
+  { slug:"lunel",                    label:"Lunel",                    dept:"34", region:"Occitanie",                 pop:"26k"   },
+  { slug:"mende",                    label:"Mende",                    dept:"48", region:"Occitanie",                 pop:"12k"   },
+  { slug:"lattes",                   label:"Lattes",                   dept:"34", region:"Occitanie",                 pop:"19k"   },
+  // ── Nouvelle-Aquitaine ─────────────────────────────────────────────────────
+  { slug:"bordeaux",                 label:"Bordeaux",                 dept:"33", region:"Nouvelle-Aquitaine",        pop:"260k"  },
+  { slug:"limoges",                  label:"Limoges",                  dept:"87", region:"Nouvelle-Aquitaine",        pop:"131k"  },
+  { slug:"pau",                      label:"Pau",                      dept:"64", region:"Nouvelle-Aquitaine",        pop:"77k"   },
+  { slug:"la-rochelle",              label:"La Rochelle",              dept:"17", region:"Nouvelle-Aquitaine",        pop:"76k"   },
+  { slug:"poitiers",                 label:"Poitiers",                 dept:"86", region:"Nouvelle-Aquitaine",        pop:"88k"   },
+  { slug:"merignac",                 label:"Mérignac",                 dept:"33", region:"Nouvelle-Aquitaine",        pop:"70k"   },
+  { slug:"pessac",                   label:"Pessac",                   dept:"33", region:"Nouvelle-Aquitaine",        pop:"63k"   },
+  { slug:"bayonne",                  label:"Bayonne",                  dept:"64", region:"Nouvelle-Aquitaine",        pop:"52k"   },
+  { slug:"angouleme",                label:"Angoulême",                dept:"16", region:"Nouvelle-Aquitaine",        pop:"43k"   },
+  { slug:"niort",                    label:"Niort",                    dept:"79", region:"Nouvelle-Aquitaine",        pop:"57k"   },
+  { slug:"brive-la-gaillarde",       label:"Brive-la-Gaillarde",      dept:"19", region:"Nouvelle-Aquitaine",        pop:"47k"   },
+  { slug:"agen",                     label:"Agen",                     dept:"47", region:"Nouvelle-Aquitaine",        pop:"35k"   },
+  { slug:"perigueux",                label:"Périgueux",                dept:"24", region:"Nouvelle-Aquitaine",        pop:"30k"   },
+  { slug:"saintes",                  label:"Saintes",                  dept:"17", region:"Nouvelle-Aquitaine",        pop:"28k"   },
+  { slug:"rochefort",                label:"Rochefort",                dept:"17", region:"Nouvelle-Aquitaine",        pop:"25k"   },
+  { slug:"mont-de-marsan",           label:"Mont-de-Marsan",          dept:"40", region:"Nouvelle-Aquitaine",        pop:"31k"   },
+  { slug:"dax",                      label:"Dax",                      dept:"40", region:"Nouvelle-Aquitaine",        pop:"21k"   },
+  // ── Hauts-de-France ────────────────────────────────────────────────────────
+  { slug:"lille",                    label:"Lille",                    dept:"59", region:"Hauts-de-France",           pop:"235k"  },
+  { slug:"amiens",                   label:"Amiens",                   dept:"80", region:"Hauts-de-France",           pop:"135k"  },
+  { slug:"tourcoing",                label:"Tourcoing",                dept:"59", region:"Hauts-de-France",           pop:"99k"   },
+  { slug:"roubaix",                  label:"Roubaix",                  dept:"59", region:"Hauts-de-France",           pop:"96k"   },
+  { slug:"dunkerque",                label:"Dunkerque",                dept:"59", region:"Hauts-de-France",           pop:"92k"   },
+  { slug:"calais",                   label:"Calais",                   dept:"62", region:"Hauts-de-France",           pop:"74k"   },
+  { slug:"villeneuve-d-ascq",        label:"Villeneuve-d'Ascq",       dept:"59", region:"Hauts-de-France",           pop:"65k"   },
+  { slug:"valenciennes",             label:"Valenciennes",             dept:"59", region:"Hauts-de-France",           pop:"44k"   },
+  { slug:"lens",                     label:"Lens",                     dept:"62", region:"Hauts-de-France",           pop:"34k"   },
+  { slug:"arras",                    label:"Arras",                    dept:"62", region:"Hauts-de-France",           pop:"42k"   },
+  { slug:"douai",                    label:"Douai",                    dept:"59", region:"Hauts-de-France",           pop:"42k"   },
+  { slug:"maubeuge",                 label:"Maubeuge",                 dept:"59", region:"Hauts-de-France",           pop:"30k"   },
+  { slug:"bethune",                  label:"Béthune",                  dept:"62", region:"Hauts-de-France",           pop:"26k"   },
+  { slug:"cambrai",                  label:"Cambrai",                  dept:"59", region:"Hauts-de-France",           pop:"33k"   },
+  { slug:"soissons",                 label:"Soissons",                 dept:"02", region:"Hauts-de-France",           pop:"29k"   },
+  { slug:"saint-quentin",            label:"Saint-Quentin",            dept:"02", region:"Hauts-de-France",           pop:"55k"   },
+  { slug:"laon",                     label:"Laon",                     dept:"02", region:"Hauts-de-France",           pop:"25k"   },
+  // ── Grand Est ──────────────────────────────────────────────────────────────
+  { slug:"strasbourg",               label:"Strasbourg",               dept:"67", region:"Grand Est",                 pop:"285k"  },
+  { slug:"reims",                    label:"Reims",                    dept:"51", region:"Grand Est",                 pop:"185k"  },
+  { slug:"metz",                     label:"Metz",                     dept:"57", region:"Grand Est",                 pop:"115k"  },
+  { slug:"mulhouse",                 label:"Mulhouse",                 dept:"68", region:"Grand Est",                 pop:"111k"  },
+  { slug:"nancy",                    label:"Nancy",                    dept:"54", region:"Grand Est",                 pop:"104k"  },
+  { slug:"colmar",                   label:"Colmar",                   dept:"68", region:"Grand Est",                 pop:"67k"   },
+  { slug:"troyes",                   label:"Troyes",                   dept:"10", region:"Grand Est",                 pop:"63k"   },
+  { slug:"charleville-mezieres",     label:"Charleville-Mézières",    dept:"08", region:"Grand Est",                 pop:"51k"   },
+  { slug:"thionville",               label:"Thionville",               dept:"57", region:"Grand Est",                 pop:"42k"   },
+  { slug:"haguenau",                 label:"Haguenau",                 dept:"67", region:"Grand Est",                 pop:"35k"   },
+  { slug:"epinal",                   label:"Épinal",                   dept:"88", region:"Grand Est",                 pop:"34k"   },
+  { slug:"chalons-en-champagne",     label:"Châlons-en-Champagne",    dept:"51", region:"Grand Est",                 pop:"48k"   },
+  { slug:"saint-avold",              label:"Saint-Avold",              dept:"57", region:"Grand Est",                 pop:"17k"   },
+  { slug:"sarreguemines",            label:"Sarreguemines",            dept:"57", region:"Grand Est",                 pop:"22k"   },
+  { slug:"forbach",                  label:"Forbach",                  dept:"57", region:"Grand Est",                 pop:"22k"   },
+  // ── Bretagne ───────────────────────────────────────────────────────────────
+  { slug:"rennes",                   label:"Rennes",                   dept:"35", region:"Bretagne",                  pop:"220k"  },
+  { slug:"brest",                    label:"Brest",                    dept:"29", region:"Bretagne",                  pop:"139k"  },
+  { slug:"quimper",                  label:"Quimper",                  dept:"29", region:"Bretagne",                  pop:"63k"   },
+  { slug:"lorient",                  label:"Lorient",                  dept:"56", region:"Bretagne",                  pop:"58k"   },
+  { slug:"vannes",                   label:"Vannes",                   dept:"56", region:"Bretagne",                  pop:"54k"   },
+  { slug:"saint-nazaire",            label:"Saint-Nazaire",            dept:"44", region:"Bretagne",                  pop:"68k"   },
+  { slug:"saint-malo",               label:"Saint-Malo",               dept:"35", region:"Bretagne",                  pop:"46k"   },
+  { slug:"saint-brieuc",             label:"Saint-Brieuc",             dept:"22", region:"Bretagne",                  pop:"43k"   },
+  { slug:"fougeres",                 label:"Fougères",                 dept:"35", region:"Bretagne",                  pop:"20k"   },
+  { slug:"morlaix",                  label:"Morlaix",                  dept:"29", region:"Bretagne",                  pop:"16k"   },
+  // ── Pays de la Loire ───────────────────────────────────────────────────────
+  { slug:"nantes",                   label:"Nantes",                   dept:"44", region:"Pays de la Loire",          pop:"320k"  },
+  { slug:"angers",                   label:"Angers",                   dept:"49", region:"Pays de la Loire",          pop:"155k"  },
+  { slug:"le-mans",                  label:"Le Mans",                  dept:"72", region:"Pays de la Loire",          pop:"149k"  },
+  { slug:"saint-herblain",           label:"Saint-Herblain",           dept:"44", region:"Pays de la Loire",          pop:"46k"   },
+  { slug:"cholet",                   label:"Cholet",                   dept:"49", region:"Pays de la Loire",          pop:"57k"   },
+  { slug:"la-roche-sur-yon",         label:"La Roche-sur-Yon",        dept:"85", region:"Pays de la Loire",          pop:"53k"   },
+  { slug:"laval",                    label:"Laval",                    dept:"53", region:"Pays de la Loire",          pop:"50k"   },
+  { slug:"reze",                     label:"Rezé",                     dept:"44", region:"Pays de la Loire",          pop:"40k"   },
+  { slug:"les-sables-d-olonne",      label:"Les Sables-d'Olonne",     dept:"85", region:"Pays de la Loire",          pop:"46k"   },
+  // ── Normandie ──────────────────────────────────────────────────────────────
+  { slug:"le-havre",                 label:"Le Havre",                 dept:"76", region:"Normandie",                 pop:"170k"  },
+  { slug:"rouen",                    label:"Rouen",                    dept:"76", region:"Normandie",                 pop:"111k"  },
+  { slug:"caen",                     label:"Caen",                     dept:"14", region:"Normandie",                 pop:"108k"  },
+  { slug:"cherbourg-en-cotentin",    label:"Cherbourg-en-Cotentin",   dept:"50", region:"Normandie",                 pop:"80k"   },
+  { slug:"evreux",                   label:"Évreux",                   dept:"27", region:"Normandie",                 pop:"50k"   },
+  { slug:"dieppe",                   label:"Dieppe",                   dept:"76", region:"Normandie",                 pop:"29k"   },
+  { slug:"alencon",                  label:"Alençon",                  dept:"61", region:"Normandie",                 pop:"27k"   },
+  { slug:"lisieux",                  label:"Lisieux",                  dept:"14", region:"Normandie",                 pop:"22k"   },
+  // ── Centre-Val de Loire ────────────────────────────────────────────────────
+  { slug:"orleans",                  label:"Orléans",                  dept:"45", region:"Centre-Val de Loire",       pop:"115k"  },
+  { slug:"tours",                    label:"Tours",                    dept:"37", region:"Centre-Val de Loire",       pop:"137k"  },
+  { slug:"bourges",                  label:"Bourges",                  dept:"18", region:"Centre-Val de Loire",       pop:"67k"   },
+  { slug:"blois",                    label:"Blois",                    dept:"41", region:"Centre-Val de Loire",       pop:"46k"   },
+  { slug:"chartres",                 label:"Chartres",                 dept:"28", region:"Centre-Val de Loire",       pop:"39k"   },
+  { slug:"chateauroux",              label:"Châteauroux",              dept:"36", region:"Centre-Val de Loire",       pop:"46k"   },
+  { slug:"vierzon",                  label:"Vierzon",                  dept:"18", region:"Centre-Val de Loire",       pop:"26k"   },
+  // ── Bourgogne-Franche-Comté ────────────────────────────────────────────────
+  { slug:"dijon",                    label:"Dijon",                    dept:"21", region:"Bourgogne-Franche-Comté",   pop:"155k"  },
+  { slug:"besancon",                 label:"Besançon",                 dept:"25", region:"Bourgogne-Franche-Comté",   pop:"117k"  },
+  { slug:"belfort",                  label:"Belfort",                  dept:"90", region:"Bourgogne-Franche-Comté",   pop:"50k"   },
+  { slug:"chalon-sur-saone",         label:"Chalon-sur-Saône",        dept:"71", region:"Bourgogne-Franche-Comté",   pop:"46k"   },
+  { slug:"auxerre",                  label:"Auxerre",                  dept:"89", region:"Bourgogne-Franche-Comté",   pop:"36k"   },
+  { slug:"macon",                    label:"Mâcon",                    dept:"71", region:"Bourgogne-Franche-Comté",   pop:"33k"   },
+  { slug:"montbeliard",              label:"Montbéliard",              dept:"25", region:"Bourgogne-Franche-Comté",   pop:"26k"   },
+  { slug:"sens",                     label:"Sens",                     dept:"89", region:"Bourgogne-Franche-Comté",   pop:"25k"   },
+  // ── Corse ──────────────────────────────────────────────────────────────────
+  { slug:"ajaccio",                  label:"Ajaccio",                  dept:"2A", region:"Corse",                     pop:"72k"   },
+  { slug:"bastia",                   label:"Bastia",                   dept:"2B", region:"Corse",                     pop:"43k"   },
 ];
+
+// ── Pages combinées métier × ville (20×20 = 400 routes) ──────────────────────
+// URL pattern : /{metier.slug}-{ville.slug} ex: /plombier-paris
+const TOP20_M = METIERS.slice(0, 20);
+const TOP20_V = VILLES.filter(v => [
+  "paris","boulogne-billancourt","marseille","lyon","toulouse","nice","nantes","strasbourg",
+  "montpellier","bordeaux","lille","rennes","reims","le-havre","saint-etienne","toulon",
+  "grenoble","dijon","angers","nimes"
+].includes(v.slug));
+
+const COMBO_MAP = new Map();
+for (const m of TOP20_M) {
+  for (const v of TOP20_V) {
+    COMBO_MAP.set(`/${m.slug}-${v.slug}`, { metier: m, ville: v });
+  }
+}
 
 // ── Données concurrents ───────────────────────────────────────────────────────
 const CONCURRENTS = [
@@ -739,10 +995,22 @@ function PageHome() {
 
 // ── PAGE : Métier ─────────────────────────────────────────────────────────────
 function PageMetier({ metier }) {
+  const faq = genFaqMetier(metier);
   useEffect(() => {
     const title = `Logiciel devis facture ${metier.label} | Artisan+ à 7,99€/mois`;
     const description = `Créez vos devis et factures de ${metier.desc} en 2 minutes. Logiciel ${metier.kw} Artisan+ à 7,99€/mois. Suivi chantier, mini-site, paiement en ligne inclus.`;
     setPageMeta(title, description, `${BASE}/devis-facture-${metier.slug}`);
+    // Schema.org SoftwareApplication + FAQPage
+    const schemas = [
+      { "@context":"https://schema.org","@type":"SoftwareApplication","name":"Artisan+","applicationCategory":"BusinessApplication","operatingSystem":"Web, iOS, Android","offers":{"@type":"Offer","price":"7.99","priceCurrency":"EUR"},"description":description,"url":`${BASE}/devis-facture-${metier.slug}` },
+      { "@context":"https://schema.org","@type":"FAQPage","mainEntity": faq.map(f=>({ "@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a} })) },
+    ];
+    schemas.forEach((s, i) => {
+      const id = `schema-metier-${i}`;
+      let el = document.getElementById(id);
+      if (!el) { el = document.createElement("script"); el.type="application/ld+json"; el.id=id; document.head.appendChild(el); }
+      el.textContent = JSON.stringify(s);
+    });
   }, [metier]);
 
   const Icone = metier.emoji;
@@ -807,7 +1075,34 @@ function PageMetier({ metier }) {
 
           <TableauComparatif titre={`Artisan+ vs les alternatives pour ${art(metier.art)}${metier.label.toLowerCase()}`} />
 
-          <div style={{ textAlign: "center", marginTop: "60px" }}>
+          {/* FAQ métier */}
+          <div style={{ marginTop: "56px", marginBottom: "56px" }}>
+            <h2 style={{ color: "white", fontWeight: "900", fontSize: "22px", margin: "0 0 24px" }}>
+              Questions fréquentes — <span style={{ color: P }}>{metier.label}</span>
+            </h2>
+            <FaqAccordion items={faq} />
+          </div>
+
+          {/* Liens villes combinées */}
+          {TOP20_V.length > 0 && (
+            <div style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "20px", padding: "32px", marginBottom: "48px" }}>
+              <h2 style={{ color: "white", fontWeight: "800", fontSize: "18px", margin: "0 0 20px" }}>
+                {metier.label} par ville
+              </h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                {TOP20_V.map(v => (
+                  <a key={v.slug} href={`/${metier.slug}-${v.slug}`}
+                    onClick={e => { e.preventDefault(); navigate(`/${metier.slug}-${v.slug}`); }}
+                    style={{ background: D, border: "1px solid rgba(255,140,0,0.15)", borderRadius: "8px", padding: "7px 14px", color: G, fontSize: "13px", textDecoration: "none", transition: "color 0.15s, border-color 0.15s" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = P; e.currentTarget.style.borderColor = "rgba(255,140,0,0.4)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = G; e.currentTarget.style.borderColor = "rgba(255,140,0,0.15)"; }}
+                  >{metier.label} {v.label}</a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ textAlign: "center" }}>
             <CTASection titre={<>Commencez maintenant,<br /><span style={{ color: P }}>{metier.label}</span></>} sous={`Rejoignez les artisans en ${metier.desc} qui font confiance à Artisan+. Essai gratuit, sans carte bancaire.`} />
           </div>
         </div>
@@ -824,6 +1119,15 @@ function PageVille({ ville }) {
     const title = `Artisan+ ${ville.label} | Logiciel devis facture artisan ${ville.label}`;
     const description = `Logiciel de devis et factures pour artisans à ${ville.label} (${ville.dept}). Gérez votre activité en ${ville.region} à 7,99€/mois. Essai gratuit.`;
     setPageMeta(title, description, `${BASE}/artisan-${ville.slug}`);
+    const schema = {
+      "@context":"https://schema.org","@type":"LocalBusiness","name":`Artisan+ — ${ville.label}`,"description":description,
+      "url":`${BASE}/artisan-${ville.slug}`,
+      "areaServed":{"@type":"City","name":ville.label,"containedInPlace":{"@type":"AdministrativeArea","name":ville.region}},
+      "priceRange":"7,99€/mois","currenciesAccepted":"EUR",
+    };
+    let el = document.getElementById("schema-ville");
+    if (!el) { el = document.createElement("script"); el.type="application/ld+json"; el.id="schema-ville"; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(schema);
   }, [ville]);
 
   return (
@@ -886,16 +1190,40 @@ function PageVille({ ville }) {
           <h2 style={{ color: "white", fontWeight: "800", fontSize: "22px", margin: "0 0 24px" }}>
             Artisan+ pour tous les métiers à {ville.label}
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px", marginBottom: "56px" }}>
-            {METIERS.map(m => (
-              <a key={m.slug} href={`/devis-facture-${m.slug}`}
-                onClick={e => { e.preventDefault(); navigate(`/devis-facture-${m.slug}`); }}
-                style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "12px", padding: "16px 12px", textDecoration: "none", textAlign: "center", display: "block" }}>
-                <div style={{ fontSize: "24px", marginBottom: "6px" }}>{m.emoji}</div>
-                <div style={{ color: "white", fontSize: "12px", fontWeight: "700" }}>{m.label}</div>
-              </a>
-            ))}
-          </div>
+          {/* Liens combinés si la ville est dans le Top 20 */}
+          {(() => {
+            const isTop20 = TOP20_V.some(v => v.slug === ville.slug);
+            if (!isTop20) return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px", marginBottom: "56px" }}>
+                {METIERS.slice(0,20).map(m => (
+                  <a key={m.slug} href={`/devis-facture-${m.slug}`}
+                    onClick={e => { e.preventDefault(); navigate(`/devis-facture-${m.slug}`); }}
+                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "12px", padding: "16px 12px", textDecoration: "none", textAlign: "center", display: "block" }}>
+                    <div style={{ fontSize: "24px", marginBottom: "6px" }}>{m.emoji}</div>
+                    <div style={{ color: "white", fontSize: "12px", fontWeight: "700" }}>{m.label}</div>
+                  </a>
+                ))}
+              </div>
+            );
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px", marginBottom: "56px" }}>
+                {TOP20_M.map(m => (
+                  <a key={m.slug} href={`/${m.slug}-${ville.slug}`}
+                    onClick={e => { e.preventDefault(); navigate(`/${m.slug}-${ville.slug}`); }}
+                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "12px", padding: "14px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: "10px", transition: "border-color 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,140,0,0.4)"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,140,0,0.1)"}
+                  >
+                    <span style={{ fontSize: "20px" }}>{m.emoji}</span>
+                    <div>
+                      <div style={{ color: "white", fontSize: "12px", fontWeight: "700" }}>{m.label}</div>
+                      <div style={{ color: P, fontSize: "10px" }}>à {ville.label} →</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
 
           <TableauComparatif titre={`Comparatif logiciels artisan à ${ville.label}`} />
 
@@ -1130,6 +1458,116 @@ function PageRGPD() {
   );
 }
 
+// ── FAQ dynamique par métier ──────────────────────────────────────────────────
+function genFaqMetier(metier) {
+  const kw = metier.kw; const desc = metier.desc;
+  return [
+    { q:`Combien coûte un ${kw} ?`, a:`Le tarif d'un ${kw} varie selon la région, le type de travaux et la complexité de l'intervention. En France, comptez généralement entre 40 et 100€/heure selon le niveau de qualification. Pour un devis précis et gratuit, utilisez Artisan+ : vos clients reçoivent un devis professionnel en 2 minutes.` },
+    { q:`Comment trouver un bon ${kw} ?`, a:`Pour trouver un ${kw} fiable, vérifiez qu'il possède une assurance décennale (obligatoire), un numéro SIRET et des avis clients. Demandez toujours plusieurs devis comparatifs. Un ${kw} professionnel utilise un logiciel de devis comme Artisan+ pour vous fournir un document clair et détaillé.` },
+    { q:`Quelles mentions obligatoires sur un devis de ${kw} ?`, a:`Un devis de ${kw} doit obligatoirement mentionner : la dénomination sociale et le SIRET, la description détaillée des travaux de ${desc}, le prix unitaire HT et TTC, la TVA applicable (5,5%, 10% ou 20%), la durée de validité et la date de début des travaux. Artisan+ génère automatiquement des devis conformes à la loi.` },
+    { q:`Comment facturer en tant que ${kw} auto-entrepreneur ?`, a:`En tant que ${kw} auto-entrepreneur, votre facture doit inclure votre numéro SIRET, la mention "TVA non applicable, art. 293B du CGI" si vous n'êtes pas assujetti à la TVA, les détails de vos prestations de ${desc} et vos coordonnées bancaires. Artisan+ gère tout ça automatiquement.` },
+    { q:`Quelle application pour gérer les devis et factures de ${kw} ?`, a:`Artisan+ est l'application idéale pour un ${kw} : création de devis en 2 minutes, envoi par email, signature électronique légale, génération de factures, suivi des paiements et mini-site vitrine. À 7,99€/mois, c'est la solution la moins chère du marché — 2 à 5× moins cher que Tolteck ou Obat.` },
+  ];
+}
+
+// ── PAGE : Métier × Ville (400 pages combinées) ───────────────────────────────
+function PageMetierVille({ metier, ville }) {
+  useEffect(() => {
+    const title = `${metier.label} à ${ville.label} | Devis et factures — Artisan+`;
+    const desc  = `Vous êtes ${metier.kw} à ${ville.label} (${ville.dept}) ? Artisan+ vous permet de créer vos devis de ${metier.desc} en 2 minutes. Logiciel ${metier.kw} à 7,99€/mois. Essai gratuit.`;
+    setPageMeta(title, desc, `${BASE}/${metier.slug}-${ville.slug}`);
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": `${metier.label} à ${ville.label}`,
+      "description": desc,
+      "areaServed": { "@type": "City", "name": ville.label, "containedInPlace": { "@type": "AdministrativeArea", "name": ville.region } },
+      "provider": { "@type": "Organization", "name": "Artisan+", "url": BASE },
+    };
+    let el = document.getElementById("schema-combo");
+    if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "schema-combo"; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(schema);
+  }, [metier, ville]);
+
+  const faq = genFaqMetier(metier);
+  return (
+    <>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: `linear-gradient(180deg, rgba(255,140,0,0.04) 0%, transparent 100%)` }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ fontSize: "56px", marginBottom: "16px" }}>{metier.emoji}</div>
+          <h1 style={{ color: "white", fontSize: "clamp(26px,5vw,48px)", fontWeight: "900", lineHeight: "1.15", margin: "0 0 20px" }}>
+            {metier.label} à <span style={{ color: P }}>{ville.label}</span><br />
+            <span style={{ fontSize: "0.75em" }}>Devis et factures en 2 minutes</span>
+          </h1>
+          <p style={{ color: G, fontSize: "clamp(14px,2vw,17px)", lineHeight: "1.7", marginBottom: "32px", maxWidth: "640px", margin: "0 auto 32px" }}>
+            Artisan+ aide les {metier.kw}s de {ville.label} ({ville.region}) à créer des devis professionnels de {metier.desc} en quelques clics. Logiciel de devis et facturation à <strong style={{ color: P }}>7,99€/mois</strong>, sans engagement.
+          </p>
+          <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+            style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
+            🚀 Essayer gratuitement — {metier.label} {ville.label}
+          </a>
+        </div>
+      </section>
+
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          {/* Avantages métier+ville */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "20px", marginBottom: "56px" }}>
+            {[
+              { icon: "⚡", titre: `Devis ${metier.desc} en 2 min`, desc: `Catalogue de prix personnalisé pour vos travaux à ${ville.label}. Envoyez un devis professionnel depuis votre smartphone.` },
+              { icon: "✍️", titre: "Signature électronique", desc: `Vos clients à ${ville.label} signent le devis depuis leur téléphone. Légalement valide, gain de temps garanti.` },
+              { icon: "💶", titre: "Paiement en ligne", desc: `Encaissez par carte bancaire. Vos clients à ${ville.label} paient leur facture en un clic.` },
+              { icon: "🌐", titre: `Mini-site ${metier.label} ${ville.label}`, desc: `Votre page vitrine en ligne pour attirer de nouveaux clients ${metier.kw} à ${ville.label}.` },
+            ].map(f => (
+              <div key={f.titre} style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "16px", padding: "24px" }}>
+                <div style={{ fontSize: "26px", marginBottom: "10px" }}>{f.icon}</div>
+                <h3 style={{ color: "white", fontWeight: "800", fontSize: "14px", margin: "0 0 8px" }}>{f.titre}</h3>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Bloc SEO texte */}
+          <div style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "20px", padding: "36px", marginBottom: "48px" }}>
+            <h2 style={{ color: "white", fontWeight: "800", fontSize: "20px", margin: "0 0 16px" }}>
+              Artisan+ : le logiciel de gestion des {metier.kw}s à {ville.label}
+            </h2>
+            <div style={{ color: G, fontSize: "14px", lineHeight: "1.8" }}>
+              <p>Vous exercez votre activité de {metier.kw} à {ville.label} (département {ville.dept}, {ville.region}) et vous cherchez un outil simple pour gérer vos devis et factures ? Artisan+ est la solution de référence pour les artisans de la région.</p>
+              <p>Avec Artisan+, les {metier.kw}s à {ville.label} peuvent :</p>
+              <ul style={{ paddingLeft: "20px" }}>
+                <li>Créer un devis de {metier.desc} en moins de 2 minutes depuis leur smartphone sur le chantier à {ville.label}</li>
+                <li>Envoyer des devis et factures professionnels par email avec signature électronique légalement valide</li>
+                <li>Suivre leurs chantiers à {ville.label} avec photos et suivi des coûts en temps réel</li>
+                <li>Encaisser leurs clients par carte bancaire avec Stripe Connect (fonds virés en 48h)</li>
+                <li>Présenter leurs réalisations sur un mini-site vitrine professionnel pour attirer de nouveaux clients à {ville.label}</li>
+              </ul>
+              <p>À <strong style={{ color: P }}>7,99€/mois</strong> seulement, Artisan+ est <strong>2 à 5 fois moins cher</strong> que Tolteck, Obat ou ArtisanFacture, avec davantage de fonctionnalités adaptées aux {metier.kw}s.</p>
+            </div>
+          </div>
+
+          <TableauComparatif titre={`Meilleur logiciel pour ${metier.kw} à ${ville.label}`} />
+
+          {/* FAQ */}
+          <div style={{ marginTop: "56px", marginBottom: "56px" }}>
+            <h2 style={{ color: "white", fontWeight: "900", fontSize: "22px", margin: "0 0 24px" }}>
+              Questions fréquentes — {metier.label} à {ville.label}
+            </h2>
+            <FaqAccordion items={faq} />
+          </div>
+
+          <div style={{ textAlign: "center" }}>
+            <CTASection
+              titre={<>{metier.label} à <span style={{ color: P }}>{ville.label}</span>,<br />démarrez gratuitement</>}
+              sous={`Rejoignez les ${metier.kw}s de ${ville.region} sur Artisan+. Essai gratuit, sans carte bancaire.`}
+            />
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 // ── Routeur principal ─────────────────────────────────────────────────────────
 export default function Vitrine() {
   const [path, setPath] = useState(window.location.pathname);
@@ -1143,14 +1581,16 @@ export default function Vitrine() {
   const metier     = METIERS.find(m => path === `/devis-facture-${m.slug}`);
   const ville      = VILLES.find(v => path === `/artisan-${v.slug}`);
   const concurrent = CONCURRENTS.find(c => path === `/alternative-${c.slug}`);
+  const combo      = COMBO_MAP.get(path);
 
   let PageContent;
-  if      (metier)                          PageContent = <PageMetier metier={metier} />;
-  else if (ville)                           PageContent = <PageVille  ville={ville} />;
-  else if (concurrent)                      PageContent = <PageAlternative concurrent={concurrent} />;
-  else if (path === "/cgu")                 PageContent = <PageCGU />;
-  else if (path === "/politique-confidentialite") PageContent = <PageRGPD />;
-  else                                      PageContent = <PageHome />;
+  if      (metier)                                   PageContent = <PageMetier metier={metier} />;
+  else if (ville)                                    PageContent = <PageVille  ville={ville} />;
+  else if (concurrent)                               PageContent = <PageAlternative concurrent={concurrent} />;
+  else if (combo)                                    PageContent = <PageMetierVille metier={combo.metier} ville={combo.ville} />;
+  else if (path === "/cgu")                          PageContent = <PageCGU />;
+  else if (path === "/politique-confidentialite")    PageContent = <PageRGPD />;
+  else                                               PageContent = <PageHome />;
 
   return (
     <div style={{ minHeight: "100vh", background: D, fontFamily: "'Segoe UI', -apple-system, sans-serif", color: "white" }}>
