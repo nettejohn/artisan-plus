@@ -434,7 +434,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   const partagerParrainage = async () => {
     if (!referralInfo.code) return;
-    const lien = `https://artisan-plus.vercel.app?ref=${referralInfo.code}`;
+    const lien = `https://www.artisan-plus.fr?ref=${referralInfo.code}`;
     const msg  = `J'utilise Artisan+ pour gérer mes devis et factures, c'est top ! 🚀\nInscris-toi avec mon code ${referralInfo.code} et on gagne tous les deux 1 mois Pro gratuit :\n${lien}`;
     if (navigator.share) {
       try { await navigator.share({ title: "Artisan+ — Code parrainage", text: msg }); } catch (_) {}
@@ -782,7 +782,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           ) : (
           <SCard titre="🌐 Mon mini site web Artisan+">
             <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
-              Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.vercel.app/artisan/votre-lien</strong>.
+              Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.fr/artisan/votre-lien</strong>.
               Vos clients peuvent vous contacter et demander un devis directement.
             </p>
 
@@ -846,9 +846,9 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <a href={`/artisan/${miniSite.slug}`} target="_blank" rel="noreferrer"
                     style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600", flex: 1, wordBreak: "break-all" }}>
-                    artisan-plus.vercel.app/artisan/{miniSite.slug}
+                    artisan-plus.fr/artisan/{miniSite.slug}
                   </a>
-                  <button onClick={() => { navigator.clipboard.writeText(`https://artisan-plus.vercel.app/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
+                  <button onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
                     style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap" }}>
                     📋 Copier
                   </button>
@@ -1873,7 +1873,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ══════════════════════════════════════════════════ */}
       {activeSection === "parrainage" && (() => {
         const lienRef = referralInfo.code
-          ? `https://artisan-plus.vercel.app?ref=${referralInfo.code}`
+          ? `https://www.artisan-plus.fr?ref=${referralInfo.code}`
           : null;
         const proUntilDate = referralInfo.pro_until ? new Date(referralInfo.pro_until) : null;
         const gainActif = proUntilDate && proUntilDate > new Date();
@@ -2345,7 +2345,7 @@ ALTER TABLE profils
             {faqItem("faq-5", "Le PDF ne se génère pas ?",
               "Vérifie que ton profil est bien rempli dans Paramètres › Mon profil (nom, SIRET, adresse).")}
             {faqItem("faq-6", "Mon client n'arrive pas à signer ?",
-              "Vérifie que le lien est complet quand tu le partages. Il doit commencer par https://artisan-plus.vercel.app/signer/…")}
+              "Vérifie que le lien est complet quand tu le partages. Il doit commencer par https://www.artisan-plus.fr/signer/…")}
             {faqItem("faq-7", "Je n'arrive pas à me connecter ?",
               "Vérifie ton email et mot de passe. Utilise « Mot de passe oublié » sur la page de connexion si besoin.")}
           </SCard>

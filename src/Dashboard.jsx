@@ -682,7 +682,7 @@ export default function Dashboard({
       await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    const lien = `https://artisan-plus.vercel.app/signer/${token}`;
+    const lien = `https://www.artisan-plus.fr/signer/${token}`;
 
     if (navigator.share) {
       await navigator.share({
@@ -715,7 +715,7 @@ export default function Dashboard({
       await supabase.from("signatures").insert({ devis_id: d.id, token });
     }
 
-    const url = `https://artisan-plus.vercel.app/signer/${token}`;
+    const url = `https://www.artisan-plus.fr/signer/${token}`;
     setQrModal({ open: true, url, numero: d.numero, loading: false });
   };
 
