@@ -45,12 +45,14 @@ export default function MiniSite({ slug }) {
     setErreur("");
 
     // ── 1. Essayer mini_sites ────────────────────────────────────────────
-    const { data: site } = await supabase
+    const { data: site, error: errSite } = await supabase
       .from("mini_sites")
       .select("*")
       .eq("slug", slug)
       .eq("actif", true)
       .single();
+
+    if (errSite) console.warn("[MiniSite] mini_sites query error:", errSite.code, errSite.message, "slug=", slug);
 
     if (site) {
       const cfg = site.config || {};
@@ -103,8 +105,16 @@ export default function MiniSite({ slug }) {
       .eq("mini_site_actif", true)
       .single();
 
+    if (error) console.warn("[MiniSite] profils query error:", error.code, error.message, "slug=", slug);
+    if (!p) console.warn("[MiniSite] profils: no row found for slug=", slug);
+
     if (error || !p) {
-      setErreur("Cette page n'existe pas ou a été désactivée.");
+      // Diagnostic : RLS bloquant ou slug/actif incorrects
+      const isRls = error?.code === "42501" || error?.code === "PGRST301" || error?.message?.includes("permission");
+      setErreur(isRls
+        ? "Configuration requise : contactez le support (code RLS)"
+        : "Cette page n'existe pas ou a été désactivée."
+      );
       setLoading(false);
       return;
     }
