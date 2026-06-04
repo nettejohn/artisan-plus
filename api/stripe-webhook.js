@@ -26,8 +26,8 @@ const cleanKey = (k) => (k || "")
 const stripe = new Stripe(cleanKey(process.env.STRIPE_SECRET_KEY), { apiVersion: "2024-04-10" });
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  cleanKey(process.env.SUPABASE_URL),
+  cleanKey(process.env.SUPABASE_SERVICE_ROLE_KEY)
 );
 
 // ── Désactiver le body parsing automatique pour lire le raw body ───────────
