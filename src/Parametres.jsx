@@ -841,17 +841,25 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
             {/* Aperçu du lien */}
             {miniSite.slug && miniSite.actif && (
-              <div style={{ marginBottom: "16px", padding: "12px 16px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.25)", borderRadius: "10px" }}>
-                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "600", marginBottom: "4px", textTransform: "uppercase" }}>Votre lien public</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <a href={`/artisan/${miniSite.slug}`} target="_blank" rel="noreferrer"
-                    style={{ color: PRIMARY, fontSize: "13px", fontWeight: "600", flex: 1, wordBreak: "break-all" }}>
-                    artisan-plus.fr/artisan/{miniSite.slug}
-                  </a>
-                  <button onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
-                    style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap" }}>
-                    📋 Copier
-                  </button>
+              <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                {/* Lien actif immédiat */}
+                <div style={{ padding: "12px 16px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "10px" }}>
+                  <div style={{ color: "#22c55e", fontSize: "10px", fontWeight: "700", marginBottom: "5px" }}>✅ VOTRE LIEN ACTIF — À PARTAGER DÈS MAINTENANT</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <a href={`/artisan/${miniSite.slug}`} target="_blank" rel="noreferrer"
+                      style={{ color: "white", fontSize: "13px", fontWeight: "600", flex: 1, wordBreak: "break-all" }}>
+                      artisan-plus.fr/artisan/{miniSite.slug}
+                    </a>
+                    <button onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
+                      style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap", fontWeight: "700" }}>
+                      📋 Copier
+                    </button>
+                  </div>
+                </div>
+                {/* Sous-domaine en attente */}
+                <div style={{ padding: "10px 14px", background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "10px" }}>
+                  <div style={{ color: PRIMARY, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>⏳ SOUS-DOMAINE — BIENTÔT DISPONIBLE</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px" }}>{miniSite.slug}.artisan-plus.fr</div>
                 </div>
               </div>
             )}

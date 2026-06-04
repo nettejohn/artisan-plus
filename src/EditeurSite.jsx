@@ -595,7 +595,7 @@ export default function EditeurSite({ user, onClose }) {
                 <div style={{ background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "12px", padding: "14px 16px", marginBottom: "16px" }}>
                   <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px", marginBottom: "10px" }}>🌐 Publication du site</div>
                   <div style={row}>
-                    <label style={lbl}>Slug (lien public)</label>
+                    <label style={lbl}>Slug (identifiant unique)</label>
                     <div style={{ display: "flex", background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", overflow: "hidden" }}>
                       <span style={{ color: "#556677", fontSize: "11px", padding: "10px 10px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.05)" }}>/artisan/</span>
                       <input value={cfg.slug||""} onChange={e => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-"))} placeholder="jean-dupont-plombier"
@@ -603,6 +603,47 @@ export default function EditeurSite({ user, onClose }) {
                     </div>
                   </div>
                   <Toggle value={cfg.actif} onChange={v => set("actif", v)} label="Site publié et visible" sublabel="Accessible par vos clients" />
+
+                  {/* URLs du mini-site */}
+                  {cfg.slug && cfg.actif && (
+                    <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {/* URL principale (fonctionne maintenant) */}
+                      <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "8px", padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: "#22c55e", fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>✅ LIEN ACTIF — À PARTAGER</div>
+                            <div style={{ color: "white", fontSize: "11px", wordBreak: "break-all" }}>
+                              artisan-plus.fr/artisan/{cfg.slug}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${cfg.slug}`); }}
+                            style={{ flexShrink: 0, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "6px", padding: "6px 10px", color: "#22c55e", cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
+                          >📋 Copier</button>
+                        </div>
+                      </div>
+                      {/* URL sous-domaine (en attente config) */}
+                      <div style={{ background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "8px", padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ color: PRIMARY, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>⏳ SOUS-DOMAINE — BIENTÔT DISPONIBLE</div>
+                            <div style={{ color: "#8899aa", fontSize: "11px", wordBreak: "break-all" }}>
+                              {cfg.slug}.artisan-plus.fr
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(`https://${cfg.slug}.artisan-plus.fr`); }}
+                            style={{ flexShrink: 0, background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "6px", padding: "6px 10px", color: PRIMARY, cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
+                          >📋 Copier</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {cfg.slug && !cfg.actif && (
+                    <div style={{ marginTop: "10px", background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.2)", borderRadius: "8px", padding: "10px 12px" }}>
+                      <div style={{ color: "#ff6b6b", fontSize: "11px" }}>⚠️ Activez votre site pour qu'il soit visible par vos clients.</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Popup */}
@@ -642,8 +683,9 @@ export default function EditeurSite({ user, onClose }) {
                 {/* DNS info */}
                 <div style={{ background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "10px", padding: "14px", marginTop: "14px" }}>
                   <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px", marginBottom: "8px" }}>🌐 Sous-domaine personnalisé</div>
-                  <div style={{ color: "#8899aa", fontSize: "12px", lineHeight: 1.7 }}>
-                    Pour que votre site soit accessible sur <strong style={{ color: "white" }}>votre-nom.artisan-plus.fr</strong>, votre slug doit correspondre et le domaine *.artisan-plus.fr doit être configuré dans Vercel.
+                  <div style={{ color: "#8899aa", fontSize: "12px", lineHeight: 1.8 }}>
+                    Le sous-domaine <strong style={{ color: "white" }}>votre-slug.artisan-plus.fr</strong> sera actif après configuration DNS.<br />
+                    En attendant, partagez le <strong style={{ color: "#22c55e" }}>lien vert ci-dessus</strong> — il fonctionne dès maintenant.
                   </div>
                 </div>
               </div>
