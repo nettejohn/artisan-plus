@@ -88,3 +88,9 @@ p {
 
 /* Safe area — gérée par chaque composant via env(safe-area-inset-top) */
 /* Rien ici : chaque header sticky gère son propre spacer de safe area */
+
+/* ── ProGate modal bottom-sheet ─────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

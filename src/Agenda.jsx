@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -62,7 +63,7 @@ const FORM_VIDE = {
   lieu:"", journee_entiere:false,
 };
 
-export default function Agenda({ user, profil, clients = [], chantiers = [] }) {
+export default function Agenda({ user, profil, clients = [], chantiers = [], isPro = true, onUpgrade }) {
   const [vue,       setVue]       = useState("mois");
   const [dateRef,   setDateRef]   = useState(new Date());
   const [evts,      setEvts]      = useState([]);
@@ -587,6 +588,18 @@ export default function Agenda({ user, profil, clients = [], chantiers = [] }) {
     }
     return dateRef.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   };
+
+  /* ──── GATE PRO ─────────────────────────────────────────────── */
+  if (!isPro) {
+    return (
+      <ProGate
+        featureKey="agenda"
+        mode="page"
+        onUpgrade={onUpgrade}
+        onDismiss={null}
+      />
+    );
+  }
 
   /* ──── RENDER ──────────────────────────────────────────────────── */
   return (

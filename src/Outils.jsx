@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "./supabase";
 import { QRCodeCanvas } from "qrcode.react";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -76,7 +77,7 @@ const CAT_COLORS = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function Outils({ user, profil }) {
+export default function Outils({ user, profil, isPro = true, onUpgrade }) {
   const [tool, setTool] = useState(null);
 
   // Calculatrice
@@ -686,6 +687,20 @@ export default function Outils({ user, profil }) {
     if (v <= 10) return { label: "Très élevé",color: "#ff6b6b", conseil: "Protection maximale !" };
     return               { label: "Extrême",  color: "#ff2222", conseil: "Évitez l'exposition directe" };
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  // GATE PRO
+  // ═══════════════════════════════════════════════════════════════
+  if (!isPro) {
+    return (
+      <ProGate
+        featureKey="outils"
+        mode="page"
+        onUpgrade={onUpgrade}
+        onDismiss={null}
+      />
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════════
   // RENDER

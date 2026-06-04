@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import EditeurSite from "./EditeurSite";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -77,7 +78,7 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
   );
 }
 
-export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange }) {
+export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange, isPro = true, onUpgrade }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
@@ -659,6 +660,14 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ══════════════════════════════════════════════════ */}
       {activeSection === "minisite" && (
         <div>
+          {!isPro ? (
+            <ProGate
+              featureKey="minisite"
+              mode="card"
+              onUpgrade={() => setActiveSection("abonnement")}
+              onDismiss={null}
+            />
+          ) : (
           <SCard titre="🌐 Mon mini site web Artisan+">
             <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
               Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.vercel.app/artisan/votre-lien</strong>.
@@ -780,6 +789,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               setMiniSiteSaving(false);
             }} saving={miniSiteSaving} label="Sauvegarder le mini site" />
           </SCard>
+          )}
         </div>
       )}
 
@@ -788,6 +798,14 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ══════════════════════════════════════════════════ */}
       {activeSection === "equipe" && (
         <div>
+          {!isPro ? (
+            <ProGate
+              featureKey="equipe"
+              mode="card"
+              onUpgrade={() => setActiveSection("abonnement")}
+              onDismiss={null}
+            />
+          ) : (<>
           {/* Inviter un membre */}
           <SCard titre="👥 Mon équipe">
             <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", marginBottom: "18px" }}>
@@ -906,6 +924,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               ))}
             </div>
           </SCard>
+          </>)}
         </div>
       )}
 
@@ -914,6 +933,14 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ══════════════════════════════════════════════════ */}
       {activeSection === "verif" && (
         <div>
+          {!isPro ? (
+            <ProGate
+              featureKey="badge_verifie"
+              mode="card"
+              onUpgrade={() => setActiveSection("abonnement")}
+              onDismiss={null}
+            />
+          ) : (<>
           {/* ── Statut actuel ─────────────────────────── */}
           <div style={{
             background: verificationStatut === "verifie"
@@ -1121,6 +1148,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               </div>
             </div>
           </SCard>
+          </>)}
         </div>
       )}
 

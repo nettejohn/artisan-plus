@@ -7,6 +7,7 @@ import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
 import UpgradeModal from "./UpgradeModal";
+import ProGate from "./ProGate";
 import { idbSave, idbLoad } from "./idb";
 import { QRCodeCanvas } from "qrcode.react";
 import Outils from "./Outils";
@@ -124,6 +125,7 @@ export default function Dashboard({
   // Freemium / Upgrade
   const [upgradeModal,   setUpgradeModal]   = useState({ open: false, type: "factures" });
   const [guestModal,     setGuestModal]     = useState(false);
+  const [proGateModal,   setProGateModal]   = useState(null);
 
   // Interception : invités → modal "créez un compte" au lieu de Stripe
   const ouvrirUpgrade = (type = "factures") => {
@@ -424,6 +426,7 @@ export default function Dashboard({
 
   const sauvegarderClient = async () => {
     if (!clientForm.nom.trim()) { setClientMessage("❌ Le nom est obligatoire"); return; }
+    if (!clientEdite && !isPro && clients.length >= 5) { ouvrirUpgrade("clients"); return; }
     setClientLoading(true);
     setClientMessage("");
 
@@ -771,7 +774,7 @@ export default function Dashboard({
     <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
   if (page === "nouveau-devis") return (
-    <NouveauDevis user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
+    <NouveauDevis user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} isPro={isPro} onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
 
   const statutColor = (s) => {
@@ -982,6 +985,7 @@ export default function Dashboard({
             return (
               <button
                 onClick={() => {
+                  if (!isPro) { setProGateModal("recap"); return; }
                   setShowRecap(true);
                   setRecapBadge(false);
                   const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
@@ -1081,6 +1085,8 @@ export default function Dashboard({
             initialSection={parametresSection}
             onBack={() => { setPage("dashboard"); chargerProfil(); setParametresSection("profil"); }}
             onModeSimpleChange={(val) => setModeSimple(val)}
+            isPro={isPro}
+            onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}
           />
         )}
 
@@ -1480,7 +1486,14 @@ export default function Dashboard({
             {/* ══════════════════════════════════════════════════
                   GRAPHIQUE CA — 6 DERNIERS MOIS (SVG pur)
             ══════════════════════════════════════════════════ */}
-            {(() => {
+            {!isPro ? (
+              <ProGate
+                featureKey="graphiques"
+                mode="card"
+                onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}
+                onDismiss={null}
+              />
+            ) : (() => {
               const now = new Date();
               const moisData = Array.from({ length: 6 }, (_, i) => {
                 const d     = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
@@ -1758,7 +1771,16 @@ export default function Dashboard({
             {/* ══════════════════════════════════════════════════
                   ASSISTANT COMPTABLE
             ══════════════════════════════════════════════════ */}
-            {(() => {
+            {!isPro ? (
+              <div style={{ marginTop: "24px" }}>
+                <ProGate
+                  featureKey="comptable"
+                  mode="card"
+                  onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}
+                  onDismiss={null}
+                />
+              </div>
+            ) : (() => {
               const now   = new Date();
               const annee = now.getFullYear();
               const mois  = now.getMonth(); // 0-based
@@ -1937,10 +1959,13 @@ export default function Dashboard({
         {activeTab === "documents" && docSub === "factures" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
-              <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{factures.length}/5</span>}
+              </div>
               <button
                 onClick={() => {
-                  if (!isPro && factures.length >= 3) {
+                  if (!isPro && factures.length >= 5) {
                     ouvrirUpgrade("factures");
                   } else {
                     setPage("nouvelle-facture");
@@ -2018,10 +2043,13 @@ export default function Dashboard({
         {activeTab === "documents" && docSub === "devis" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
-              <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{devis.length}/5</span>}
+              </div>
               <button
                 onClick={() => {
-                  if (!isPro && devis.length >= 3) {
+                  if (!isPro && devis.length >= 5) {
                     ouvrirUpgrade("devis");
                   } else {
                     setPage("nouveau-devis");
@@ -2077,7 +2105,7 @@ export default function Dashboard({
                         color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>🔗 Envoyer</button>
-                      <button onClick={() => ouvrirQRModal(d)} style={{
+                      <button onClick={() => { if (!isPro) { setProGateModal("qr_code"); return; } ouvrirQRModal(d); }} style={{
                         background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.3)",
                         color: "#a855f7", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
@@ -2160,8 +2188,11 @@ export default function Dashboard({
           <div>
             {/* En-tête */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
-              <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>👥 Mes Clients</h2>
-              <button onClick={ouvrirModalAjout} style={{
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>👥 Mes Clients</h2>
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{clients.length}/5</span>}
+              </div>
+              <button onClick={() => { if (!isPro && clients.length >= 5) { ouvrirUpgrade("clients"); return; } ouvrirModalAjout(); }} style={{
                 background: PRIMARY, color: "white", border: "none",
                 borderRadius: "10px", padding: "12px 24px",
                 fontSize: "15px", fontWeight: "700", cursor: "pointer"
@@ -2764,12 +2795,14 @@ export default function Dashboard({
             profil={profil}
             clients={clients}
             chantiers={chantiers}
+            isPro={isPro}
+            onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}
           />
         )}
 
         {/* OUTILS */}
         {activeTab === "outils" && (
-          <Outils user={user} profil={profil} />
+          <Outils user={user} profil={profil} isPro={isPro} onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }} />
         )}
         </>}
       </div>
@@ -3389,6 +3422,20 @@ export default function Dashboard({
             setUpgradeModal({ open: false, type: "factures" });
             setPage("parametres");
           }}
+        />
+      )}
+
+      {/* ── PRO GATE MODAL ────────────────────────────────────── */}
+      {proGateModal && (
+        <ProGate
+          featureKey={proGateModal}
+          mode="modal"
+          onUpgrade={() => {
+            setProGateModal(null);
+            setPage("parametres");
+            setParametresSection("abonnement");
+          }}
+          onDismiss={() => setProGateModal(null)}
         />
       )}
 

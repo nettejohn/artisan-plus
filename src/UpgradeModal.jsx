@@ -8,10 +8,10 @@ const DARK    = "#0a1628";
 const CARD    = "#111e35";
 
 const FEATURES_FREE = [
-  "3 factures max",
-  "3 devis max",
-  "2 chantiers max",
-  "1 utilisateur",
+  "5 factures max",
+  "5 devis max",
+  "5 chantiers max",
+  "5 clients max",
 ];
 
 const FEATURES_PRO = [
@@ -29,11 +29,13 @@ export default function UpgradeModal({ onClose, onUpgrade, limitType = "factures
     factures:  "factures",
     devis:     "devis",
     chantiers: "chantiers",
+    clients:   "clients",
   };
   const emoji = {
     factures:  "📄",
     devis:     "📝",
     chantiers: "🏗️",
+    clients:   "👥",
   };
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import CataloguePrestations from "./CataloguePrestations";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -26,7 +27,7 @@ const THEMES = [
   { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
-export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple = false }) {
+export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple = false, isPro = true, onUpgrade }) {
   // ── Clients ────────────────────────────────────────────────────────────────
   const [clientsExistants, setClientsExistants] = useState([]);
   const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
@@ -61,6 +62,9 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   const [vocalError,   setVocalError]   = useState("");
   const [vocalTexte,   setVocalTexte]   = useState(""); // transcription live
   const vocalRecogRef = useRef(null);
+
+  // ── ProGate modal ─────────────────────────────────────────────────────────
+  const [proGateModal, setProGateModal] = useState(null);
 
   // ── Chargement des clients ─────────────────────────────────────────────────
   useEffect(() => {
@@ -377,7 +381,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   const boutonVocal = (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       <button
-        onClick={vocalEcoute ? arreterVocal : demarrerVocal}
+        onClick={vocalEcoute ? arreterVocal : (!isPro ? () => setProGateModal("vocal") : demarrerVocal)}
         disabled={vocalLoading || photoAnalyzing}
         style={{
           background: vocalEcoute
@@ -433,7 +437,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
         onChange={e => { if (e.target.files[0]) { analyserPhoto(e.target.files[0]); e.target.value = ""; } }}
       />
       <button
-        onClick={() => photoInputRef.current?.click()}
+        onClick={() => { if (!isPro) { setProGateModal("photo_import"); return; } photoInputRef.current?.click(); }}
         disabled={photoAnalyzing}
         style={{
           background: photoAnalyzing ? "rgba(168,85,247,0.06)" : "rgba(168,85,247,0.1)",
@@ -789,6 +793,16 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       </div>
       )}
       </div>{/* end padding wrapper */}
+
+      {/* ProGate modal — fonctionnalités Pro */}
+      {proGateModal && (
+        <ProGate
+          featureKey={proGateModal}
+          mode="modal"
+          onUpgrade={() => { setProGateModal(null); onUpgrade?.(); }}
+          onDismiss={() => setProGateModal(null)}
+        />
+      )}
     </div>
   );
 }

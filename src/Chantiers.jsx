@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -115,6 +116,9 @@ function windDir(deg) {
 }
 
 export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis, onCreerFacture, clientInitialId, onClientInitialIdHandled }) {
+
+  // ── ProGate modal ─────────────────────────────────────────────
+  const [proGateModal, setProGateModal] = useState(null);
 
   // ── Liste ──────────────────────────────────────────────────────
   const [chantiers,    setChantiers]    = useState([]);
@@ -372,7 +376,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setEtapes(Array.isArray(ch.etapes) ? ch.etapes : []);
     setProchInter(ch.prochaine_intervention || "");
     chargerDocs(ch.client_id);
-    fetchMeteo(ch.adresse);
+    if (isPro) fetchMeteo(ch.adresse);
     chargerPointages(ch.id);
     chargerOuvriers(ch.id);
     // Reset compte-rendu
@@ -1064,7 +1068,14 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
         {/* ══════════════════════════════════════════════════════
             WIDGET MÉTÉO
         ══════════════════════════════════════════════════════ */}
-        {(
+        {!isPro ? (
+          <div style={{ background: CARD, borderRadius: "16px", padding: "14px 18px", marginBottom: "14px", border: "1px solid rgba(100,149,237,0.15)", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+            onClick={() => setProGateModal("meteo")}>
+            <span style={{ fontSize: "18px" }}>🌤️</span>
+            <span style={{ color: "#8899aa", fontSize: "13px", flex: 1 }}>Météo du chantier</span>
+            <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "2px 10px", color: "#FF8C00", fontSize: "11px", fontWeight: "800" }}>💎 Pro</span>
+          </div>
+        ) : (
           <div style={{
             background: CARD, borderRadius: "16px", padding: "16px 18px",
             marginBottom: "14px",
@@ -1082,7 +1093,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                 </span>
               )}
               <button
-                onClick={() => fetchMeteo(ficheForm.adresse)}
+                onClick={() => { if (!isPro) { setProGateModal("meteo"); return; } fetchMeteo(ficheForm.adresse); }}
                 disabled={meteoLoading}
                 title="Actualiser la météo"
                 style={{
@@ -1306,7 +1317,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
 
             {/* Bouton pointer */}
             <button
-              onClick={pointer}
+              onClick={() => { if (!isPro) { setProGateModal("pointage"); return; } pointer(); }}
               disabled={pointageLoading}
               style={{
                 width: "100%", padding: "12px", borderRadius: "10px", border: "none",
@@ -1365,7 +1376,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             <div style={{ marginBottom: "10px" }}>
               <input ref={scanFrRef} type="file" accept="image/*" capture="environment" hidden
                 onChange={e => { if (e.target.files[0]) { analyserFactureFournisseur(e.target.files[0]); e.target.value = ""; }}} />
-              <button onClick={() => scanFrRef.current?.click()} disabled={scanFrLoading}
+              <button onClick={() => { if (!isPro) { setProGateModal("scan_facture"); return; } scanFrRef.current?.click(); }} disabled={scanFrLoading}
                 style={{
                   width: "100%", background: scanFrLoading ? "rgba(255,140,0,0.05)" : "rgba(255,140,0,0.1)",
                   border: "1.5px dashed rgba(255,140,0,0.5)", color: PRIMARY,
@@ -1935,7 +1946,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
               <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>Partager l'avancement avec le client</div>
               <div style={{ color: "#8899aa", fontSize: "12px" }}>Le client reçoit un lien pour suivre le chantier en temps réel</div>
             </div>
-            <button onClick={() => setSuiviActif(p => !p)} style={{
+            <button onClick={() => { if (!isPro) { setProGateModal("suivi_client"); return; } setSuiviActif(p => !p); }} style={{
               width: "48px", height: "28px", borderRadius: "14px", border: "none", cursor: "pointer",
               background: suiviActif ? PRIMARY : "rgba(255,255,255,0.15)", position: "relative", flexShrink: 0,
               transition: "background 0.2s",
@@ -2095,7 +2106,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
         <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>🏗️ Mes Chantiers</h2>
         <button
           onClick={() => {
-            if (!isPro && chantiers.length >= 2) {
+            if (!isPro && chantiers.length >= 5) {
               onUpgrade?.();
             } else {
               setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" }); setNvModal(true);
@@ -2129,7 +2140,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
           {filtreStatut === "tous" && (
             <button
               onClick={() => {
-                if (!isPro && chantiers.length >= 2) {
+                if (!isPro && chantiers.length >= 5) {
                   onUpgrade?.();
                 } else {
                   setNvModal(true);
@@ -2353,6 +2364,16 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             </div>
           </div>
         </div>
+      )}
+
+      {/* ProGate modal — fonctionnalités Pro */}
+      {proGateModal && (
+        <ProGate
+          featureKey={proGateModal}
+          mode="modal"
+          onUpgrade={() => { setProGateModal(null); onUpgrade?.(); }}
+          onDismiss={() => setProGateModal(null)}
+        />
       )}
     </div>
   );
