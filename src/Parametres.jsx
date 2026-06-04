@@ -187,7 +187,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Retour depuis Stripe Connect onboarding ──────
   useEffect(() => {
     if (stripeConnectStatus === "success" || stripeConnectStatus === "refresh") {
-      rafraichirConnectStatus();
+      handleRetourStripe();
     }
   }, [stripeConnectStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -470,6 +470,47 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   // ── Stripe Connect : fonctions ───────────────────────
 
+  // ── Retour depuis Stripe : status puis recover si account_id manque ──
+  const handleRetourStripe = async () => {
+    setConnectMsg({ text: "🔄 Vérification du compte Stripe…", ok: true });
+    try {
+      // 1. Vérifier le statut en base
+      const statusData = await connectApi("status");
+
+      if (statusData.accountId) {
+        // Cas normal : account_id trouvé en base
+        setConnectInfo({ accountId: statusData.accountId, onboarded: statusData.onboarded });
+        if (statusData.onboarded) {
+          setConnectMsg({ text: "✅ Compte Stripe connecté et actif ! Vos clients peuvent payer en ligne.", ok: true });
+        } else {
+          setConnectMsg({ text: "⏳ Onboarding en cours. Terminez les étapes sur Stripe puis revenez ici.", ok: false });
+        }
+        onStripeConnectStatusCleared?.();
+        return;
+      }
+
+      // 2. account_id absent en base → tenter la récupération depuis Stripe
+      console.warn("[connect] account_id absent, tentative de récupération…");
+      setConnectMsg({ text: "🔄 Récupération du compte depuis Stripe…", ok: true });
+      const recoverData = await connectApi("recover");
+
+      if (recoverData.recovered && recoverData.accountId) {
+        setConnectInfo({ accountId: recoverData.accountId, onboarded: recoverData.onboarded || false });
+        setConnectMsg({
+          text: recoverData.onboarded
+            ? "✅ Compte Stripe récupéré et actif !"
+            : "✅ Compte Stripe récupéré. Terminez l'onboarding si nécessaire.",
+          ok: true,
+        });
+      } else {
+        setConnectMsg({ text: "⚠️ Compte introuvable. Cliquez sur 'Connecter mon compte Stripe' pour recommencer.", ok: false });
+      }
+      onStripeConnectStatusCleared?.();
+    } catch {
+      setConnectMsg({ text: "❌ Erreur de vérification. Rafraîchissez la page.", ok: false });
+    }
+  };
+
   const connectApi = async (action, extra = {}) => {
     const res = await fetch("/api/stripe-connect", {
       method: "POST",
@@ -489,7 +530,11 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         setConnectMsg({ text: "✅ Compte Stripe connecté et actif ! Vos clients peuvent maintenant payer en ligne.", ok: true });
         onStripeConnectStatusCleared?.();
       } else if (data.accountId) {
-        setConnectMsg({ text: "⏳ Compte Stripe créé mais l'onboarding n'est pas terminé. Cliquez sur 'Reprendre l'onboarding'.", ok: false });
+        setConnectMsg({ text: "⏳ Onboarding non terminé. Cliquez sur 'Reprendre l'onboarding'.", ok: false });
+      } else {
+        // accountId null → la sauvegarde a échoué lors de l'onboarding précédent
+        // Relancer l'onboarding (crée le compte et tente la sauvegarde à nouveau)
+        setConnectMsg({ text: "⚠️ Identifiant Stripe non trouvé en base. Cliquez sur 'Connecter' pour réessayer.", ok: false });
       }
     } catch { /* silencieux */ }
   };
