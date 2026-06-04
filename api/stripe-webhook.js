@@ -1,18 +1,18 @@
 /**
  * POST /api/stripe-webhook
- * Écoute les événements Stripe et met à jour le plan dans Supabase.
+ * Écoute les événements Stripe (abonnements Pro + paiements factures).
+ *
+ * Tente la vérification avec STRIPE_WEBHOOK_SECRET en premier,
+ * puis avec STRIPE_CONNECT_WEBHOOK_SECRET en fallback.
+ * Ainsi un seul endpoint gère les deux types de webhooks.
  *
  * Événements traités :
- *  • checkout.session.completed          → plan = 'pro'
+ *  • checkout.session.completed          → facture payée OU plan = 'pro'
+ *  • invoice.paid                        → maintenir plan Pro
  *  • customer.subscription.deleted       → plan = 'free'
  *  • customer.subscription.updated       → plan = 'free' si statut inactif
- *  • invoice.payment_failed              → (log, pas de changement immédiat)
- *
- * Configurer dans Stripe Dashboard → Webhooks → Ajouter un endpoint :
- *   URL : https://artisan-plus.vercel.app/api/stripe-webhook
- *   Événements : checkout.session.completed, customer.subscription.deleted,
- *                customer.subscription.updated, invoice.payment_failed
- * Puis copier le "Signing secret" (whsec_...) dans Vercel → STRIPE_WEBHOOK_SECRET
+ *  • invoice.payment_failed              → log
+ *  • account.updated (Connect)           → met à jour stripe_connect_onboarded
  */
 
 import Stripe from "stripe";
@@ -21,7 +21,8 @@ import { createClient } from "@supabase/supabase-js";
 const cleanKey = (k) => (k || "")
   .replace(/^﻿/, "")
   .trim()
-  .replace(/^sk_1ive_/, "sk_live_");
+  .replace(/^sk_1ive_/, "sk_live_")
+  .replace(/^rk_1ive_/, "rk_live_");
 const stripe = new Stripe(cleanKey(process.env.STRIPE_SECRET_KEY), { apiVersion: "2024-04-10" });
 
 const supabase = createClient(
@@ -93,20 +94,35 @@ export default async function handler(req, res) {
   const sig     = req.headers["stripe-signature"];
   let event;
 
-  // ── Vérification de signature ─────────────────────────────────────────
-  const webhookSecret = cleanKey(process.env.STRIPE_WEBHOOK_SECRET); // nettoyage BOM/espaces
-  if (webhookSecret && sig) {
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-      console.log("[webhook] Signature vérifiée ✅");
-    } catch (err) {
-      console.error("[webhook] ❌ Signature invalide :", err.message,
-        "| secret length:", webhookSecret.length,
-        "| secret prefix:", webhookSecret.slice(0, 6));
-      return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  // ── Vérification de signature (essaie les deux secrets) ──────────────
+  // STRIPE_WEBHOOK_SECRET       → abonnements Pro
+  // STRIPE_CONNECT_WEBHOOK_SECRET → paiements factures + events Connect
+  const secret1 = cleanKey(process.env.STRIPE_WEBHOOK_SECRET);
+  const secret2 = cleanKey(process.env.STRIPE_CONNECT_WEBHOOK_SECRET);
+
+  if (sig) {
+    let verified = false;
+    for (const [label, secret] of [["STRIPE_WEBHOOK_SECRET", secret1], ["STRIPE_CONNECT_WEBHOOK_SECRET", secret2]]) {
+      if (!secret) continue;
+      try {
+        event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+        console.log(`[webhook] ✅ Signature vérifiée avec ${label}`);
+        verified = true;
+        break;
+      } catch (err) {
+        console.log(`[webhook] ⚠️ Échec avec ${label} : ${err.message}`);
+      }
     }
+    if (!verified) {
+      console.error("[webhook] ❌ Aucun secret n'a pu vérifier la signature");
+      return res.status(400).json({ error: "Signature invalide — vérifiez STRIPE_WEBHOOK_SECRET ou STRIPE_CONNECT_WEBHOOK_SECRET" });
+    }
+  } else if (secret1 || secret2) {
+    console.warn("[webhook] ⚠️ Pas de stripe-signature header — requête non signée rejetée");
+    return res.status(400).json({ error: "stripe-signature header manquant" });
   } else {
-    console.warn("[webhook] ⚠️ Pas de STRIPE_WEBHOOK_SECRET ou pas de signature — fallback JSON");
+    // Dev local sans secrets configurés : parse JSON brut
+    console.warn("[webhook] ⚠️ Aucun secret configuré — fallback JSON (dev uniquement)");
     try {
       event = JSON.parse(rawBody.toString("utf8"));
     } catch {
@@ -269,6 +285,33 @@ export default async function handler(req, res) {
       case "invoice.payment_failed": {
         const inv = event.data.object;
         console.warn(`[webhook] Paiement échoué pour customer ${inv.customer}`);
+        break;
+      }
+
+      // ── Compte Connect mis à jour → mettre à jour stripe_connect_onboarded ──
+      case "account.updated": {
+        const account = event.data.object;
+        const accountId = account.id;
+        if (!accountId) break;
+
+        // Trouver l'artisan via son stripe_connect_account_id
+        const { data: profilData } = await supabase
+          .from("profils")
+          .select("user_id, stripe_connect_onboarded")
+          .eq("stripe_connect_account_id", accountId)
+          .single();
+
+        if (!profilData) {
+          console.log(`[webhook] account.updated : compte ${accountId} non trouvé en base`);
+          break;
+        }
+
+        const onboarded = account.details_submitted === true && account.charges_enabled === true;
+        if (onboarded !== profilData.stripe_connect_onboarded) {
+          await supabase.from("profils").update({ stripe_connect_onboarded: onboarded })
+            .eq("user_id", profilData.user_id);
+          console.log(`[webhook] ✅ Compte Connect ${accountId} → onboarded=${onboarded}`);
+        }
         break;
       }
 
