@@ -8,7 +8,7 @@ import { supabase } from "./supabase";
 import MiniSiteRenderer from "./MiniSiteRenderer";
 
 const DARK = "#0a1628";
-const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+const API_URL = import.meta.env.VITE_API_URL || "https://www.artisan-plus.fr";
 
 function injectMeta(title, description, image) {
   document.title = title;
@@ -38,7 +38,7 @@ export default function MiniSite({ slug }) {
   const [devisMsg,     setDevisMsg]     = useState("");
   const [devisSend,    setDevisSend]    = useState(false);
 
-  useEffect(() => { charger(); }, [slug]); // eslint-disable-line
+  useEffect(() => { charger().catch(() => { setErreur("Erreur de chargement, réessayez."); setLoading(false); }); }, [slug]); // eslint-disable-line
 
   const charger = async () => {
     setLoading(true);
@@ -173,7 +173,7 @@ export default function MiniSite({ slug }) {
   ${devisForm.telephone ? `<li><strong>Tél :</strong> ${devisForm.telephone}</li>` : ""}
   ${devisForm.message ? `<li><strong>Message :</strong> ${devisForm.message}</li>` : ""}
 </ul>
-<p>Connectez-vous à <a href="https://artisan-plus.vercel.app">Artisan+</a> pour y répondre.</p>`,
+<p>Connectez-vous à <a href="https://www.artisan-plus.fr">Artisan+</a> pour y répondre.</p>`,
           }),
         });
       } catch { /* email optionnel */ }

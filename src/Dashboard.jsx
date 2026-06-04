@@ -497,8 +497,15 @@ export default function Dashboard({
   };
 
   const supprimerClient = async (id) => {
-    if (!window.confirm("Supprimer ce client ? Ses factures et devis associés resteront en base.")) return;
-    await supabase.from("clients").delete().eq("id", id);
+    if (!window.confirm("Supprimer ce client ? Ses factures, devis et chantiers associés resteront en base (le lien client sera retiré).")) return;
+    // Détacher le client des documents avant suppression (contrainte FK)
+    await Promise.all([
+      supabase.from("factures").update({ client_id: null }).eq("client_id", id).eq("user_id", user.id),
+      supabase.from("devis").update({ client_id: null }).eq("client_id", id).eq("user_id", user.id),
+      supabase.from("chantiers").update({ client_id: null }).eq("client_id", id).eq("user_id", user.id),
+    ]);
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) { alert("Erreur suppression : " + error.message); return; }
     chargerClients();
     chargerDonnees();
   };
@@ -1034,7 +1041,10 @@ export default function Dashboard({
           gap: "16px",
         }}>
         {/* Logo */}
-        <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px", flexShrink: 0 }}>
+        <div
+          onClick={() => { setPage("dashboard"); setActiveTab("accueil"); }}
+          style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px", flexShrink: 0, cursor: "pointer" }}
+        >
           Artisan<span style={{ color: PRIMARY }}>+</span>
         </div>
 
@@ -2962,6 +2972,9 @@ export default function Dashboard({
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
         background: CARD,
         borderTop: "1px solid rgba(255,140,0,0.18)",
+        transform: "translateZ(0)",
+        WebkitTransform: "translateZ(0)",
+        willChange: "transform",
       }}>
         {/* Buttons row */}
         <div style={{ display: "flex", height: "64px" }}>

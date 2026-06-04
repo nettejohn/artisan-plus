@@ -238,41 +238,10 @@ export default function CataloguePrestations({ user, onSelectArticle, onClose })
         {/* ── Corps scrollable ───────────────────────────────────────────── */}
         <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 20px" }}>
 
-          {/* Articles catalogue */}
-          {showCatalogue && (
-            <>
-              {/* Vue groupée par catégorie quand "Tous" sans recherche */}
-              {categorieActive === "tous" && !terme ? (
-                CATALOGUE.map(cat => (
-                  <div key={cat.id} style={{ marginBottom: "18px" }}>
-                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", margin: "14px 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span>{cat.emoji}</span> {cat.label}
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "8px" }}>
-                      {cat.articles.map((a, i) => (
-                        <ArticleCard key={i} a={a} id={`${cat.id}-${i}`} hoveredId={hoveredId} setHoveredId={setHoveredId} onChoisir={choisir} />
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : articlesCatalogueFiltrés.length > 0 ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "8px", marginTop: "8px" }}>
-                  {articlesCatalogueFiltrés.map((a, i) => (
-                    <ArticleCard key={i} a={a} id={`flat-${i}`} hoveredId={hoveredId} setHoveredId={setHoveredId} onChoisir={choisir} />
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: "center", color: "#555", padding: "40px 20px", fontSize: "13px" }}>
-                  Aucun article trouvé pour « {search} »
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Mes articles personnalisés */}
+          {/* Mes articles personnalisés — EN PREMIER */}
           {showPerso && (
-            <div style={{ marginTop: showCatalogue ? "24px" : "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <div style={{ marginBottom: showCatalogue ? "24px" : "8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", marginTop: "8px" }}>
                 <div style={{ color: PRIMARY, fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px" }}>
                   ⭐ Mes articles ({articlesPersoFiltrés.length})
                 </div>
@@ -340,6 +309,37 @@ export default function CataloguePrestations({ user, onSelectArticle, onClose })
                 </div>
               )}
             </div>
+          )}
+
+          {/* Articles catalogue — EN DESSOUS des articles personnels */}
+          {showCatalogue && (
+            <>
+              {/* Vue groupée par catégorie quand "Tous" sans recherche */}
+              {categorieActive === "tous" && !terme ? (
+                CATALOGUE.map(cat => (
+                  <div key={cat.id} style={{ marginBottom: "18px" }}>
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", margin: "14px 0 8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>{cat.emoji}</span> {cat.label}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "8px" }}>
+                      {cat.articles.map((a, i) => (
+                        <ArticleCard key={i} a={a} id={`${cat.id}-${i}`} hoveredId={hoveredId} setHoveredId={setHoveredId} onChoisir={choisir} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : articlesCatalogueFiltrés.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "8px", marginTop: "8px" }}>
+                  {articlesCatalogueFiltrés.map((a, i) => (
+                    <ArticleCard key={i} a={a} id={`flat-${i}`} hoveredId={hoveredId} setHoveredId={setHoveredId} onChoisir={choisir} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", color: "#555", padding: "40px 20px", fontSize: "13px" }}>
+                  Aucun article trouvé pour « {search} »
+                </div>
+              )}
+            </>
           )}
         </div>
 

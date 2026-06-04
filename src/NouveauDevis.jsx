@@ -36,7 +36,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   // ── Document ───────────────────────────────────────────────────────────────
   const [lignes, setLignes] = useState([{ description: "", quantite: 1, prix_unitaire: 0 }]);
   const [tva, setTva] = useState(20);
-  const [appliquerTva, setAppliquerTva] = useState(true);
+  const [appliquerTva, setAppliquerTva] = useState(false);
   const [notes, setNotes] = useState("");
   const [style, setStyle] = useState("classique");
   const [dateValidite, setDateValidite] = useState("");

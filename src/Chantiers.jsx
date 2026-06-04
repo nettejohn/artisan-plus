@@ -128,7 +128,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
 
   // ── Modal nouveau chantier ─────────────────────────────────────
   const [nvModal,  setNvModal]  = useState(false);
-  const [nvForm,   setNvForm]   = useState({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" });
+  const [nvForm,   setNvForm]   = useState({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "", prix_chantier: "", heures_mo: "", taux_horaire: "", budget_materiaux: "", km_deplacement: "" });
   const [nvSaving, setNvSaving] = useState(false);
   const [nvMsg,    setNvMsg]    = useState("");
 
@@ -222,7 +222,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     // (déclenché depuis la fiche client du Dashboard)
     if (clientInitialId) {
       setNvMsg("");
-      setNvForm({ nom: "", client_id: clientInitialId, adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" });
+      setNvForm({ nom: "", client_id: clientInitialId, adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "", prix_chantier: "", heures_mo: "", taux_horaire: "", budget_materiaux: "", km_deplacement: "" });
       setNvModal(true);
       onClientInitialIdHandled?.();
     }
@@ -577,6 +577,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     if (!nvForm.nom.trim()) { setNvMsg("❌ Le nom est obligatoire"); return; }
     setNvSaving(true);
     setNvMsg("");
+    const budgetMat = parseFloat(nvForm.budget_materiaux) || 0;
     const payload = {
       user_id: user.id,
       nom: nvForm.nom.trim(),
@@ -586,10 +587,13 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
       date_fin_prevue: nvForm.date_fin_prevue || null,
       statut: nvForm.statut,
       description: nvForm.description || null,
-      heures_mo: 0, taux_horaire: 0,
-      materiaux: [], km_deplacement: 0, prix_km: 0.50,
+      heures_mo: parseFloat(nvForm.heures_mo) || 0,
+      taux_horaire: parseFloat(nvForm.taux_horaire) || 0,
+      materiaux: budgetMat > 0 ? [{ nom: "Matériaux", quantite: 1, prix: budgetMat }] : [],
+      km_deplacement: parseFloat(nvForm.km_deplacement) || 0,
+      prix_km: 0.50,
       sous_traitants: [], taux_imprevus: 0, taux_marge: 0, tva: 20,
-      photos: [], prix_chantier: 0,
+      photos: [], prix_chantier: parseFloat(nvForm.prix_chantier) || 0,
       tva_prix: false, tva_mo: false, tva_mat: false, tva_dep: false, tva_st: false,
     };
     const { data, error } = await supabase
@@ -601,7 +605,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setChantiers(prev => [data, ...prev]);
     setNvModal(false);
     setNvSaving(false);
-    setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" });
+    setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "", prix_chantier: "", heures_mo: "", taux_horaire: "", budget_materiaux: "", km_deplacement: "" });
     ouvrirFiche(data); // → ouvre directement la fiche pour ajouter photos/coûts
   };
 
@@ -2109,7 +2113,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
             if (!isPro && chantiers.length >= 5) {
               onUpgrade?.();
             } else {
-              setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "" }); setNvModal(true);
+              setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "", prix_chantier: "", heures_mo: "", taux_horaire: "", budget_materiaux: "", km_deplacement: "" }); setNvModal(true);
             }
           }}
           style={{ background: PRIMARY, color: "white", border: "none", borderRadius: "10px", padding: "10px 20px", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}
@@ -2304,8 +2308,8 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
                   <label style={lbl}>👤 Client</label>
                   <select value={nvForm.client_id} onChange={e => setNvForm(p => ({ ...p, client_id: e.target.value }))}
                     style={{ ...inp, cursor: "pointer", color: nvForm.client_id ? "white" : "#8899aa" }}>
@@ -2313,7 +2317,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                     {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
                   </select>
                 </div>
-                <div>
+                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
                   <label style={lbl}>🔄 Statut</label>
                   <select value={nvForm.statut} onChange={e => setNvForm(p => ({ ...p, statut: e.target.value }))}
                     style={{ ...inp, cursor: "pointer", color: STATUTS[nvForm.statut]?.color || "white" }}>
@@ -2328,16 +2332,59 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                   placeholder="Adresse du chantier" style={inp} />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
                   <label style={lbl}>📅 Début</label>
                   <input type="date" value={nvForm.date_debut} onChange={e => setNvForm(p => ({ ...p, date_debut: e.target.value }))}
                     style={{ ...inp, colorScheme: "dark" }} />
                 </div>
-                <div>
+                <div style={{ flex: "1 1 140px", minWidth: 0 }}>
                   <label style={lbl}>📅 Fin prévue</label>
                   <input type="date" value={nvForm.date_fin_prevue} onChange={e => setNvForm(p => ({ ...p, date_fin_prevue: e.target.value }))}
                     style={{ ...inp, colorScheme: "dark" }} />
+                </div>
+              </div>
+
+              {/* ── Informations financières ─────────────────────────── */}
+              <div style={{ borderTop: "1px solid rgba(255,140,0,0.15)", paddingTop: "14px" }}>
+                <div style={{ color: PRIMARY, fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
+                  💶 Informations financières (optionnel)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div>
+                    <label style={lbl}>💰 Prix du chantier (forfait HT €)</label>
+                    <input type="number" min="0" step="0.01" value={nvForm.prix_chantier}
+                      onChange={e => setNvForm(p => ({ ...p, prix_chantier: e.target.value }))}
+                      placeholder="0" style={inp} />
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <label style={lbl}>⏱️ Heures main d'œuvre</label>
+                      <input type="number" min="0" step="0.5" value={nvForm.heures_mo}
+                        onChange={e => setNvForm(p => ({ ...p, heures_mo: e.target.value }))}
+                        placeholder="0" style={inp} />
+                    </div>
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <label style={lbl}>💵 Taux horaire HT (€/h)</label>
+                      <input type="number" min="0" step="0.5" value={nvForm.taux_horaire}
+                        onChange={e => setNvForm(p => ({ ...p, taux_horaire: e.target.value }))}
+                        placeholder="0" style={inp} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <label style={lbl}>🧱 Budget matériaux HT (€)</label>
+                      <input type="number" min="0" step="0.01" value={nvForm.budget_materiaux}
+                        onChange={e => setNvForm(p => ({ ...p, budget_materiaux: e.target.value }))}
+                        placeholder="0" style={inp} />
+                    </div>
+                    <div style={{ flex: "1 1 140px", minWidth: 0 }}>
+                      <label style={lbl}>🚗 Km de déplacement</label>
+                      <input type="number" min="0" step="1" value={nvForm.km_deplacement}
+                        onChange={e => setNvForm(p => ({ ...p, km_deplacement: e.target.value }))}
+                        placeholder="0" style={inp} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
