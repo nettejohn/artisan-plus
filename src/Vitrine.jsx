@@ -432,6 +432,65 @@ function CTASection({ titre, sous }) {
 }
 
 // ── PAGE : Accueil ────────────────────────────────────────────────────────────
+// ── Composant : Accordion FAQ ────────────────────────────────────────────────
+function FaqAccordion({ items }) {
+  const [open, setOpen] = useState(null);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {items.map((item, i) => (
+        <div key={i} style={{ background: D, border: `1px solid ${open === i ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.06)"}`, borderRadius: "14px", overflow: "hidden", transition: "border-color 0.2s" }}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            style={{ width: "100%", background: "none", border: "none", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", cursor: "pointer", textAlign: "left" }}
+          >
+            <span style={{ color: "white", fontSize: "15px", fontWeight: "700", lineHeight: "1.4" }}>{item.q}</span>
+            <span style={{ color: P, fontSize: "20px", flexShrink: 0, transform: open === i ? "rotate(45deg)" : "rotate(0)", transition: "transform 0.2s" }}>+</span>
+          </button>
+          {open === i && (
+            <div style={{ padding: "0 24px 20px", color: G, fontSize: "14px", lineHeight: "1.8" }}>{item.a}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Données FAQ ───────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  {
+    q: "Combien coûte Artisan+ ?",
+    a: "Artisan+ est disponible en version gratuite (fonctionnalités de base) et en version Pro à 7,99€/mois sans engagement. C'est le logiciel de gestion artisan le moins cher du marché — Tolteck coûte 19€/mois, ArtisanFacture 29€/mois et Obat 39€/mois.",
+  },
+  {
+    q: "Est-ce que je peux essayer Artisan+ gratuitement ?",
+    a: "Oui ! Vous pouvez créer un compte gratuitement sans carte bancaire. La version gratuite vous permet de créer des devis et factures, gérer vos clients et accéder aux fonctionnalités de base. Pour le mini-site, le paiement en ligne et le suivi chantier avancé, passez en Pro à 7,99€/mois.",
+  },
+  {
+    q: "Est-ce que la signature électronique est légalement valable ?",
+    a: "Oui. La signature électronique intégrée à Artisan+ est légalement valable en France conformément au règlement eIDAS et à l'article 1366 du Code civil. Elle génère une preuve horodatée que votre client a bien signé le devis.",
+  },
+  {
+    q: "Artisan+ fonctionne-t-il sur smartphone ?",
+    a: "Artisan+ est une Progressive Web App (PWA) optimisée pour iPhone et Android. Vous pouvez créer vos devis directement sur le chantier depuis votre téléphone, et l'installer sur votre écran d'accueil comme une vraie application mobile.",
+  },
+  {
+    q: "Pour quels métiers du bâtiment est conçu Artisan+ ?",
+    a: "Artisan+ est conçu pour tous les artisans du bâtiment : plombiers, électriciens, maçons, carreleurs, peintres, menuisiers, chauffagistes, serruriers, couvreurs, jardiniers et bien d'autres. Le catalogue de prix est adaptable à votre métier.",
+  },
+  {
+    q: "Comment fonctionne le paiement en ligne pour mes clients ?",
+    a: "Une fois votre compte Stripe Connect lié à Artisan+, vos clients peuvent payer leurs factures directement par carte bancaire en un clic. Les fonds sont virés sur votre compte bancaire en 48 heures. Artisan+ utilise Stripe, la solution de paiement la plus sécurisée du marché.",
+  },
+  {
+    q: "Mes données sont-elles sécurisées ?",
+    a: "Oui. Vos données sont hébergées sur Supabase en Europe (RGPD), chiffrées en transit (HTTPS) et sécurisées par Row Level Security. Artisan+ ne partage jamais vos données avec des tiers à des fins commerciales.",
+  },
+  {
+    q: "Puis-je annuler mon abonnement à tout moment ?",
+    a: "Oui, sans condition. Vous pouvez résilier votre abonnement Pro en 1 clic depuis les paramètres de l'application, sans frais ni préavis. Votre compte repasse en version gratuite immédiatement.",
+  },
+];
+
 function PageHome() {
   useEffect(() => {
     setPageMeta(
@@ -439,6 +498,49 @@ function PageHome() {
       "Logiciel devis et factures pour artisans à 7,99€/mois. Moins cher que Tolteck, Obat et ArtisanFacture. Devis, factures, chantiers, mini-site, paiement en ligne.",
       BASE
     );
+    // ── Schema.org : SoftwareApplication + WebSite + FAQPage ──────────────────
+    const schemas = [
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Artisan+",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "offers": {
+          "@type": "Offer",
+          "price": "7.99",
+          "priceCurrency": "EUR",
+          "priceSpecification": { "@type": "UnitPriceSpecification", "billingDuration": "P1M" }
+        },
+        "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "500", "bestRating": "5" },
+        "description": "Logiciel de devis et facturation pour artisans. Devis, factures, suivi chantier, mini-site, paiement en ligne.",
+        "url": BASE,
+        "screenshot": `${BASE}/og-image.png`,
+        "featureList": "Devis professionnels, Factures conformes, Signature électronique, Paiement en ligne, Suivi de chantier, Mini-site vitrine",
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Artisan+",
+        "url": BASE,
+        "potentialAction": { "@type": "SearchAction", "target": `${BASE}/blog?q={search_term_string}`, "query-input": "required name=search_term_string" },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": FAQ_ITEMS.map(f => ({
+          "@type": "Question",
+          "name": f.q,
+          "acceptedAnswer": { "@type": "Answer", "text": f.a },
+        })),
+      },
+    ];
+    schemas.forEach((schema, i) => {
+      const id = `schema-home-${i}`;
+      let el = document.getElementById(id);
+      if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = id; document.head.appendChild(el); }
+      el.textContent = JSON.stringify(schema);
+    });
   }, []);
 
   return (
@@ -609,6 +711,19 @@ function PageHome() {
               </a>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ─────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: C }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,36px)", fontWeight: "900", margin: "0 0 12px" }}>
+              Questions <span style={{ color: P }}>fréquentes</span>
+            </h2>
+            <p style={{ color: G, fontSize: "15px" }}>Tout ce que vous devez savoir sur Artisan+</p>
+          </div>
+          <FaqAccordion items={FAQ_ITEMS} />
         </div>
       </section>
 

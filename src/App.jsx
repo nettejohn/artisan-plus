@@ -1,17 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "./supabase";
 import Dashboard from "./Dashboard";
 import SignatureDevis from "./SignatureDevis";
 import SuiviChantier from "./SuiviChantier";
 import MiniSite from "./MiniSite";
 import OuvrierChantier from "./OuvrierChantier";
-import Vitrine from "./Vitrine";
 import { usePWA } from "./usePWA";
+
+// Lazy-load les pages marketing (non critiques au premier paint de l'app)
+const Vitrine = lazy(() => import("./Vitrine"));
+const Blog    = lazy(() => import("./Blog"));
+
+// Fallback minimaliste pendant le chargement des pages publiques
+function PublicFallback() {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a1628", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: "#FF8C00", fontWeight: "900", fontSize: "22px" }}>Artisan<span style={{ color: "white" }}>+</span></div>
+    </div>
+  );
+}
 
 // Préfixes de routes de la vitrine marketing (hors /login)
 const VITRINE_PREFIXES = [
   "/devis-facture-", "/artisan-", "/alternative-",
   "/cgu", "/politique-confidentialite", "/fonctionnalites", "/tarifs",
+  "/blog",
 ];
 
 const PRIMARY = "#FF8C00";
@@ -478,7 +491,10 @@ export default function App() {
   if (!user) {
     const currentPath = window.location.pathname;
     const isLoginPath = currentPath === "/login" || currentPath === "/connexion" || currentPath === "/inscription";
-    if (!isLoginPath) return <Vitrine />;
+    if (!isLoginPath) {
+      if (currentPath === "/blog" || currentPath.startsWith("/blog/")) return <Suspense fallback={<PublicFallback />}><Blog /></Suspense>;
+      return <Suspense fallback={<PublicFallback />}><Vitrine /></Suspense>;
+    }
   }
 
   if (user) return (

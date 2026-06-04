@@ -212,6 +212,98 @@
     <lastmod>2026-06-04</lastmod>
   </url>
 
+  <!-- Blog — page liste -->
+  <url>
+    <loc>https://www.artisan-plus.fr/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2026-06-04</lastmod>
+  </url>
+
+  <!-- Blog — 82 articles -->
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-artisan</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-15</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-devis-facture-artisan-gratuit</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-10</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/mentions-obligatoires-devis</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-28</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/signature-electronique-devis-legal</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-20</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/paiement-en-ligne-artisan</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-12</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/relance-facture-impayee</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-30</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tva-artisan-auto-entrepreneur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-18</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/urssaf-auto-entrepreneur-artisan</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-05</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/site-web-artisan-gratuit</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-08-20</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-chantier-smartphone</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-08-08</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-plombier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-20</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-plombier-gratuit</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-08</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-plombier-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-25</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-installation-chauffe-eau</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-10</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-devis-plombier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-22</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-debouchage-canalisation</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-08</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-electricien</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-18</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-electricien-gratuit</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-05</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-electricien-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-22</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-installation-electrique-maison</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-08</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-devis-electricien</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-20</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-tableau-electrique</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-06</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-macon</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-12</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-macon</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-30</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-macon-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-15</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-renovation-maison-macon</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-28</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-carreleur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-06</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-carreleur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-18</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-carreleur-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-02</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-peintre</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-14</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-peintre</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-26</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-peintre-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-06</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-peinture-maison-interieur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-24</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-menuisier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-16</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-menuisier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-02</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-menuisier-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-14</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-fenetre-double-vitrage</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-26</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-couvreur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-19</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-couvreur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-07</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-couvreur-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-24</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-refection-toiture-complete</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-09</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-devis-couvreur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-25</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-nettoyage-toiture-antimousse</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-12</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-chauffagiste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-17</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-chauffagiste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-03</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-chauffagiste-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-16</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-pompe-chaleur-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-01</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-installation-climatisation</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-15</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-serrurier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-11</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-serrurier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-27</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-serrurier-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-11</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/comment-faire-devis-jardinier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-13</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-jardinier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-29</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/tarif-jardinier-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-13</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-amenagement-jardin</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-27</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-devis-paysagiste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-13</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-charpente-bois</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-17</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-charpentier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-03</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-pose-plaquiste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-19</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-plaquiste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-05</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-ravalement-facade</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-21</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-facadier</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-07</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-nettoyage-facade-maison</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-23</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-nettoyage</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-29</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-laveur-vitres</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-17</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-panneaux-solaires-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-09</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-installateur-solaire</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-31</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-piscine-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-20</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-pisciniste</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-04</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-ramonage-cheminee</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-23</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-metallier-soudeur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-10</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-elagueur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-03</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-anti-mousse-toiture</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-08-28</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/logiciel-facture-ramoneur</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-08-22</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/gestion-chantier-logiciel-artisan</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-01</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/auto-entrepreneur-artisan-logiciel</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-28</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/suivi-clients-artisan-conseils</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-11</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/artisan-micro-entrepreneur-obligations</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-09-16</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-isolation-thermique</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-22</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/devis-terrassement-2025</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-21</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/application-devis-artisan-iphone</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-11-04</lastmod></url>
+  <url><loc>https://www.artisan-plus.fr/blog/facturer-acompte-artisan</loc><changefreq>monthly</changefreq><priority>0.7</priority><lastmod>2025-10-09</lastmod></url>
+
   <!-- Pages légales -->
   <url>
     <loc>https://www.artisan-plus.fr/cgu</loc>
