@@ -109,6 +109,13 @@ export default function EditeurSite({ user, onClose }) {
   const [profil,       setProfil]       = useState({});
   const [realisations, setRealisations] = useState([]);
   const [previewSize,  setPreviewSize]  = useState("mobile"); // mobile | tablet | desktop
+  const [isDesktopE,   setIsDesktopE]   = useState(window.innerWidth >= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktopE(window.innerWidth >= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Chargement initial ──────────────────────────────────────────────────────
   useEffect(() => { charger(); }, []); // eslint-disable-line
@@ -220,31 +227,43 @@ export default function EditeurSite({ user, onClose }) {
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", overflow: "hidden" }}>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────── */}
-      <div style={{ background: CARD, borderBottom: "1px solid rgba(255,140,0,0.2)", padding: "0 16px", display: "flex", alignItems: "center", gap: "12px", height: "54px", flexShrink: 0, zIndex: 10 }}>
-        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "white", borderRadius: "8px", padding: "7px 14px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>← Retour</button>
-        <div style={{ fontWeight: "800", color: "white", fontSize: "15px" }}>🎨 Éditeur de site</div>
-        {cfg.slug && (
-          <a href={`/artisan/${cfg.slug}`} target="_blank" rel="noreferrer" style={{ color: PRIMARY, fontSize: "12px", textDecoration: "none", marginLeft: "4px", opacity: 0.8 }}>↗ Voir le site</a>
-        )}
-        <div style={{ flex: 1 }} />
-        {/* Preview size buttons (desktop only) */}
-        <div style={{ display: "flex", gap: "4px" }}>
-          {["mobile","tablet","desktop"].map(s => (
-            <button key={s} onClick={() => setPreviewSize(s)} style={{ background: previewSize === s ? PRIMARY : "rgba(255,255,255,0.08)", border: "none", color: "white", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "11px" }}>
-              {s === "mobile" ? "📱" : s === "tablet" ? "📟" : "🖥️"}
-            </button>
-          ))}
+      <div style={{ background: CARD, borderBottom: "1px solid rgba(255,140,0,0.2)", flexShrink: 0, zIndex: 10 }}>
+        {/* Safe area spacer */}
+        <div style={{ height: "env(safe-area-inset-top, 0px)" }} />
+
+        {/* Ligne 1 : Retour + Titre + Sauvegarder (toujours visible) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 12px", height: "52px" }}>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", border: "none", color: "white", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "13px", fontWeight: "700", flexShrink: 0, whiteSpace: "nowrap" }}>← Retour</button>
+          <div style={{ fontWeight: "800", color: "white", fontSize: isDesktopE ? "15px" : "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>🎨 Éditeur de site</div>
+          {cfg.slug && isDesktopE && (
+            <a href={`/artisan/${cfg.slug}`} target="_blank" rel="noreferrer" style={{ color: PRIMARY, fontSize: "12px", textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>↗ Voir</a>
+          )}
+          {msg && <span style={{ color: msg.includes("✅") ? "#4CAF50" : "#ff6b6b", fontSize: "12px", fontWeight: "600", flexShrink: 0, maxWidth: isDesktopE ? "none" : "80px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{msg}</span>}
+          <button onClick={sauvegarder} disabled={saving} style={{ background: saving ? "#555" : PRIMARY, color: "white", border: "none", borderRadius: "8px", padding: "9px 16px", cursor: saving ? "not-allowed" : "pointer", fontWeight: "700", fontSize: "14px", flexShrink: 0, whiteSpace: "nowrap" }}>
+            {saving ? "⏳" : "💾 Sauvegarder"}
+          </button>
         </div>
-        <button
-          onClick={() => setShowPreview(p => !p)}
-          style={{ background: showPreview ? PRIMARY : "rgba(255,255,255,0.1)", border: "none", color: "white", borderRadius: "8px", padding: "7px 14px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}
-        >
-          {showPreview ? "✏️ Éditer" : "👁 Aperçu"}
-        </button>
-        {msg && <span style={{ color: msg.includes("✅") ? "#4CAF50" : "#ff6b6b", fontSize: "13px", fontWeight: "600" }}>{msg}</span>}
-        <button onClick={sauvegarder} disabled={saving} style={{ background: saving ? "#555" : PRIMARY, color: "white", border: "none", borderRadius: "8px", padding: "9px 18px", cursor: saving ? "not-allowed" : "pointer", fontWeight: "700", fontSize: "14px", flexShrink: 0 }}>
-          {saving ? "⏳…" : "💾 Sauvegarder"}
-        </button>
+
+        {/* Ligne 2 : Aperçu + tailles (toujours visible, même sur mobile) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <button
+            onClick={() => setShowPreview(p => !p)}
+            style={{ background: showPreview ? PRIMARY : "rgba(255,255,255,0.08)", border: "none", color: "white", borderRadius: "7px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", fontWeight: "600", flexShrink: 0 }}
+          >
+            {showPreview ? "✏️ Éditer" : "👁 Aperçu"}
+          </button>
+          {cfg.slug && !isDesktopE && (
+            <a href={`/artisan/${cfg.slug}`} target="_blank" rel="noreferrer" style={{ color: PRIMARY, fontSize: "12px", textDecoration: "none", padding: "6px 10px", background: "rgba(255,140,0,0.1)", borderRadius: "7px", whiteSpace: "nowrap", flexShrink: 0 }}>↗ Voir le site</a>
+          )}
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", gap: "4px" }}>
+            {["mobile","tablet","desktop"].map(s => (
+              <button key={s} onClick={() => setPreviewSize(s)} style={{ background: previewSize === s ? "rgba(255,140,0,0.2)" : "rgba(255,255,255,0.06)", border: `1px solid ${previewSize === s ? "rgba(255,140,0,0.4)" : "transparent"}`, color: previewSize === s ? PRIMARY : "#8899aa", borderRadius: "6px", padding: "5px 9px", cursor: "pointer", fontSize: "13px" }}>
+                {s === "mobile" ? "📱" : s === "tablet" ? "📟" : "🖥️"}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── BODY ────────────────────────────────────────────────────────── */}

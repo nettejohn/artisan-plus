@@ -212,13 +212,17 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
 
   // ── Rendu ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif", padding: "24px" }}>
+    <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
 
-      {/* HEADER */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
-        <button onClick={onBack} style={{ background: "transparent", border: "1px solid rgba(255,140,0,0.3)", color: PRIMARY, borderRadius: "8px", padding: "8px 16px", cursor: "pointer", fontSize: "14px" }}>← Retour</button>
-        <h1 style={{ color: "white", margin: 0, fontSize: "24px" }}>Nouvelle Facture</h1>
+      {/* HEADER STICKY */}
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: DARK, borderBottom: "1px solid rgba(255,140,0,0.12)" }}>
+        <div style={{ height: "env(safe-area-inset-top, 0px)", background: DARK }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px" }}>
+          <button onClick={onBack} style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", color: PRIMARY, borderRadius: "8px", padding: "9px 16px", cursor: "pointer", fontSize: "14px", fontWeight: "700", flexShrink: 0 }}>← Retour</button>
+          <h1 style={{ color: "white", margin: 0, fontSize: "20px", fontWeight: "800", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Nouvelle Facture</h1>
+        </div>
       </div>
+      <div style={{ padding: "24px" }}>
 
       {/* ── FORMULAIRE SIMPLIFIÉ ────────────────────────────────── */}
       {modeSimple && (
@@ -556,6 +560,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
         </button>
       </div>
       )}
+      </div>{/* end padding wrapper */}
     </div>
   );
 }

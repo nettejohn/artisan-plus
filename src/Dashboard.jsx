@@ -919,15 +919,19 @@ export default function Dashboard({
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <div style={{
         background: CARD,
-        padding: isDesktop ? "0 32px" : "0 16px",
-        height: isDesktop ? "64px" : "56px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
         borderBottom: "1px solid rgba(255,140,0,0.15)",
         position: "sticky", top: 0, zIndex: 100,
-        gap: "16px",
       }}>
+        {/* iOS/Android safe area spacer — fills notch/status bar */}
+        <div style={{ height: "env(safe-area-inset-top, 0px)", background: CARD }} />
+        <div style={{
+          padding: isDesktop ? "0 32px" : "0 16px",
+          height: isDesktop ? "64px" : "56px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "16px",
+        }}>
         {/* Logo */}
         <div style={{ fontSize: "22px", fontWeight: "900", color: "white", letterSpacing: "-0.5px", flexShrink: 0 }}>
           Artisan<span style={{ color: PRIMARY }}>+</span>
@@ -1058,11 +1062,13 @@ export default function Dashboard({
             <span style={{ display: "block", width: "16px", height: "2px", background: "currentColor", borderRadius: "1px", transition: "all 0.2s" }} />
           </button>
         </div>
-      </div>
+        </div>{/* end inner header row */}
+      </div>{/* end sticky header */}
 
       {/* ── CONTENU ─────────────────────────────────────────────── */}
       <div style={{
-        padding: isDesktop ? "32px 40px 40px" : "16px 16px 96px 16px",
+        padding: isDesktop ? "32px 40px 40px" : "16px 16px 0 16px",
+        paddingBottom: isDesktop ? "40px" : "calc(80px + env(safe-area-inset-bottom, 0px))",
         maxWidth: isDesktop ? "1100px" : "none",
         margin: "0 auto",
       }}>
@@ -2792,45 +2798,47 @@ export default function Dashboard({
         position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
         background: CARD,
         borderTop: "1px solid rgba(255,140,0,0.18)",
-        display: "flex",
-        height: "64px",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}>
-        {[
-          { id: "accueil",   icon: "🏠",  label: "Accueil"   },
-          { id: "documents", icon: "📄",  label: "Docs"      },
-          { id: "clients",   icon: "👥",  label: "Clients"   },
-          { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-          { id: "outils",    icon: "🔧",  label: "Outils"    },
-        ].filter(tab => canAccess(tab.id)).map(tab => {
-          const isActive = activeTab === tab.id && page !== "parametres";
-          return (
-            <button
-              key={tab.id}
-              onClick={() => { setPage("dashboard"); setActiveTab(tab.id); }}
-              style={{
-                flex: 1, background: "transparent", border: "none",
-                display: "flex", flexDirection: "column", alignItems: "center",
-                justifyContent: "center", gap: "2px", cursor: "pointer",
-                color: isActive ? PRIMARY : "#8899aa",
-                transition: "color 0.15s",
-                position: "relative",
-                minWidth: 0, padding: "4px 2px",
-              }}
-            >
-              <span style={{ fontSize: "20px", lineHeight: 1 }}>{tab.icon}</span>
-              <span style={{ fontSize: "9px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
-                {tab.label}
-              </span>
-              {isActive && (
-                <div style={{
-                  position: "absolute", bottom: 0, width: "28px", height: "2px",
-                  background: PRIMARY, borderRadius: "1px",
-                }} />
-              )}
-            </button>
-          );
-        })}
+        {/* Buttons row */}
+        <div style={{ display: "flex", height: "64px" }}>
+          {[
+            { id: "accueil",   icon: "🏠",  label: "Accueil"   },
+            { id: "documents", icon: "📄",  label: "Docs"      },
+            { id: "clients",   icon: "👥",  label: "Clients"   },
+            { id: "chantiers", icon: "🏗️", label: "Chantiers" },
+            { id: "outils",    icon: "🔧",  label: "Outils"    },
+          ].filter(tab => canAccess(tab.id)).map(tab => {
+            const isActive = activeTab === tab.id && page !== "parametres";
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setPage("dashboard"); setActiveTab(tab.id); }}
+                style={{
+                  flex: 1, background: "transparent", border: "none",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  justifyContent: "center", gap: "2px", cursor: "pointer",
+                  color: isActive ? PRIMARY : "#8899aa",
+                  transition: "color 0.15s",
+                  position: "relative",
+                  minWidth: 0, padding: "4px 2px",
+                }}
+              >
+                <span style={{ fontSize: "20px", lineHeight: 1 }}>{tab.icon}</span>
+                <span style={{ fontSize: "9px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
+                  {tab.label}
+                </span>
+                {isActive && (
+                  <div style={{
+                    position: "absolute", bottom: 0, width: "28px", height: "2px",
+                    background: PRIMARY, borderRadius: "1px",
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {/* iOS home indicator safe area */}
+        <div style={{ height: "env(safe-area-inset-bottom, 0px)", background: CARD }} />
       </nav>}
 
       {/* ── MENU HAMBURGER (panneau latéral droit) ───────────────── */}
@@ -2971,7 +2979,7 @@ export default function Dashboard({
           title="Relancer la visite guidée"
           style={{
             position: "fixed",
-            bottom: isDesktop ? "24px" : "88px",
+            bottom: isDesktop ? "24px" : "calc(80px + env(safe-area-inset-bottom, 0px))",
             right: "16px",
             zIndex: 900,
             width: "44px", height: "44px",

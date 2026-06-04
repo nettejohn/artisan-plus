@@ -2199,9 +2199,12 @@ ALTER TABLE profils
           </div>
 
           <div style={{
-            display: "flex", gap: "6px", marginBottom: "22px",
-            overflowX: "auto", paddingBottom: "4px",
+            display: "flex", gap: "6px",
+            overflowX: "auto", paddingBottom: "8px", paddingTop: "2px", marginBottom: "18px",
             scrollbarWidth: "none", msOverflowStyle: "none",
+            position: "sticky", top: "calc(56px + env(safe-area-inset-top, 0px))",
+            zIndex: 40, background: DARK, marginLeft: "-16px", marginRight: "-16px",
+            paddingLeft: "16px", paddingRight: "16px",
           }}>
             {SECTIONS.map(s => (
               <button key={s.id} onClick={() => setActiveSection(s.id)} style={{

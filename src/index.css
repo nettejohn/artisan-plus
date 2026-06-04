@@ -13,6 +13,8 @@ body {
   margin: 0;
   background: #0a1628;
   color: white;
+  /* Safe area bottom for content not in fixed containers */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 #root {
@@ -84,9 +86,5 @@ p {
   50%       { box-shadow: 0 0 0 8px rgba(255,140,0,0); }
 }
 
-/* Évite le "flash" lors de l'ajout à l'écran d'accueil iOS */
-@media (display-mode: standalone) {
-  body {
-    padding-top: env(safe-area-inset-top);
-  }
-}
+/* Safe area — gérée par chaque composant via env(safe-area-inset-top) */
+/* Rien ici : chaque header sticky gère son propre spacer de safe area */
