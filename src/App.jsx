@@ -5,7 +5,14 @@ import SignatureDevis from "./SignatureDevis";
 import SuiviChantier from "./SuiviChantier";
 import MiniSite from "./MiniSite";
 import OuvrierChantier from "./OuvrierChantier";
+import Vitrine from "./Vitrine";
 import { usePWA } from "./usePWA";
+
+// Préfixes de routes de la vitrine marketing (hors /login)
+const VITRINE_PREFIXES = [
+  "/devis-facture-", "/artisan-", "/alternative-",
+  "/cgu", "/politique-confidentialite", "/fonctionnalites", "/tarifs",
+];
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -46,7 +53,12 @@ export default function App() {
   const [joinMsg,            setJoinMsg]            = useState("");
 
   // ── Splash screen ─────────────────────────────────────────────
-  const isSplashPage = !window.location.pathname.startsWith("/signer/");
+  // Pas de splash sur les pages publiques (vitrine, signature, suivi)
+  const _initPath = window.location.pathname;
+  const isSplashPage = !_initPath.startsWith("/signer/") &&
+    !VITRINE_PREFIXES.some(pfx => _initPath.startsWith(pfx)) &&
+    _initPath !== "/" && _initPath !== "/login" &&
+    _initPath !== "/connexion" && _initPath !== "/inscription";
   const [showSplash, setShowSplash] = useState(isSplashPage);
   const [splashOut,  setSplashOut]  = useState(false);
   const [phrase] = useState(
@@ -459,6 +471,15 @@ export default function App() {
   // Détection compte invité : email déterministe généré par handleGuestLogin
   const isGuest = user?.email?.endsWith("@artisan-plus.app") === true
     || user?.user_metadata?.is_guest === true;
+
+  // ── Vitrine marketing (utilisateurs non connectés) ─────────────────────────
+  // La page /login affiche le formulaire de connexion (ci-dessous).
+  // Toutes les autres routes sans session → vitrine
+  if (!user) {
+    const currentPath = window.location.pathname;
+    const isLoginPath = currentPath === "/login" || currentPath === "/connexion" || currentPath === "/inscription";
+    if (!isLoginPath) return <Vitrine />;
+  }
 
   if (user) return (
     <>

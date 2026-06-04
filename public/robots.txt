@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://artisan-plus.vercel.app/sitemap.xml
+# Bloquer les routes privées de l'app
+Disallow: /signer/
+Disallow: /suivi/
+Disallow: /ouvrier/
+Disallow: /api/
+
+Sitemap: https://www.artisan-plus.fr/sitemap.xml
