@@ -71,9 +71,13 @@ export default function App() {
   const [sessionLoading, setSessionLoading] = useState(true);
 
   // ── Splash screen ─────────────────────────────────────────────
-  // Pas de splash sur les pages publiques (vitrine, signature, suivi)
+  // Pas de splash sur les pages publiques (vitrine, signature, suivi, mini-sites)
   const _initPath = window.location.pathname;
   const isSplashPage = !_initPath.startsWith("/signer/") &&
+    !_initPath.startsWith("/suivi/") &&
+    !_initPath.startsWith("/artisan/") &&
+    !_initPath.startsWith("/site/") &&
+    !_initPath.startsWith("/ouvrier/") &&
     !VITRINE_PREFIXES.some(pfx => _initPath.startsWith(pfx)) &&
     _initPath !== "/" && _initPath !== "/login" &&
     _initPath !== "/connexion" && _initPath !== "/inscription";
@@ -485,7 +489,11 @@ export default function App() {
     if (suiviToken) return <SuiviChantier token={suiviToken} />;
   }
 
-  // Mini-site artisan public — /artisan/:slug
+  // Mini-site artisan public — /site/:slug (primary) ou /artisan/:slug (legacy)
+  if (suiviPath.startsWith("/site/")) {
+    const artisanSlug = suiviPath.replace("/site/", "").split("?")[0];
+    if (artisanSlug) return <MiniSite slug={artisanSlug} />;
+  }
   if (suiviPath.startsWith("/artisan/")) {
     const artisanSlug = suiviPath.replace("/artisan/", "").split("?")[0];
     if (artisanSlug) return <MiniSite slug={artisanSlug} />;

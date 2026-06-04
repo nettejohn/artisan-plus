@@ -457,8 +457,8 @@ const FEATURE_GROUPS = [
     features: [
       {
         icon: "🌐",
-        titre: "Mini-site sous-domaine",
-        desc: "Votre page pro sur votre-nom.artisan-plus.fr. Galerie de réalisations, avis clients, formulaire de devis, coordonnées. En ligne en 5 minutes.",
+        titre: "Mini-site web professionnel",
+        desc: "Votre page pro sur artisan-plus.fr/site/votre-nom. Galerie de réalisations, avis clients, formulaire de devis, coordonnées. En ligne en 5 minutes.",
         benefit: "Trouvé sur Google",
       },
       {

@@ -782,7 +782,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           ) : (
           <SCard titre="🌐 Mon mini site web Artisan+">
             <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
-              Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.fr/artisan/votre-lien</strong>.
+              Activez votre page publique professionnelle accessible sur <strong style={{ color: PRIMARY }}>artisan-plus.fr/site/votre-lien</strong>.
               Vos clients peuvent vous contacter et demander un devis directement.
             </p>
 
@@ -805,7 +805,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
             <div style={{ marginBottom: "14px" }}>
               <label style={lbl}>Votre lien personnalisé</label>
               <div style={{ display: "flex", alignItems: "center", gap: "0", background: DARK, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", overflow: "hidden" }}>
-                <span style={{ color: "#556677", fontSize: "12px", padding: "12px 12px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.06)" }}>/artisan/</span>
+                <span style={{ color: "#556677", fontSize: "12px", padding: "12px 12px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.06)" }}>/site/</span>
                 <input value={miniSite.slug} onChange={e => setMiniSite(p => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-") }))}
                   placeholder="jean-dupont-plombier" style={{ flex: 1, background: "transparent", border: "none", padding: "12px 14px", color: "white", fontSize: "14px", outline: "none" }} />
               </div>
@@ -846,20 +846,20 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 <div style={{ padding: "12px 16px", background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "10px" }}>
                   <div style={{ color: "#22c55e", fontSize: "10px", fontWeight: "700", marginBottom: "5px" }}>✅ VOTRE LIEN ACTIF — À PARTAGER DÈS MAINTENANT</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <a href={`/artisan/${miniSite.slug}`} target="_blank" rel="noreferrer"
+                    <a href={`/site/${miniSite.slug}`} target="_blank" rel="noreferrer"
                       style={{ color: "white", fontSize: "13px", fontWeight: "600", flex: 1, wordBreak: "break-all" }}>
-                      artisan-plus.fr/artisan/{miniSite.slug}
+                      artisan-plus.fr/site/{miniSite.slug}
                     </a>
-                    <button onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
+                    <button onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/site/${miniSite.slug}`); setMiniSiteMsg({ text: "✅ Lien copié !", ok: true }); setTimeout(() => setMiniSiteMsg({ text: "", ok: true }), 2000); }}
                       style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e", borderRadius: "8px", padding: "6px 12px", cursor: "pointer", fontSize: "12px", whiteSpace: "nowrap", fontWeight: "700" }}>
                       📋 Copier
                     </button>
                   </div>
                 </div>
-                {/* Sous-domaine en attente */}
-                <div style={{ padding: "10px 14px", background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "10px" }}>
-                  <div style={{ color: PRIMARY, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>⏳ SOUS-DOMAINE — BIENTÔT DISPONIBLE</div>
-                  <div style={{ color: "#8899aa", fontSize: "12px" }}>{miniSite.slug}.artisan-plus.fr</div>
+                {/* Sous-domaine futur */}
+                <div style={{ padding: "10px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px" }}>
+                  <div style={{ color: "#8899aa", fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>🔮 SOUS-DOMAINE PERSONNALISÉ — PRÉVU</div>
+                  <div style={{ color: "#556677", fontSize: "12px" }}>{miniSite.slug}.artisan-plus.fr</div>
                 </div>
               </div>
             )}

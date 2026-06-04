@@ -597,7 +597,7 @@ export default function EditeurSite({ user, onClose }) {
                   <div style={row}>
                     <label style={lbl}>Slug (identifiant unique)</label>
                     <div style={{ display: "flex", background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", overflow: "hidden" }}>
-                      <span style={{ color: "#556677", fontSize: "11px", padding: "10px 10px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.05)" }}>/artisan/</span>
+                      <span style={{ color: "#556677", fontSize: "11px", padding: "10px 10px", whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.05)" }}>/site/</span>
                       <input value={cfg.slug||""} onChange={e => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,"-").replace(/-+/g,"-"))} placeholder="jean-dupont-plombier"
                         style={{ flex: 1, background: "transparent", border: "none", padding: "10px 10px", color: "white", fontSize: "13px", outline: "none" }} />
                     </div>
@@ -611,31 +611,21 @@ export default function EditeurSite({ user, onClose }) {
                       <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: "8px", padding: "10px 12px" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ color: "#22c55e", fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>✅ LIEN ACTIF — À PARTAGER</div>
+                            <div style={{ color: "#22c55e", fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>✅ LIEN ACTIF — À PARTAGER DÈS MAINTENANT</div>
                             <div style={{ color: "white", fontSize: "11px", wordBreak: "break-all" }}>
-                              artisan-plus.fr/artisan/{cfg.slug}
+                              artisan-plus.fr/site/{cfg.slug}
                             </div>
                           </div>
                           <button
-                            onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/artisan/${cfg.slug}`); }}
+                            onClick={() => { navigator.clipboard.writeText(`https://www.artisan-plus.fr/site/${cfg.slug}`); }}
                             style={{ flexShrink: 0, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "6px", padding: "6px 10px", color: "#22c55e", cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
                           >📋 Copier</button>
                         </div>
                       </div>
-                      {/* URL sous-domaine (en attente config) */}
-                      <div style={{ background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "8px", padding: "10px 12px" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ color: PRIMARY, fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>⏳ SOUS-DOMAINE — BIENTÔT DISPONIBLE</div>
-                            <div style={{ color: "#8899aa", fontSize: "11px", wordBreak: "break-all" }}>
-                              {cfg.slug}.artisan-plus.fr
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => { navigator.clipboard.writeText(`https://${cfg.slug}.artisan-plus.fr`); }}
-                            style={{ flexShrink: 0, background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "6px", padding: "6px 10px", color: PRIMARY, cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
-                          >📋 Copier</button>
-                        </div>
+                      {/* Sous-domaine prévu */}
+                      <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px", padding: "10px 12px" }}>
+                        <div style={{ color: "#556677", fontSize: "10px", fontWeight: "700", marginBottom: "3px" }}>🔮 SOUS-DOMAINE PERSONNALISÉ — PRÉVU PROCHAINEMENT</div>
+                        <div style={{ color: "#445566", fontSize: "11px" }}>{cfg.slug}.artisan-plus.fr</div>
                       </div>
                     </div>
                   )}
@@ -681,11 +671,11 @@ export default function EditeurSite({ user, onClose }) {
                 </div>
 
                 {/* DNS info */}
-                <div style={{ background: "rgba(255,140,0,0.05)", border: "1px solid rgba(255,140,0,0.15)", borderRadius: "10px", padding: "14px", marginTop: "14px" }}>
-                  <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "13px", marginBottom: "8px" }}>🌐 Sous-domaine personnalisé</div>
-                  <div style={{ color: "#8899aa", fontSize: "12px", lineHeight: 1.8 }}>
-                    Le sous-domaine <strong style={{ color: "white" }}>votre-slug.artisan-plus.fr</strong> sera actif après configuration DNS.<br />
-                    En attendant, partagez le <strong style={{ color: "#22c55e" }}>lien vert ci-dessus</strong> — il fonctionne dès maintenant.
+                <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "14px", marginTop: "14px" }}>
+                  <div style={{ color: "#8899aa", fontWeight: "700", fontSize: "12px", marginBottom: "6px" }}>ℹ️ À propos des sous-domaines</div>
+                  <div style={{ color: "#556677", fontSize: "12px", lineHeight: 1.7 }}>
+                    Le lien <code style={{ background: "rgba(255,255,255,0.05)", padding: "1px 5px", borderRadius: "4px", color: "#8899aa" }}>/site/votre-slug</code> fonctionne dès maintenant sans aucune configuration.
+                    Les sous-domaines personnalisés (<code style={{ background: "rgba(255,255,255,0.05)", padding: "1px 5px", borderRadius: "4px", color: "#8899aa" }}>slug.artisan-plus.fr</code>) nécessitent une configuration DNS avancée et seront disponibles dans une prochaine version.
                   </div>
                 </div>
               </div>
