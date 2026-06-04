@@ -325,16 +325,185 @@ const CONCURRENTS = [
 ];
 
 // ── Fonctionnalités principales ───────────────────────────────────────────────
-const FEATURES = [
-  { icon: "📄", titre: "Devis professionnels", desc: "Créez des devis en 2 minutes avec votre catalogue de prix. Envoi par email avec signature électronique intégrée." },
-  { icon: "🧾", titre: "Factures conformes", desc: "Factures avec numérotation automatique, mentions légales, TVA, acomptes et relances. Conformes à la loi française." },
-  { icon: "🏗️", titre: "Suivi de chantier", desc: "Gérez vos chantiers, photos avant/après, coûts en temps réel, suivi de l'avancement et partage client." },
-  { icon: "🌐", titre: "Mini-site vitrine", desc: "Un site web professionnel en 5 minutes pour afficher vos réalisations et recevoir des demandes de devis en ligne." },
-  { icon: "💶", titre: "Paiement en ligne", desc: "Vos clients paient directement depuis leur facture par carte bancaire. Fonds versés sur votre compte en 2 jours." },
-  { icon: "✍️", titre: "Signature électronique", desc: "Devis signés en ligne par vos clients. Légalement valide, gain de temps sur chaque chantier." },
-  { icon: "📚", titre: "Catalogue de prix", desc: "Votre bibliothèque de prestations avec vos prix habituels. Insérez une ligne en un clic dans n'importe quel devis." },
-  { icon: "👥", titre: "Gestion clients", desc: "Fiche client complète, historique des documents, notes, photos de chantier et suivi personnalisé." },
+// ── Catégories de fonctionnalités ────────────────────────────────────────────
+const FEATURE_GROUPS = [
+  {
+    id: "devis-facturation",
+    titre: "📄 Devis & Facturation",
+    sous: "Créez, envoyez, encaissez — tout en quelques clics",
+    features: [
+      {
+        icon: "📄",
+        titre: "Devis en 2 minutes",
+        desc: "Catalogue de prix intégré, calcul TVA automatique, envoi par email. Votre client reçoit un devis pro depuis votre smartphone, sur le chantier.",
+        benefit: "1h gagnée par devis",
+      },
+      {
+        icon: "🧾",
+        titre: "Factures conformes",
+        desc: "Numérotation automatique, mentions légales françaises, TVA sur débit ou encaissement, acomptes, relances automatiques à J+15 et J+30.",
+        benefit: "Zéro erreur légale",
+      },
+      {
+        icon: "🎨",
+        titre: "5 thèmes PDF pro",
+        desc: "Classique, Moderne, Minimal, Premium ou Artisan : choisissez le design de vos documents. Votre logo, vos couleurs, votre marque.",
+        benefit: "Image pro immédiate",
+      },
+      {
+        icon: "✍️",
+        titre: "Signature électronique",
+        desc: "Votre client signe le devis depuis son téléphone en 10 secondes. Légalement valide (eIDAS), empreinte IP + date archivées automatiquement.",
+        benefit: "Accord sans déplacement",
+      },
+      {
+        icon: "🔳",
+        titre: "QR code sur chaque doc",
+        desc: "Chaque devis et facture intègre un QR code unique. Votre client le scanne pour signer, payer ou suivre l'avancement du chantier en temps réel.",
+        benefit: "Expérience client premium",
+      },
+      {
+        icon: "💶",
+        titre: "Paiement en ligne",
+        desc: "Vos clients paient directement depuis leur facture par carte bancaire (Stripe Connect). Fonds sur votre compte en 48h. Taux de paiement ×3.",
+        benefit: "Encaissez plus vite",
+      },
+      {
+        icon: "📚",
+        titre: "Catalogue de prix",
+        desc: "Créez votre bibliothèque de prestations avec vos tarifs. Insérez une ligne en 1 clic. Se met à jour automatiquement à partir de vos devis acceptés.",
+        benefit: "Cohérence tarifaire",
+      },
+      {
+        icon: "📸",
+        titre: "Import photo IA",
+        desc: "Photographiez un ancien devis papier ou une liste manuscrite. L'IA extrait les prestations et les intègre automatiquement dans votre nouveau devis.",
+        benefit: "Dématérialisation en 10s",
+      },
+    ],
+  },
+  {
+    id: "chantier-terrain",
+    titre: "🏗️ Chantier & Terrain",
+    sous: "Gérez vos chantiers depuis le terrain, en temps réel",
+    features: [
+      {
+        icon: "🏗️",
+        titre: "Suivi chantier temps réel",
+        desc: "Photos avant/après, avancement en %, journal de chantier, suivi des coûts. Partagez un lien de suivi à votre client : il suit sans vous appeler.",
+        benefit: "Moins d'appels clients",
+      },
+      {
+        icon: "⛅",
+        titre: "Météo chantier",
+        desc: "Météo sur 7 jours directement dans votre chantier. Planifiez vos travaux extérieurs en évitant la pluie. Alertes personnalisables.",
+        benefit: "Planification optimale",
+      },
+      {
+        icon: "⏱️",
+        titre: "Pointage des heures",
+        desc: "Chaque membre de l'équipe pointe ses heures avec géolocalisation. Tableau de bord temps réel pour le patron. Calcul automatique du coût MO.",
+        benefit: "Maîtrisez vos marges",
+      },
+      {
+        icon: "🗺️",
+        titre: "Plan chantier IA",
+        desc: "Décrivez vos travaux en texte ou vocal. L'IA génère un plan d'exécution structuré avec étapes, matériaux estimés et planning recommandé.",
+        benefit: "Organisation sans effort",
+      },
+    ],
+  },
+  {
+    id: "ia-assistants",
+    titre: "🤖 Intelligence Artificielle",
+    sous: "L'IA travaille pour vous, vous gardez les mains libres",
+    features: [
+      {
+        icon: "🎤",
+        titre: "Devis vocal IA",
+        desc: "Dictez votre devis à voix haute sur le chantier. L'IA transcrit, identifie les prestations, retrouve vos prix dans le catalogue et génère le document.",
+        benefit: "Devis les mains dans le cambouis",
+      },
+      {
+        icon: "🤖",
+        titre: "Scan factures fournisseur",
+        desc: "Photographiez vos factures d'achat (matériaux, sous-traitance). L'IA extrait montant, TVA, fournisseur et intègre tout dans votre comptabilité.",
+        benefit: "Fin de la saisie manuelle",
+      },
+      {
+        icon: "📊",
+        titre: "Assistant comptable TVA",
+        desc: "L'IA calcule votre TVA collectée/déductible, estime vos cotisations URSSAF et vous rappelle les échéances fiscales du trimestre.",
+        benefit: "Sérénité fiscale",
+      },
+      {
+        icon: "📋",
+        titre: "Récap mensuel IA PDF",
+        desc: "Chaque mois, un rapport PDF automatique : CA, charges, marge, TVA due, top clients, évolution. Exportable pour votre comptable en 1 clic.",
+        benefit: "Pilotez votre activité",
+      },
+      {
+        icon: "📅",
+        titre: "Agenda + suggestions IA",
+        desc: "Calendrier de vos chantiers et RDV. L'IA suggère les meilleurs créneaux selon la météo, la localisation et la dispo de votre équipe.",
+        benefit: "Tournées optimisées",
+      },
+    ],
+  },
+  {
+    id: "presence-equipe",
+    titre: "🌐 Présence & Équipe",
+    sous: "Votre vitrine en ligne et votre équipe bien gérée",
+    features: [
+      {
+        icon: "🌐",
+        titre: "Mini-site sous-domaine",
+        desc: "Votre page pro sur votre-nom.artisan-plus.fr. Galerie de réalisations, avis clients, formulaire de devis, coordonnées. En ligne en 5 minutes.",
+        benefit: "Trouvé sur Google",
+      },
+      {
+        icon: "👥",
+        titre: "Gestion équipe 4 rôles",
+        desc: "Patron (accès total), Chef de chantier, Ouvrier (mobile), Comptable (lecture seule). Invitations par code, droits granulaires, activité tracée.",
+        benefit: "Coordination sans WhatsApp",
+      },
+      {
+        icon: "🎁",
+        titre: "Programme de parrainage",
+        desc: "Parrainez un artisan = 1 mois offert pour vous deux. Lien unique personnalisé, tableau de bord parrainage, suivi des gains en temps réel.",
+        benefit: "Abonnement réduit",
+      },
+    ],
+  },
+  {
+    id: "tech-outils",
+    titre: "📱 Tech & Outils de terrain",
+    sous: "Une app fiable partout, même sans réseau",
+    features: [
+      {
+        icon: "📱",
+        titre: "PWA installable",
+        desc: "Installez Artisan+ sur iOS ou Android sans passer par l'App Store. Icône sur l'écran d'accueil, chargement instantané, notifications push.",
+        benefit: "Accès en 1 tap",
+      },
+      {
+        icon: "📶",
+        titre: "Mode hors connexion",
+        desc: "Pas de réseau sur le chantier ? Artisan+ fonctionne hors connexion. Vos données se synchronisent automatiquement dès que le réseau revient.",
+        benefit: "Zéro interruption",
+      },
+      {
+        icon: "🧰",
+        titre: "20+ outils de terrain",
+        desc: "Niveau à bulle AR, boussole, mesure par photo IA, calculateur de surfaces et volumes, identificateur de matériaux IA, traduction IA en 50 langues, convertisseur d'unités, et bien plus.",
+        benefit: "Une seule app suffit",
+      },
+    ],
+  },
 ];
+
+// Pour le SEO et les pages métiers (liste plate des features)
+const FEATURES = FEATURE_GROUPS.flatMap(g => g.features);
 
 // ── Témoignages ───────────────────────────────────────────────────────────────
 const TEMOIGNAGES = [
@@ -401,9 +570,19 @@ function setPageMeta(title, description, canonical) {
 }
 
 function navigate(to) {
+  const hashIdx = to.indexOf("#");
+  const hash = hashIdx >= 0 ? to.slice(hashIdx + 1) : null;
   window.history.pushState({}, "", to);
   window.dispatchEvent(new PopStateEvent("popstate"));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (hash) {
+    // Scroll vers la section (petit délai pour laisser React re-rendre)
+    setTimeout(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  } else {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 // ── Composant : En-tête ───────────────────────────────────────────────────────
@@ -869,27 +1048,47 @@ function PageHome() {
       {/* ── Fonctionnalités ─────────────────────────────────────── */}
       <section id="fonctionnalites" style={{ padding: "clamp(60px,8vw,100px) 20px", scrollMarginTop: "80px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "60px" }}>
-            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 16px" }}>
+          <div style={{ textAlign: "center", marginBottom: "72px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "20px" }}>
+              <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>✦ 25+ fonctionnalités incluses</span>
+            </div>
+            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,42px)", fontWeight: "900", margin: "0 0 16px", lineHeight: "1.1" }}>
               Tout ce dont un artisan a besoin,<br /><span style={{ color: P }}>dans une seule app</span>
             </h2>
-            <p style={{ color: G, fontSize: "16px", maxWidth: "600px", margin: "0 auto" }}>
-              De la création du devis au paiement, en passant par le suivi chantier et la communication client.
+            <p style={{ color: G, fontSize: "17px", maxWidth: "600px", margin: "0 auto" }}>
+              Du devis vocal sur le chantier au récap mensuel IA, en passant par le suivi en temps réel et les 20 outils de terrain.
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "20px" }}>
-            {FEATURES.map(f => (
-              <div key={f.titre} style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "16px", padding: "24px", transition: "border-color 0.2s, transform 0.2s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.3)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.1)"; e.currentTarget.style.transform = "translateY(0)"; }}
-              >
-                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{f.icon}</div>
-                <h3 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 8px" }}>{f.titre}</h3>
-                <p style={{ color: G, fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{f.desc}</p>
+          {FEATURE_GROUPS.map(group => (
+            <div key={group.id} style={{ marginBottom: "64px" }}>
+              {/* En-tête de groupe */}
+              <div style={{ marginBottom: "28px" }}>
+                <h3 style={{ color: "white", fontSize: "clamp(18px,2.5vw,24px)", fontWeight: "900", margin: "0 0 6px" }}>{group.titre}</h3>
+                <p style={{ color: G, fontSize: "14px", margin: 0 }}>{group.sous}</p>
+                <div style={{ width: "48px", height: "3px", background: `linear-gradient(90deg, ${P}, transparent)`, borderRadius: "2px", marginTop: "12px" }} />
               </div>
-            ))}
-          </div>
+              {/* Grille de cartes */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "16px" }}>
+                {group.features.map(f => (
+                  <div key={f.titre}
+                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "16px", padding: "24px", transition: "border-color 0.2s, transform 0.2s", display: "flex", flexDirection: "column", gap: "0" }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.35)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.1)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <div style={{ fontSize: "30px", marginBottom: "14px" }}>{f.icon}</div>
+                    <h4 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 10px", lineHeight: "1.3" }}>{f.titre}</h4>
+                    <p style={{ color: G, fontSize: "13px", lineHeight: "1.65", margin: "0 0 16px", flexGrow: 1 }}>{f.desc}</p>
+                    {f.benefit && (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "5px 10px", width: "fit-content" }}>
+                        <span style={{ color: P, fontSize: "11px", fontWeight: "800" }}>✓ {f.benefit}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

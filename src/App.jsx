@@ -65,6 +65,11 @@ export default function App() {
   const [inviteCode,         setInviteCode]         = useState("");
   const [joinMsg,            setJoinMsg]            = useState("");
 
+  // ── Routing réactif : écoute les navigations internes de la vitrine ─────────
+  const [routePath, setRoutePath] = useState(window.location.pathname);
+  // ── Session loading : évite le flash de la vitrine pour les users connectés ─
+  const [sessionLoading, setSessionLoading] = useState(true);
+
   // ── Splash screen ─────────────────────────────────────────────
   // Pas de splash sur les pages publiques (vitrine, signature, suivi)
   const _initPath = window.location.pathname;
@@ -149,14 +154,22 @@ export default function App() {
   } = usePWA();
 
   useEffect(() => {
-    // Vérifier si c'est un lien de signature ou de suivi
+    // ── Écoute des navigations internes (vitrine → login, etc.) ──────────────
+    const onPop = () => setRoutePath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+
+    // Vérifier si c'est un lien de signature ou de suivi (chemins publics sans auth)
     const path = window.location.pathname;
     if (path.startsWith("/signer/")) {
       const token = path.replace("/signer/", "");
       setSignatureToken(token);
-      return;
+      setSessionLoading(false);
+      return () => window.removeEventListener("popstate", onPop);
     }
-    if (path.startsWith("/suivi/")) return; // géré plus bas
+    if (path.startsWith("/suivi/") || path.startsWith("/artisan/") || path.startsWith("/ouvrier/")) {
+      setSessionLoading(false);
+      return () => window.removeEventListener("popstate", onPop);
+    }
 
     // Détecter le retour depuis Stripe Checkout + code parrainage dans l'URL
     const params = new URLSearchParams(window.location.search);
@@ -190,12 +203,15 @@ export default function App() {
       const u = session?.user ?? null;
       setUser(u);
       if (u) chargerEquipe(u.id);
+      setSessionLoading(false); // ← session vérifiée, on peut router correctement
     });
     supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) chargerEquipe(u.id);
     });
+
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   // Vérifier si l'utilisateur est membre d'une équipe
@@ -489,10 +505,12 @@ export default function App() {
   // La page /login affiche le formulaire de connexion (ci-dessous).
   // Toutes les autres routes sans session → vitrine
   if (!user) {
-    const currentPath = window.location.pathname;
-    const isLoginPath = currentPath === "/login" || currentPath === "/connexion" || currentPath === "/inscription";
+    // Pendant la vérification de session : spinner pour éviter le flash vitrine
+    // (ne s'applique pas aux pages publiques qui ont déjà fait return plus haut)
+    if (sessionLoading) return <PublicFallback />;
+    const isLoginPath = routePath === "/login" || routePath === "/connexion" || routePath === "/inscription";
     if (!isLoginPath) {
-      if (currentPath === "/blog" || currentPath.startsWith("/blog/")) return <Suspense fallback={<PublicFallback />}><Blog /></Suspense>;
+      if (routePath === "/blog" || routePath.startsWith("/blog/")) return <Suspense fallback={<PublicFallback />}><Blog /></Suspense>;
       return <Suspense fallback={<PublicFallback />}><Vitrine /></Suspense>;
     }
   }
