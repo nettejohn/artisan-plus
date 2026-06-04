@@ -370,3 +370,125 @@ export function genererPDFBase64(document, client, lignes, artisan, estDevis = f
   const doc = construireDoc(document, client, lignes, artisan, estDevis, options);
   return doc.output("datauristring"); // "data:application/pdf;base64,..."
 }
+
+// ── Factur-X XML — facturation électronique structurée (EN 16931) ─────────────
+// Obligatoire en France pour la réception dès sept. 2026, émission dès sept. 2027
+
+function escapeXml(str) {
+  return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+}
+function fxDate(dateStr) {
+  const d = new Date(dateStr || Date.now());
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+}
+
+/**
+ * Génère le XML Factur-X conforme EN 16931 / MINIMUM.
+ * Profil EN16931 si TVA applicable, profil MINIMUM pour les micro-entreprises sans TVA.
+ * Ce format est la norme française de facturation électronique structurée,
+ * compatible avec toutes les plateformes de dématérialisation partenaires (PDP).
+ */
+export function genererFactureXML(facture, client, lignes, artisan) {
+  const ht      = parseFloat(facture.total_ht) || 0;
+  const taux    = parseFloat(facture.tva)      || 0;
+  const hasTVA  = taux > 0;
+  const tvaAmt  = hasTVA ? ht * (taux / 100) : 0;
+  const ttc     = ht + tvaAmt;
+  const dateF   = fxDate(facture.created_at);
+  const profil  = hasTVA
+    ? "urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:en16931"
+    : "urn:factur-x.eu:1p0:minimum";
+  const catCode = hasTVA ? "S" : "E";
+  const exRaisonXml = hasTVA ? "" : "<ram:ExemptionReason>Article 293 B du CGI - TVA non applicable</ram:ExemptionReason>";
+
+  const linesXml = (lignes || []).map((l, i) => {
+    const lineHT = (parseFloat(l.quantite) * parseFloat(l.prix_unitaire)).toFixed(2);
+    return `  <ram:IncludedSupplyChainTradeLineItem>
+    <ram:AssociatedDocumentLineDocument><ram:LineID>${i+1}</ram:LineID></ram:AssociatedDocumentLineDocument>
+    <ram:SpecifiedTradeProduct><ram:Name>${escapeXml(l.description)}</ram:Name></ram:SpecifiedTradeProduct>
+    <ram:SpecifiedLineTradeAgreement>
+      <ram:NetPriceProductTradePrice><ram:ChargeAmount>${parseFloat(l.prix_unitaire).toFixed(2)}</ram:ChargeAmount></ram:NetPriceProductTradePrice>
+    </ram:SpecifiedLineTradeAgreement>
+    <ram:SpecifiedLineTradeDelivery>
+      <ram:BilledQuantity unitCode="C62">${parseFloat(l.quantite).toFixed(2)}</ram:BilledQuantity>
+    </ram:SpecifiedLineTradeDelivery>
+    <ram:SpecifiedLineTradeSettlement>
+      <ram:ApplicableTradeTax>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:CategoryCode>${catCode}</ram:CategoryCode>
+        ${hasTVA ? `<ram:RateApplicablePercent>${taux}</ram:RateApplicablePercent>` : ""}
+      </ram:ApplicableTradeTax>
+      <ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${lineHT}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation>
+    </ram:SpecifiedLineTradeSettlement>
+  </ram:IncludedSupplyChainTradeLineItem>`;
+  }).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100" xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>${profil}</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>${escapeXml(facture.numero)}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    <ram:IssueDateTime><udt:DateTimeString format="102">${dateF}</udt:DateTimeString></ram:IssueDateTime>
+    ${facture.notes ? `<ram:IncludedNote><ram:Content>${escapeXml(facture.notes)}</ram:Content></ram:IncludedNote>` : ""}
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+${linesXml}
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:Name>${escapeXml(artisan.nom || "")}</ram:Name>
+        ${artisan.siret ? `<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${escapeXml(artisan.siret)}</ram:ID></ram:SpecifiedLegalOrganization>` : ""}
+        <ram:PostalTradeAddress>${artisan.adresse ? `<ram:LineOne>${escapeXml(artisan.adresse)}</ram:LineOne>` : ""}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>
+        ${artisan.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${escapeXml(artisan.email)}</ram:URIID></ram:URIUniversalCommunication>` : ""}
+        ${artisan.siret ? `<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${escapeXml(artisan.siret)}</ram:ID></ram:SpecifiedTaxRegistration>` : ""}
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>${escapeXml(client?.nom || "")}</ram:Name>
+        ${client?.adresse ? `<ram:PostalTradeAddress><ram:LineOne>${escapeXml(client.adresse)}</ram:LineOne><ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>` : ""}
+        ${client?.email ? `<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${escapeXml(client.email)}</ram:URIID></ram:URIUniversalCommunication>` : ""}
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery/>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${tvaAmt.toFixed(2)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        ${exRaisonXml}
+        <ram:BasisAmount>${ht.toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>${catCode}</ram:CategoryCode>
+        ${hasTVA ? `<ram:RateApplicablePercent>${taux}</ram:RateApplicablePercent>` : ""}
+      </ram:ApplicableTradeTax>
+      ${artisan.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>30</ram:TypeCode><ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${escapeXml(artisan.iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount></ram:SpecifiedTradeSettlementPaymentMeans>` : ""}
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>${ht.toFixed(2)}</ram:LineTotalAmount>
+        <ram:TaxBasisTotalAmount>${ht.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${tvaAmt.toFixed(2)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${ttc.toFixed(2)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${ttc.toFixed(2)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
+}
+
+/**
+ * Déclenche le téléchargement du fichier Factur-X XML.
+ * Nommage : {numero}-facturx.xml
+ */
+export function telechargerFactureXML(facture, client, lignes, artisan) {
+  const xml  = genererFactureXML(facture, client, lignes, artisan);
+  const blob = new Blob([xml], { type: "application/xml;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = facture.numero + "-facturx.xml";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

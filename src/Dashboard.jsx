@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
-import { genererFacturePDF } from "./GenerateurPDF";
+import { genererFacturePDF, telechargerFactureXML } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
@@ -608,6 +608,16 @@ export default function Dashboard({
       .eq("facture_id", facture.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     genererFacturePDF(facture, facture.clients, lignes || [], artisan, false);
+  };
+
+  // ── Factur-X XML (facturation électronique structurée, conforme EN 16931) ────
+  const telechargerXML = async (facture) => {
+    const { data: lignes } = await supabase
+      .from("lignes_facture")
+      .select("*")
+      .eq("facture_id", facture.id);
+    const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
+    telechargerFactureXML(facture, facture.clients, lignes || [], artisan);
   };
 
   const telechargerDevisPDF = async (d) => {
@@ -2166,6 +2176,14 @@ export default function Dashboard({
                           color: PRIMARY, borderRadius: "8px", padding: "7px 10px",
                           cursor: "pointer", fontSize: "12px", fontWeight: "600"
                         }}>📄 PDF</button>
+                        <button
+                          onClick={() => telechargerXML(f)}
+                          title="Télécharger la facture au format Factur-X (XML structuré, obligatoire dès 2026)"
+                          style={{
+                            background: "rgba(33,150,243,0.1)", border: "1px solid rgba(33,150,243,0.3)",
+                            color: "#64B5F6", borderRadius: "8px", padding: "7px 10px",
+                            cursor: "pointer", fontSize: "12px", fontWeight: "600"
+                          }}>⚡ Factur-X</button>
                         <button onClick={() => supprimerFacture(f.id)} style={{
                           background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.3)",
                           color: "#ff6b6b", borderRadius: "8px", padding: "7px 10px",

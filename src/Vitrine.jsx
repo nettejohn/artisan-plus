@@ -980,6 +980,21 @@ function PageHome() {
 
   return (
     <>
+      {/* ── Bannière facturation électronique 2026 ──────────────── */}
+      <div style={{ background: "linear-gradient(90deg, rgba(255,140,0,0.15) 0%, rgba(255,140,0,0.08) 100%)", borderBottom: "1px solid rgba(255,140,0,0.3)", padding: "10px 20px" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "16px" }}>⚡</span>
+          <span style={{ color: "white", fontSize: "13px", fontWeight: "700" }}>Artisan+ est prêt pour la facturation électronique obligatoire 2026</span>
+          <span style={{ color: G, fontSize: "12px" }}>—</span>
+          <span style={{ color: G, fontSize: "12px" }}>Format Factur-X (EN 16931) déjà disponible dans votre app</span>
+          <a href="/facturation-electronique-obligatoire-2026"
+            onClick={e => { e.preventDefault(); navigate("/facturation-electronique-obligatoire-2026"); }}
+            style={{ color: P, fontSize: "12px", fontWeight: "800", textDecoration: "none", background: "rgba(255,140,0,0.15)", border: "1px solid rgba(255,140,0,0.4)", borderRadius: "8px", padding: "4px 10px", whiteSpace: "nowrap" }}>
+            En savoir plus →
+          </a>
+        </div>
+      </div>
+
       {/* ── Hero ────────────────────────────────────────────────── */}
       <section style={{ padding: "clamp(60px,8vw,100px) 20px clamp(40px,6vw,80px)", background: `linear-gradient(180deg, rgba(255,140,0,0.04) 0%, transparent 100%)` }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr auto", gap: "60px", alignItems: "center" }}>
@@ -1767,6 +1782,215 @@ function PageMetierVille({ metier, ville }) {
   );
 }
 
+// ── PAGE : Facturation électronique obligatoire 2026 ─────────────────────────
+function PageFacturationElectronique() {
+  useEffect(() => {
+    setPageMeta(
+      "Facturation électronique obligatoire 2026–2027 | Artisan+ est prêt",
+      "À partir du 1er septembre 2026, toutes les entreprises doivent recevoir des factures électroniques (Factur-X). Dès 2027, les artisans et TPE doivent aussi les émettre. Artisan+ est déjà conforme.",
+      `${BASE}/facturation-electronique-obligatoire-2026`
+    );
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "La facturation électronique est-elle obligatoire pour les artisans ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. À partir du 1er septembre 2026, toutes les entreprises (y compris les artisans) doivent pouvoir recevoir des factures électroniques structurées via une PDP agréée. Dès le 1er septembre 2027, les TPE, PME et micro-entreprises devront aussi émettre leurs factures dans un format structuré (Factur-X, UBL ou CII)." } },
+        { "@type": "Question", "name": "Qu'est-ce que le format Factur-X ?", "acceptedAnswer": { "@type": "Answer", "text": "Factur-X est le format de facture électronique structurée choisi par la France. C'est un PDF enrichi d'un fichier XML conforme à la norme européenne EN 16931. Il est lisible par l'humain (PDF) et traitable automatiquement par les logiciels (XML)." } },
+        { "@type": "Question", "name": "Artisan+ génère-t-il des factures Factur-X ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Artisan+ génère des factures PDF classiques ET permet de télécharger le fichier Factur-X XML correspondant en un clic. Ce fichier est conforme à la norme EN 16931 et au profil Factur-X MINIMUM ou EN16931 selon votre régime de TVA." } },
+        { "@type": "Question", "name": "Dois-je faire quelque chose maintenant ?", "acceptedAnswer": { "@type": "Answer", "text": "Non, si vous utilisez Artisan+. La fonctionnalité Factur-X est déjà disponible dans votre espace. Pour chaque facture, un bouton 'Factur-X' vous permet de télécharger le fichier XML structuré. Aucune action supplémentaire n'est requise avant 2026." } },
+      ]
+    };
+    let el = document.getElementById("schema-facture-elec");
+    if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "schema-facture-elec"; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(schema);
+  }, []);
+
+  const TIMELINE = [
+    { date: "1er septembre 2026", icon: "📥", titre: "Réception obligatoire", desc: "Toutes les entreprises françaises (quelle que soit leur taille) doivent être capables de recevoir des factures électroniques structurées via une Plateforme de Dématérialisation Partenaire (PDP) agréée par l'État.", who: "Toutes entreprises" },
+    { date: "1er septembre 2027", icon: "📤", titre: "Émission obligatoire TPE/PME", desc: "Les TPE, PME, micro-entreprises et auto-entrepreneurs du BTP et des services doivent émettre leurs factures B2B dans un format structuré accepté : Factur-X, UBL ou CII. Les factures PDF non structurées ne seront plus acceptées.", who: "Artisans, TPE, PME" },
+  ];
+
+  const FORMATS = [
+    { nom: "Factur-X", tag: "Recommandé 🇫🇷", desc: "PDF + XML embarqué. Le standard français, lisible par l'humain et traitable automatiquement. Artisan+ génère ce format.", color: "#FF8C00" },
+    { nom: "UBL 2.1", tag: "Européen", desc: "Universal Business Language. Standard pan-européen utilisé notamment en Belgique, Pays-Bas, Danemark. Pur XML.", color: "#4CAF50" },
+    { nom: "CII (UN/CEFACT)", tag: "International", desc: "Cross Industry Invoice. Base du Factur-X. Standard ONU utilisé en Allemagne (ZUGFeRD) et au Japon.", color: "#2196F3" },
+  ];
+
+  const FAQ_FE = [
+    { q: "Qui est concerné par la réforme de 2026 ?", a: "Toutes les entreprises françaises soumises à la TVA (y compris les auto-entrepreneurs assujettis à la TVA). Les micro-entreprises sous le seuil de franchise TVA (art. 293B CGI) sont aussi concernées dès 2027 pour l'émission, même si leur XML contiendra une mention d'exonération." },
+    { q: "Qu'est-ce qu'une PDP (Plateforme de Dématérialisation Partenaire) ?", a: "C'est un opérateur privé agréé par la DGFIP pour transmettre et recevoir des factures électroniques. Il est immatriculé, contrôlé et tenu de respecter des normes de sécurité strictes. Artisan+ s'interface avec ces plateformes pour assurer la conformité de ses utilisateurs." },
+    { q: "Mes factures PDF actuelles ne sont-elles plus valables ?", a: "Pour les transactions B2C (artisan → particulier), le PDF reste valable. Pour les transactions B2B (artisan → entreprise, SCI, etc.), à partir du 1er septembre 2027, il faudra émettre des factures dans un format structuré (Factur-X, UBL ou CII)." },
+    { q: "Artisan+ est-il conforme à la réforme ?", a: "Oui. Artisan+ génère déjà des factures au format Factur-X (XML structuré conforme EN 16931). Pour chaque facture créée, vous pouvez télécharger le fichier XML Factur-X en un clic depuis votre tableau de bord." },
+    { q: "Qu'arrive-t-il si je n'émets pas de factures électroniques en 2027 ?", a: "Des pénalités peuvent s'appliquer en cas de non-conformité. La DGFiP a prévu des amendes pouvant atteindre 15€ par facture non conforme, plafonnées à 15 000€ par an. Il est recommandé de se préparer dès maintenant." },
+  ];
+
+  return (
+    <>
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: `linear-gradient(180deg, rgba(255,140,0,0.06) 0%, transparent 100%)` }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "24px" }}>
+            <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>⚡ Loi de finances 2024 — Réforme DGFiP</span>
+          </div>
+          <h1 style={{ color: "white", fontSize: "clamp(28px,5vw,52px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
+            Facturation électronique<br /><span style={{ color: P }}>obligatoire en 2026</span> :<br />Artisan+ est déjà prêt
+          </h1>
+          <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "680px", margin: "0 auto 36px" }}>
+            À partir du 1er septembre 2026, toute entreprise française devra pouvoir recevoir des factures électroniques structurées. Dès septembre 2027, les artisans et TPE/PME devront aussi les émettre au format Factur-X, UBL ou CII. Artisan+ génère déjà le format Factur-X conforme EN 16931.
+          </p>
+          <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
+              🚀 Essayer gratuitement — déjà conforme
+            </a>
+            <a href="#calendrier" onClick={e => { e.preventDefault(); document.getElementById("calendrier")?.scrollIntoView({ behavior: "smooth" }); }}
+              style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
+              Voir le calendrier
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Badge conformité ──────────────────────────────────────── */}
+      <section style={{ background: C, padding: "24px 20px", borderTop: "1px solid rgba(255,140,0,0.1)", borderBottom: "1px solid rgba(255,140,0,0.1)" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "20px" }}>
+          {[
+            { icon: "✅", label: "Factur-X XML conforme EN 16931" },
+            { icon: "✅", label: "Profil MINIMUM (micro-entreprise)" },
+            { icon: "✅", label: "Profil EN16931 (TVA)" },
+            { icon: "✅", label: "Téléchargement XML en 1 clic" },
+          ].map(b => (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>{b.icon}</span>
+              <span style={{ color: "white", fontSize: "13px", fontWeight: "600" }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Calendrier ────────────────────────────────────────────── */}
+      <section id="calendrier" style={{ padding: "clamp(60px,8vw,100px) 20px", scrollMarginTop: "80px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <h2 style={{ color: "white", fontSize: "clamp(22px,3.5vw,36px)", fontWeight: "900", margin: "0 0 12px" }}>
+              Calendrier de la réforme
+            </h2>
+            <p style={{ color: G, fontSize: "15px" }}>Deux échéances à retenir pour les artisans</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
+            {TIMELINE.map((t, i) => (
+              <div key={t.date} style={{ background: C, border: `1px solid ${i === 1 ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.08)"}`, borderRadius: "20px", padding: "32px", position: "relative" }}>
+                {i === 1 && <div style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", background: P, color: "white", fontSize: "11px", fontWeight: "800", padding: "4px 12px", borderRadius: "10px", whiteSpace: "nowrap" }}>⚠️ CONCERNÉ : artisans & TPE</div>}
+                <div style={{ fontSize: "36px", marginBottom: "12px" }}>{t.icon}</div>
+                <div style={{ color: P, fontWeight: "800", fontSize: "14px", marginBottom: "8px" }}>{t.date}</div>
+                <h3 style={{ color: "white", fontWeight: "800", fontSize: "18px", margin: "0 0 12px" }}>{t.titre}</h3>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: "0 0 16px" }}>{t.desc}</p>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "4px 10px" }}>
+                  <span style={{ color: P, fontSize: "11px", fontWeight: "700" }}>👥 {t.who}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Formats acceptés ──────────────────────────────────────── */}
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px", background: C }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(20px,3vw,32px)", fontWeight: "900", margin: "0 0 8px", textAlign: "center" }}>
+            Formats acceptés par l'État
+          </h2>
+          <p style={{ color: G, fontSize: "14px", textAlign: "center", marginBottom: "36px" }}>
+            3 formats structurés sont reconnus. Artisan+ implémente <strong style={{ color: P }}>Factur-X</strong>, le standard français.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "16px" }}>
+            {FORMATS.map(f => (
+              <div key={f.nom} style={{ background: D, border: `1px solid ${f.color}33`, borderRadius: "16px", padding: "24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <span style={{ color: "white", fontWeight: "900", fontSize: "20px" }}>{f.nom}</span>
+                  <span style={{ background: `${f.color}22`, color: f.color, fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "8px" }}>{f.tag}</span>
+                </div>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Comment ça marche dans Artisan+ ───────────────────────── */}
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(20px,3vw,32px)", fontWeight: "900", margin: "0 0 12px", textAlign: "center" }}>
+            Comment ça fonctionne dans <span style={{ color: P }}>Artisan+</span> ?
+          </h2>
+          <p style={{ color: G, fontSize: "14px", textAlign: "center", marginBottom: "48px" }}>
+            Trois données Supabase confirmées comme stockées en format structuré : client, lignes de facture, TVA, SIRET.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "20px" }}>
+            {[
+              { step: "1", icon: "📄", titre: "Créez votre facture normalement", desc: "Rien ne change dans votre workflow habituel : clients, lignes, TVA, notes. Artisan+ stocke toutes les données en format structuré dans Supabase." },
+              { step: "2", icon: "⚡", titre: "Cliquez sur « Factur-X »", desc: "Dans la liste de vos factures, un bouton bleu « Factur-X » apparaît à côté du bouton PDF. Cliquez dessus pour télécharger le fichier XML structuré." },
+              { step: "3", icon: "📤", titre: "Transmettez le fichier XML", desc: "Envoyez le fichier .xml à votre client ou à votre PDP (Plateforme de Dématérialisation Partenaire). Le fichier est conforme EN 16931, profil Factur-X MINIMUM ou EN16931." },
+            ].map(s => (
+              <div key={s.step} style={{ background: C, border: "1px solid rgba(255,140,0,0.15)", borderRadius: "16px", padding: "28px", textAlign: "center" }}>
+                <div style={{ width: "40px", height: "40px", background: P, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", color: "white", fontWeight: "900", fontSize: "18px" }}>{s.step}</div>
+                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{s.icon}</div>
+                <h3 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 10px" }}>{s.titre}</h3>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Données Supabase structurées ──────────────────────────── */}
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px", background: C }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(20px,3vw,30px)", fontWeight: "900", margin: "0 0 8px", textAlign: "center" }}>
+            Données structurées vérifiées dans Supabase
+          </h2>
+          <p style={{ color: G, fontSize: "14px", textAlign: "center", marginBottom: "36px" }}>
+            Toutes les données nécessaires au Factur-X sont déjà stockées en base de données.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+            {[
+              ["Table factures", "numero, total_ht, tva, total_ttc, created_at, nature_operation, tva_sur_debits"],
+              ["Table lignes_facture", "description, quantite, prix_unitaire, total"],
+              ["Table clients", "nom, email, telephone, adresse"],
+              ["Table profils (artisan)", "nom, siret, adresse, telephone, email, iban"],
+            ].map(([table, champs]) => (
+              <div key={table} style={{ background: D, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", padding: "16px" }}>
+                <div style={{ color: P, fontWeight: "800", fontSize: "13px", marginBottom: "8px" }}>✅ {table}</div>
+                <div style={{ color: G, fontSize: "11px", lineHeight: "1.6", fontFamily: "monospace" }}>{champs}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(22px,3.5vw,34px)", fontWeight: "900", margin: "0 0 36px", textAlign: "center" }}>
+            Questions <span style={{ color: P }}>fréquentes</span>
+          </h2>
+          <FaqAccordion items={FAQ_FE} />
+        </div>
+      </section>
+
+      {/* ── CTA ───────────────────────────────────────────────────── */}
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <CTASection
+            titre={<>Préparez-vous à la réforme 2026<br /><span style={{ color: P }}>avec Artisan+, dès aujourd'hui</span></>}
+            sous="Artisan+ génère déjà des factures Factur-X conformes EN 16931. Essai gratuit, sans carte bancaire, à 7,99€/mois ensuite."
+          />
+        </div>
+      </section>
+    </>
+  );
+}
+
 // ── Routeur principal ─────────────────────────────────────────────────────────
 export default function Vitrine() {
   const [path, setPath] = useState(window.location.pathname);
@@ -1783,13 +2007,14 @@ export default function Vitrine() {
   const combo      = COMBO_MAP.get(path);
 
   let PageContent;
-  if      (metier)                                   PageContent = <PageMetier metier={metier} />;
-  else if (ville)                                    PageContent = <PageVille  ville={ville} />;
-  else if (concurrent)                               PageContent = <PageAlternative concurrent={concurrent} />;
-  else if (combo)                                    PageContent = <PageMetierVille metier={combo.metier} ville={combo.ville} />;
-  else if (path === "/cgu")                          PageContent = <PageCGU />;
-  else if (path === "/politique-confidentialite")    PageContent = <PageRGPD />;
-  else                                               PageContent = <PageHome />;
+  if      (metier)                                                        PageContent = <PageMetier metier={metier} />;
+  else if (ville)                                                         PageContent = <PageVille  ville={ville} />;
+  else if (concurrent)                                                    PageContent = <PageAlternative concurrent={concurrent} />;
+  else if (combo)                                                         PageContent = <PageMetierVille metier={combo.metier} ville={combo.ville} />;
+  else if (path === "/cgu")                                               PageContent = <PageCGU />;
+  else if (path === "/politique-confidentialite")                         PageContent = <PageRGPD />;
+  else if (path === "/facturation-electronique-obligatoire-2026")        PageContent = <PageFacturationElectronique />;
+  else                                                                    PageContent = <PageHome />;
 
   return (
     <div style={{ minHeight: "100vh", background: D, fontFamily: "'Segoe UI', -apple-system, sans-serif", color: "white" }}>
