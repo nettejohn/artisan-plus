@@ -119,12 +119,31 @@ export default async function handler(req, res) {
   try {
     switch (event.type) {
 
-      // ── Checkout réussi → passage en Pro + récompense parrainage ────
+      // ── Checkout réussi ────────────────────────────────────────────
       case "checkout.session.completed": {
         const session        = event.data.object;
         const customerId     = session.customer;
         const subscriptionId = session.subscription;
 
+        // ── CAS 1 : Paiement de facture (Stripe Connect) ──────────────
+        if (session.metadata?.type === "invoice_payment" && session.metadata?.facture_id) {
+          const factureId = session.metadata.facture_id;
+          const { error: errFact } = await supabase
+            .from("factures")
+            .update({
+              statut:                    "payee",
+              stripe_connect_session_id: session.id,
+            })
+            .eq("id", factureId);
+          if (errFact) {
+            console.error(`[webhook] ❌ Erreur mise à jour facture ${factureId} :`, errFact.message);
+          } else {
+            console.log(`[webhook] ✅ Facture ${factureId} → statut = payée`);
+          }
+          break;
+        }
+
+        // ── CAS 2 : Abonnement Pro + récompense parrainage ────────────
         // Triple fallback pour résoudre le user_id
         const userId = await resolveUserId(session, customerId);
         if (!userId) break;

@@ -16,19 +16,20 @@ const THEMES_PDF = [
 ];
 
 const SECTIONS = [
-  { id: "profil",        label: "Mon profil",    emoji: "👤" },
-  { id: "minisite",      label: "Mini site web", emoji: "🌐" },
-  { id: "equipe",        label: "Mon équipe",    emoji: "👥" },
-  { id: "verif",         label: "Vérification",  emoji: "✅" },
-  { id: "apparence",     label: "Apparence",     emoji: "🎨" },
-  { id: "factures",      label: "Facturation",   emoji: "📄" },
-  { id: "notifications", label: "Notifs",        emoji: "🔔" },
-  { id: "abonnement",    label: "Abonnement",    emoji: "💎" },
-  { id: "parrainage",    label: "Parrainage",    emoji: "🎁" },
-  { id: "simplifie",     label: "Mode simplifié", emoji: "📱" },
-  { id: "securite",      label: "Sécurité",      emoji: "🔒" },
-  { id: "danger",        label: "Danger",        emoji: "⚠️" },
-  { id: "aide",          label: "Centre d'aide", emoji: "❓" },
+  { id: "profil",        label: "Mon profil",       emoji: "👤" },
+  { id: "minisite",      label: "Mini site web",    emoji: "🌐" },
+  { id: "equipe",        label: "Mon équipe",       emoji: "👥" },
+  { id: "verif",         label: "Vérification",     emoji: "✅" },
+  { id: "apparence",     label: "Apparence",        emoji: "🎨" },
+  { id: "factures",      label: "Facturation",      emoji: "📄" },
+  { id: "paiements",     label: "Paiements en ligne", emoji: "💳" },
+  { id: "notifications", label: "Notifs",           emoji: "🔔" },
+  { id: "abonnement",    label: "Abonnement",       emoji: "💎" },
+  { id: "parrainage",    label: "Parrainage",       emoji: "🎁" },
+  { id: "simplifie",     label: "Mode simplifié",   emoji: "📱" },
+  { id: "securite",      label: "Sécurité",         emoji: "🔒" },
+  { id: "danger",        label: "Danger",           emoji: "⚠️" },
+  { id: "aide",          label: "Centre d'aide",    emoji: "❓" },
 ];
 
 const ROLES_EQUIPE = [
@@ -78,7 +79,7 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
   );
 }
 
-export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange, isPro = true, onUpgrade }) {
+export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange, isPro = true, onUpgrade, stripeConnectStatus = null, onStripeConnectStatusCleared }) {
   const [activeSection, setActiveSection] = useState(initialSection);
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
@@ -139,6 +140,11 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [stripeLoading, setStripeLoading] = useState(false);
   const [stripeMsg,     setStripeMsg]     = useState("");
 
+  // ── Stripe Connect (paiements en ligne) ──────────
+  const [connectInfo,    setConnectInfo]    = useState({ accountId: null, onboarded: false });
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectMsg,     setConnectMsg]     = useState({ text: "", ok: true });
+
   // ── Parrainage ───────────────────────────────────
   const [referralInfo,   setReferralInfo]   = useState({ code: null, referred_by: null, used: false, pro_until: null });
   const [codeCopie,      setCodeCopie]      = useState(false);
@@ -178,6 +184,13 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Chargement ───────────────────────────────────────
   useEffect(() => { charger(); chargerMembres(); }, []);
 
+  // ── Retour depuis Stripe Connect onboarding ──────
+  useEffect(() => {
+    if (stripeConnectStatus === "success" || stripeConnectStatus === "refresh") {
+      rafraichirConnectStatus();
+    }
+  }, [stripeConnectStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const charger = async () => {
     setLoading(true);
     const [{ data: p }, { data: pm }] = await Promise.all([
@@ -196,6 +209,10 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       setPlanInfo({
         plan:               p.plan               || "free",
         stripe_customer_id: p.stripe_customer_id || null,
+      });
+      setConnectInfo({
+        accountId: p.stripe_connect_account_id || null,
+        onboarded: p.stripe_connect_onboarded  || false,
       });
       setReferralInfo({
         code:       p.referral_code      || null,
@@ -449,6 +466,59 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const supprimerCompte = async () => {
     alert("Pour supprimer définitivement votre compte, contactez le support à support@artisan-plus.fr\nVos données seront effacées dans les 48h.");
     setDeleteStep(0); setDeleteConfirmText("");
+  };
+
+  // ── Stripe Connect : fonctions ───────────────────────
+
+  const rafraichirConnectStatus = async () => {
+    try {
+      const res = await fetch("/api/stripe-connect-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setConnectInfo({ accountId: data.accountId, onboarded: data.onboarded });
+        if (data.onboarded) {
+          setConnectMsg({ text: "✅ Compte Stripe connecté et actif ! Vos clients peuvent maintenant payer en ligne.", ok: true });
+          onStripeConnectStatusCleared?.();
+        } else if (data.accountId) {
+          setConnectMsg({ text: "⏳ Compte Stripe créé mais l'onboarding n'est pas terminé. Cliquez sur 'Reprendre l'onboarding'.", ok: false });
+        }
+      }
+    } catch { /* silencieux */ }
+  };
+
+  const demarrerOnboarding = async () => {
+    setConnectLoading(true);
+    setConnectMsg({ text: "", ok: true });
+    try {
+      const res = await fetch("/api/stripe-connect-onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+      setConnectInfo(prev => ({ ...prev, accountId: data.accountId }));
+      // Rediriger vers Stripe Express onboarding
+      window.location.href = data.onboardingUrl;
+    } catch (err) {
+      setConnectMsg({ text: "❌ " + err.message, ok: false });
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  const deconnecterStripe = async () => {
+    if (!window.confirm("Déconnecter votre compte Stripe ? Les liens de paiement générés resteront actifs, mais vous ne pourrez plus en créer de nouveaux.")) return;
+    await supabase.from("profils").upsert(
+      { user_id: user.id, stripe_connect_account_id: null, stripe_connect_onboarded: false },
+      { onConflict: "user_id" }
+    );
+    setConnectInfo({ accountId: null, onboarded: false });
+    setConnectMsg({ text: "Compte Stripe déconnecté.", ok: true });
   };
 
   // ── Stripe : Checkout ────────────────────────────────
@@ -1427,6 +1497,180 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
           <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les notifications" />
         </SCard>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          PAIEMENTS EN LIGNE (STRIPE CONNECT)
+      ══════════════════════════════════════════════════ */}
+      {activeSection === "paiements" && (
+        <div>
+          {/* ── Bannière statut ── */}
+          {stripeConnectStatus === "success" && (
+            <div style={{ background: "rgba(76,175,80,0.12)", border: "1px solid rgba(76,175,80,0.35)", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "24px" }}>🎉</span>
+              <div>
+                <div style={{ color: "#4CAF50", fontWeight: "700", fontSize: "15px" }}>Onboarding terminé !</div>
+                <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>Votre compte Stripe est maintenant actif. Vos factures peuvent être payées en ligne.</div>
+              </div>
+            </div>
+          )}
+          {stripeConnectStatus === "refresh" && (
+            <div style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "14px", padding: "16px 20px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ fontSize: "24px" }}>⚠️</span>
+              <div>
+                <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "15px" }}>Onboarding expiré</div>
+                <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px" }}>Le lien a expiré. Cliquez sur "Reprendre l'onboarding" pour en obtenir un nouveau.</div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Explication ── */}
+          <SCard titre="💳 Paiement en ligne par carte">
+            <p style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.6", margin: "0 0 20px" }}>
+              Connectez votre propre compte Stripe pour permettre à vos clients de payer leurs factures en ligne par carte bancaire. Les fonds arrivent directement sur votre compte bancaire. Artisan+ ne prend aucune commission.
+            </p>
+
+            {/* Avantages */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+              {[
+                { icon: "⚡", title: "Paiement immédiat", desc: "Votre client paie en ligne, la facture passe automatiquement en « Payée »" },
+                { icon: "🔒", title: "Sécurisé par Stripe", desc: "Plateforme certifiée PCI-DSS, accepte Visa, Mastercard, Apple Pay, Google Pay" },
+                { icon: "💶", title: "0% de commission Artisan+", desc: "Seules les frais Stripe s'appliquent (1,5% + 0,25€ pour les cartes européennes)" },
+                { icon: "📋", title: "Lien partageable", desc: "Copiez le lien et envoyez-le par SMS, WhatsApp ou email à votre client" },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: "20px", flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "600", fontSize: "13px" }}>{title}</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Statut du compte */}
+            <div style={{ background: DARK, borderRadius: "12px", padding: "16px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "22px" }}>
+                    {connectInfo.onboarded ? "✅" : connectInfo.accountId ? "⏳" : "🔗"}
+                  </span>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>
+                      {connectInfo.onboarded
+                        ? "Compte Stripe actif"
+                        : connectInfo.accountId
+                          ? "Onboarding en cours…"
+                          : "Aucun compte connecté"}
+                    </div>
+                    <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>
+                      {connectInfo.onboarded
+                        ? "Vos factures peuvent être payées en ligne ✓"
+                        : connectInfo.accountId
+                          ? "Finalisez l'onboarding Stripe pour activer les paiements"
+                          : "Connectez votre compte Stripe Express pour commencer"}
+                    </div>
+                  </div>
+                </div>
+                {connectInfo.onboarded && (
+                  <span style={{ background: "rgba(76,175,80,0.15)", color: "#4CAF50", border: "1px solid rgba(76,175,80,0.3)", borderRadius: "20px", padding: "4px 12px", fontSize: "12px", fontWeight: "700", whiteSpace: "nowrap" }}>
+                    ACTIF
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Message de retour */}
+            {connectMsg.text && (
+              <div style={{ color: connectMsg.ok ? "#4CAF50" : "#ff6b6b", fontSize: "13px", fontWeight: "600", marginBottom: "16px", padding: "12px 16px", background: connectMsg.ok ? "rgba(76,175,80,0.08)" : "rgba(255,100,100,0.08)", borderRadius: "10px", border: `1px solid ${connectMsg.ok ? "rgba(76,175,80,0.2)" : "rgba(255,100,100,0.2)"}` }}>
+                {connectMsg.text}
+              </div>
+            )}
+
+            {/* Actions */}
+            {!connectInfo.accountId && (
+              <button
+                onClick={demarrerOnboarding}
+                disabled={connectLoading}
+                style={{
+                  background: connectLoading ? "#555" : "linear-gradient(135deg, #635bff 0%, #4f46e5 100%)",
+                  color: "white", border: "none", borderRadius: "12px",
+                  padding: "14px 20px", fontSize: "15px", fontWeight: "800",
+                  cursor: connectLoading ? "not-allowed" : "pointer",
+                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                  boxShadow: connectLoading ? "none" : "0 4px 20px rgba(99,91,255,0.4)",
+                }}
+              >
+                {connectLoading ? (
+                  <><span>⏳</span><span>Redirection vers Stripe…</span></>
+                ) : (
+                  <><span>💳</span><span>Connecter mon compte Stripe</span></>
+                )}
+              </button>
+            )}
+
+            {connectInfo.accountId && !connectInfo.onboarded && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <button
+                  onClick={demarrerOnboarding}
+                  disabled={connectLoading}
+                  style={{
+                    background: connectLoading ? "#555" : "linear-gradient(135deg, #FF8C00 0%, #e67600 100%)",
+                    color: "white", border: "none", borderRadius: "12px",
+                    padding: "14px 20px", fontSize: "15px", fontWeight: "800",
+                    cursor: connectLoading ? "not-allowed" : "pointer",
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                    boxShadow: connectLoading ? "none" : "0 4px 20px rgba(255,140,0,0.35)",
+                  }}
+                >
+                  {connectLoading ? "⏳ Redirection…" : "▶️ Reprendre l'onboarding Stripe"}
+                </button>
+                <button
+                  onClick={deconnecterStripe}
+                  style={{ background: "transparent", color: "#8899aa", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "11px", fontSize: "13px", cursor: "pointer" }}
+                >
+                  🗑️ Annuler et recommencer
+                </button>
+              </div>
+            )}
+
+            {connectInfo.onboarded && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ background: "rgba(99,91,255,0.1)", border: "1px solid rgba(99,91,255,0.25)", borderRadius: "10px", padding: "12px 16px", fontSize: "13px", color: "#a5b4fc" }}>
+                  💡 Sur chaque facture non payée, un bouton <strong style={{ color: "white" }}>💳 Lien paiement</strong> apparaît. Copiez-le et envoyez-le à votre client.
+                </div>
+                <button
+                  onClick={deconnecterStripe}
+                  style={{ background: "transparent", color: "#8899aa", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "11px", fontSize: "13px", cursor: "pointer", marginTop: "6px" }}
+                >
+                  🔌 Déconnecter le compte Stripe
+                </button>
+              </div>
+            )}
+          </SCard>
+
+          {/* ── Comment ça marche ── */}
+          <SCard titre="📖 Comment ça marche">
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {[
+                { step: "1", title: "Connectez votre compte Stripe", desc: "Stripe Express crée votre compte de paiement en 5 minutes. Vous avez besoin de votre IBAN et d'une pièce d'identité." },
+                { step: "2", title: "Générez un lien sur votre facture", desc: "Depuis la liste de vos factures, cliquez sur « 💳 Lien paiement » sur n'importe quelle facture non payée." },
+                { step: "3", title: "Envoyez le lien à votre client", desc: "Le lien est copié dans votre presse-papiers. Collez-le dans un SMS, WhatsApp ou email à votre client." },
+                { step: "4", title: "Le client paie, vous êtes notifié", desc: "Votre client paie par carte. La facture passe automatiquement en « Payée » et vous recevez les fonds sous 1-2 jours ouvrés." },
+              ].map(({ step, title, desc }) => (
+                <div key={step} style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+                  <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "linear-gradient(135deg, #635bff 0%, #4f46e5 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "800", fontSize: "14px", flexShrink: 0 }}>
+                    {step}
+                  </div>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>{title}</div>
+                    <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "4px", lineHeight: "1.5" }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SCard>
+        </div>
       )}
 
       {/* ══════════════════════════════════════════════════

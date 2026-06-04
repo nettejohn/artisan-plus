@@ -107,6 +107,8 @@ export default function Dashboard({
   updateAvailable = false, handleUpdate,
   notifPermission = 'default', requestNotifPermission, checkAndNotify,
   subscriptionStatus = null, onSubscriptionStatusCleared,
+  stripeConnectStatus = null, onStripeConnectStatusCleared,
+  paymentStatus = null, onPaymentStatusCleared,
 }) {
   // Rôle effectif : 'patron' si pas dans une équipe, sinon le rôle assigné
   const teamRole   = teamInfo?.role ?? "patron";
@@ -158,8 +160,12 @@ export default function Dashboard({
   });
 
   // Menu hamburger
-  const [hamburgerOpen, setHamburgerOpen]       = useState(false);
-  const [parametresSection, setParametresSection] = useState("profil");
+  const [hamburgerOpen, setHamburgerOpen]           = useState(false);
+  const [parametresSection, setParametresSection]   = useState("profil");
+
+  // ── Stripe Connect — paiement en ligne des factures ───────────
+  const [generatingLink,   setGeneratingLink]   = useState(null); // factureId en cours
+  const [lienPaieCopie,    setLienPaieCopie]    = useState(null); // factureId dont le lien a été copié
 
   // Documents sous-onglets
   const [docSub, setDocSub] = useState("factures");
@@ -239,6 +245,30 @@ export default function Dashboard({
       return () => clearTimeout(t);
     }
   }, [subscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Retour depuis Stripe Connect onboarding ────────────────────
+  useEffect(() => {
+    if (stripeConnectStatus === "success" || stripeConnectStatus === "refresh") {
+      chargerProfil(); // met à jour stripe_connect_onboarded depuis Supabase
+      setPage("parametres");
+      setParametresSection("paiements");
+    }
+    if (stripeConnectStatus) {
+      const t = setTimeout(() => onStripeConnectStatusCleared?.(), 8000);
+      return () => clearTimeout(t);
+    }
+  }, [stripeConnectStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Retour depuis un paiement de facture client ────────────────
+  useEffect(() => {
+    if (paymentStatus?.status === "success") {
+      chargerDonnees(); // rechargement pour voir statut "payée"
+    }
+    if (paymentStatus) {
+      const t = setTimeout(() => onPaymentStatusCleared?.(), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [paymentStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Onboarding : afficher le welcome screen à la première connexion
   useEffect(() => {
@@ -596,6 +626,40 @@ export default function Dashboard({
     chargerDonnees();
   };
 
+  // ── Stripe Connect : générer ou récupérer le lien de paiement ──
+  const genererLienPaiement = async (facture) => {
+    if (generatingLink) return;
+    setGeneratingLink(facture.id);
+    try {
+      // Si un lien existe déjà, juste copier
+      if (facture.stripe_connect_checkout_url) {
+        await navigator.clipboard.writeText(facture.stripe_connect_checkout_url);
+        setLienPaieCopie(facture.id);
+        setTimeout(() => setLienPaieCopie(null), 3000);
+        setGeneratingLink(null);
+        return;
+      }
+      const res = await fetch("/api/create-invoice-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ factureId: facture.id, userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur inconnue");
+      // Mettre à jour l'objet en mémoire pour éviter un rechargement
+      setFactures(prev => prev.map(f =>
+        f.id === facture.id ? { ...f, stripe_connect_checkout_url: data.checkoutUrl } : f
+      ));
+      await navigator.clipboard.writeText(data.checkoutUrl);
+      setLienPaieCopie(facture.id);
+      setTimeout(() => setLienPaieCopie(null), 3000);
+    } catch (err) {
+      alert("❌ " + err.message);
+    } finally {
+      setGeneratingLink(null);
+    }
+  };
+
   const changerStatutFacture = async (facture) => {
     const nouveauStatut = facture.statut === "payee" ? "en_attente" : "payee";
     await supabase.from("factures").update({ statut: nouveauStatut }).eq("id", facture.id);
@@ -895,6 +959,40 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* ── TOAST : facture payée en ligne ────────────────────── */}
+      {paymentStatus?.status === "success" && (
+        <div style={{
+          position: "fixed", top: "16px", left: "50%",
+          transform: "translateX(-50%)", zIndex: 600,
+          background: "linear-gradient(135deg, #1a6f3c 0%, #155e34 100%)", color: "white",
+          borderRadius: "12px", padding: "14px 24px",
+          fontSize: "14px", fontWeight: "700",
+          display: "flex", alignItems: "center", gap: "10px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+        }}>
+          <span>💳</span>
+          <span>Paiement reçu ! La facture est maintenant marquée Payée.</span>
+          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+        </div>
+      )}
+      {paymentStatus?.status === "canceled" && (
+        <div style={{
+          position: "fixed", top: "16px", left: "50%",
+          transform: "translateX(-50%)", zIndex: 600,
+          background: "#555", color: "white",
+          borderRadius: "12px", padding: "14px 24px",
+          fontSize: "14px", fontWeight: "700",
+          display: "flex", alignItems: "center", gap: "10px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+        }}>
+          <span>ℹ️</span>
+          <span>Paiement annulé par le client.</span>
+          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+        </div>
+      )}
+
       {/* ── TOAST : connexion rétablie + synchro ───────────────── */}
       {showSyncToast && isOnline && (
         <div style={{
@@ -1087,6 +1185,8 @@ export default function Dashboard({
             onModeSimpleChange={(val) => setModeSimple(val)}
             isPro={isPro}
             onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}
+            stripeConnectStatus={stripeConnectStatus}
+            onStripeConnectStatusCleared={onStripeConnectStatusCleared}
           />
         )}
 
@@ -2020,6 +2120,37 @@ export default function Dashboard({
                         >
                           {f.statut === "payee" ? "↩️ Non payée" : "✅ Payée"}
                         </button>
+                        {/* ── Bouton paiement en ligne ── */}
+                        {f.statut !== "payee" && profil?.stripe_connect_account_id && profil?.stripe_connect_onboarded && (
+                          <button
+                            onClick={() => genererLienPaiement(f)}
+                            disabled={generatingLink === f.id}
+                            title={f.stripe_connect_checkout_url ? "Copier le lien de paiement" : "Générer un lien de paiement Stripe"}
+                            style={{
+                              background: lienPaieCopie === f.id ? "rgba(76,175,80,0.15)" : "rgba(99,102,241,0.12)",
+                              border: `1px solid ${lienPaieCopie === f.id ? "rgba(76,175,80,0.4)" : "rgba(99,102,241,0.35)"}`,
+                              color: lienPaieCopie === f.id ? "#4CAF50" : "#818cf8",
+                              borderRadius: "8px", padding: "7px 10px",
+                              cursor: generatingLink === f.id ? "not-allowed" : "pointer",
+                              fontSize: "12px", fontWeight: "600",
+                              display: "flex", alignItems: "center", gap: "4px",
+                            }}
+                          >
+                            {generatingLink === f.id ? "⏳" : lienPaieCopie === f.id ? "✅ Copié !" : f.stripe_connect_checkout_url ? "📋 Copier lien" : "💳 Lien paiement"}
+                          </button>
+                        )}
+                        {/* Promo Connect si pas encore connecté */}
+                        {f.statut !== "payee" && !profil?.stripe_connect_account_id && (
+                          <button
+                            onClick={() => { setPage("parametres"); setParametresSection("paiements"); }}
+                            title="Activer le paiement en ligne"
+                            style={{
+                              background: "rgba(255,140,0,0.07)", border: "1px dashed rgba(255,140,0,0.3)",
+                              color: "#FF8C00", borderRadius: "8px", padding: "7px 10px",
+                              cursor: "pointer", fontSize: "11px", fontWeight: "600",
+                            }}
+                          >💳 Activer paiement en ligne</button>
+                        )}
                         <button onClick={() => telechargerPDF(f)} style={{
                           background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)",
                           color: PRIMARY, borderRadius: "8px", padding: "7px 10px",

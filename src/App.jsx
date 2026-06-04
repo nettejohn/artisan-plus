@@ -37,8 +37,10 @@ export default function App() {
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
   const [signatureToken, setSignatureToken] = useState(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState(null); // 'success' | 'canceled' | null
-  const [teamInfo,           setTeamInfo]           = useState(null); // { role, patronId } si membre d'une équipe
+  const [subscriptionStatus,  setSubscriptionStatus]  = useState(null); // 'success' | 'canceled' | null
+  const [stripeConnectStatus, setStripeConnectStatus] = useState(null); // 'success' | 'refresh' | null
+  const [paymentStatus,       setPaymentStatus]       = useState(null); // { status: 'success'|'canceled', factureId } | null
+  const [teamInfo,            setTeamInfo]            = useState(null); // { role, patronId } si membre d'une équipe
   const [loginMode,          setLoginMode]          = useState("normal"); // "normal" | "join-team"
   const [inviteCode,         setInviteCode]         = useState("");
   const [joinMsg,            setJoinMsg]            = useState("");
@@ -136,6 +138,19 @@ export default function App() {
     const sub = params.get("subscription");
     if (sub === "success" || sub === "canceled") {
       setSubscriptionStatus(sub);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // Retour depuis Stripe Connect onboarding
+    const connectParam = params.get("stripe_connect");
+    if (connectParam === "success" || connectParam === "refresh") {
+      setStripeConnectStatus(connectParam);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // Retour depuis un paiement de facture
+    const paymentParam = params.get("payment");
+    const factureIdParam = params.get("facture_id");
+    if (paymentParam === "success" || paymentParam === "canceled") {
+      setPaymentStatus({ status: paymentParam, factureId: factureIdParam || null });
       window.history.replaceState({}, "", window.location.pathname);
     }
     // Pré-remplir le code de parrainage si présent dans l'URL (?ref=CODE)
@@ -464,6 +479,10 @@ export default function App() {
         checkAndNotify={checkAndNotify}
         subscriptionStatus={subscriptionStatus}
         onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
+        stripeConnectStatus={stripeConnectStatus}
+        onStripeConnectStatusCleared={() => setStripeConnectStatus(null)}
+        paymentStatus={paymentStatus}
+        onPaymentStatusCleared={() => setPaymentStatus(null)}
       />
     </>
   );
