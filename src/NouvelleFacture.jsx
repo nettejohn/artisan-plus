@@ -71,7 +71,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       });
     // Charger le profil artisan pour la génération PDF
     supabase
-      .from("profiles")
+      .from("profils")
       .select("nom, adresse, telephone, siret, email, iban")
       .eq("user_id", user.id)
       .single()
@@ -211,13 +211,18 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       .single();
     if (factureError) { setMessage("❌ Erreur facture : " + factureError.message); setLoading(false); return; }
 
-    await supabase.from("lignes_facture").insert({
+    const { error: lignesError } = await supabase.from("lignes_facture").insert({
       facture_id:    factureData.id,
       description:   descriptionSimple.trim(),
       quantite:      1,
       prix_unitaire: totalHT,
       total:         totalHT,
     });
+    if (lignesError) {
+      setMessage("❌ Erreur lignes : " + lignesError.message);
+      setLoading(false);
+      return;
+    }
 
     setMessage("✅ Facture créée avec succès !");
     setLoading(false);

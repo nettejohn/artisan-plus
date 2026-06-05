@@ -230,13 +230,18 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       .single();
     if (devisError) { setMessage("❌ Erreur devis : " + devisError.message); setLoading(false); return; }
 
-    await supabase.from("lignes_devis").insert({
-      devis_id:     devisData.id,
-      description:  descriptionSimple.trim(),
-      quantite:     1,
+    const { error: lignesError } = await supabase.from("lignes_devis").insert({
+      devis_id:      devisData.id,
+      description:   descriptionSimple.trim(),
+      quantite:      1,
       prix_unitaire: totalHT,
       total:         totalHT,
     });
+    if (lignesError) {
+      setMessage("❌ Erreur lignes : " + lignesError.message);
+      setLoading(false);
+      return;
+    }
 
     setMessage("✅ Devis créé avec succès !");
     setLoading(false);

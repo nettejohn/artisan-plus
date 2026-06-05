@@ -160,6 +160,8 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Mode simplifié ────────────────────────────────
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
+  const [simplifieConfig,     setSimplifieConfig]     = useState({ factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false });
+  const [savingConfig,        setSavingConfig]        = useState(false);
 
   // ── Éditeur visuel ───────────────────────────────────
   const [editeurOuvert, setEditeurOuvert] = useState(false);
@@ -259,6 +261,15 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         notif_rappels_factures: pm.notif_rappels_factures || false,
       });
       setModeSimplifie(pm.mode_simplifie || false);
+      // Config personnalisation (colonne JSONB optionnelle)
+      if (pm.simplifie_config) {
+        setSimplifieConfig(prev => ({ ...prev, ...pm.simplifie_config }));
+      } else {
+        try {
+          const cached = localStorage.getItem(`simplifie_config_${user.id}`);
+          if (cached) setSimplifieConfig(prev => ({ ...prev, ...JSON.parse(cached) }));
+        } catch {}
+      }
     }
     setLoading(false);
   };
@@ -460,6 +471,21 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     } else {
       onModeSimpleChange?.(valeur);
     }
+  };
+
+  // ── Mode simplifié : personnalisation ────────────────
+  const sauvegarderSimplifieConfig = async (newConfig) => {
+    setSavingConfig(true);
+    setSimplifieConfig(newConfig);
+    // Sauvegarde localStorage immédiate (fallback si colonne manquante)
+    try { localStorage.setItem(`simplifie_config_${user.id}`, JSON.stringify(newConfig)); } catch {}
+    // Tentative Supabase (requiert ALTER TABLE parametres ADD COLUMN simplifie_config JSONB)
+    const { error } = await supabase.from("parametres").upsert(
+      { user_id: user.id, simplifie_config: newConfig },
+      { onConflict: "user_id" }
+    );
+    if (error) console.warn("[simplifie_config] colonne absente — localStorage utilisé");
+    setSavingConfig(false);
   };
 
   // ── Supprimer compte ─────────────────────────────────
@@ -2134,6 +2160,102 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 ⏳ Sauvegarde en cours…
               </div>
             )}
+          </SCard>
+
+          {/* ── Personnaliser le mode simplifié ─────────── */}
+          <SCard titre="🎛️ Personnaliser le mode simplifié">
+            <p style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.65", margin: "0 0 22px" }}>
+              Choisissez quels raccourcis s'affichent quand le mode simplifié est actif.
+              {savingConfig && <span style={{ color: PRIMARY, marginLeft: "10px" }}>⏳ Sauvegarde…</span>}
+            </p>
+
+            {/* Raccourcis principaux */}
+            <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+              Raccourcis principaux
+            </div>
+            {[
+              { key: "devis",    icon: "📝", label: "Nouveau devis",    desc: "Créer un devis rapide depuis l'accueil" },
+              { key: "factures", icon: "📄", label: "Nouvelle facture", desc: "Créer une facture rapide depuis l'accueil" },
+              { key: "clients",  icon: "👥", label: "Mes clients",      desc: "Accès rapide à vos clients (appel, SMS)" },
+            ].map(item => (
+              <div key={item.key} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: "12px", padding: "14px 16px", marginBottom: "10px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "22px" }}>{item.icon}</span>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{item.label}</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px" }}>{item.desc}</div>
+                  </div>
+                </div>
+                {/* Toggle switch */}
+                <button
+                  onClick={() => sauvegarderSimplifieConfig({ ...simplifieConfig, [item.key]: !simplifieConfig[item.key] })}
+                  style={{
+                    background: simplifieConfig[item.key] ? PRIMARY : "rgba(255,255,255,0.06)",
+                    border: `2px solid ${simplifieConfig[item.key] ? PRIMARY : "rgba(255,255,255,0.12)"}`,
+                    borderRadius: "20px", padding: 0,
+                    width: "44px", height: "24px",
+                    cursor: "pointer", position: "relative", flexShrink: 0,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", top: "2px",
+                    left: simplifieConfig[item.key] ? "22px" : "2px",
+                    width: "16px", height: "16px", background: "white",
+                    borderRadius: "50%", transition: "left 0.2s",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                  }} />
+                </button>
+              </div>
+            ))}
+
+            {/* Outils rapides */}
+            <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", margin: "22px 0 12px" }}>
+              Outils rapides (raccourcis vers l'onglet Outils)
+            </div>
+            {[
+              { key: "calculatrice", icon: "🧮", label: "Calculatrice",  desc: "Accès rapide à la calculatrice" },
+              { key: "niveau",       icon: "🛠️", label: "Niveau à bulle", desc: "Utiliser le gyroscope du téléphone" },
+              { key: "lampe",        icon: "🔦", label: "Lampe torche",  desc: "Activer la lampe via l'app" },
+              { key: "notes",        icon: "📝", label: "Notes rapides", desc: "Prise de notes rapide sur le chantier" },
+            ].map(item => (
+              <div key={item.key} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: "12px", padding: "14px 16px", marginBottom: "10px",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span style={{ fontSize: "22px" }}>{item.icon}</span>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{item.label}</div>
+                    <div style={{ color: "#8899aa", fontSize: "12px" }}>{item.desc}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => sauvegarderSimplifieConfig({ ...simplifieConfig, [item.key]: !simplifieConfig[item.key] })}
+                  style={{
+                    background: simplifieConfig[item.key] ? PRIMARY : "rgba(255,255,255,0.06)",
+                    border: `2px solid ${simplifieConfig[item.key] ? PRIMARY : "rgba(255,255,255,0.12)"}`,
+                    borderRadius: "20px", padding: 0,
+                    width: "44px", height: "24px",
+                    cursor: "pointer", position: "relative", flexShrink: 0,
+                    transition: "all 0.2s",
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", top: "2px",
+                    left: simplifieConfig[item.key] ? "22px" : "2px",
+                    width: "16px", height: "16px", background: "white",
+                    borderRadius: "50%", transition: "left 0.2s",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                  }} />
+                </button>
+              </div>
+            ))}
           </SCard>
         </div>
       )}

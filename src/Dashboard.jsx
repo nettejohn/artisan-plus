@@ -149,8 +149,11 @@ export default function Dashboard({
   const [tourStep, setTourStep] = useState(0);
 
   // Mode simplifié
-  const [modeSimple,     setModeSimple]     = useState(false);
-  const [modeSimpleView, setModeSimpleView] = useState(null); // null | 'clients'
+  const [modeSimple,      setModeSimple]      = useState(false);
+  const [modeSimpleView,  setModeSimpleView]  = useState(null); // null | 'clients'
+  const [savingModeSimple, setSavingModeSimple] = useState(false);
+  const DEFAULT_SIMPLIFIE_CONFIG = { factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false };
+  const [simplifieConfig, setSimplifieConfig] = useState({ factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false });
 
   // Calculateur de rentabilité
   const [calc, setCalc] = useState({
@@ -391,7 +394,30 @@ export default function Dashboard({
       .select("*")
       .eq("user_id", user.id)
       .single();
-    if (data) setModeSimple(data.mode_simplifie || false);
+    if (data) {
+      setModeSimple(data.mode_simplifie || false);
+      // Charger la config personnalisée (colonne JSONB optionnelle)
+      if (data.simplifie_config) {
+        setSimplifieConfig(prev => ({ ...prev, ...data.simplifie_config }));
+      } else {
+        // Fallback localStorage
+        try {
+          const cached = localStorage.getItem(`simplifie_config_${user.id}`);
+          if (cached) setSimplifieConfig(prev => ({ ...prev, ...JSON.parse(cached) }));
+        } catch {}
+      }
+    }
+  };
+
+  const toggleModeSimpleHeader = async () => {
+    const newValue = !modeSimple;
+    setModeSimple(newValue);
+    setSavingModeSimple(true);
+    await supabase.from("parametres").upsert(
+      { user_id: user.id, mode_simplifie: newValue },
+      { onConflict: "user_id" }
+    );
+    setSavingModeSimple(false);
   };
 
   const chargerChantiers = async () => {
@@ -1166,6 +1192,31 @@ export default function Dashboard({
             </button>
           )}
 
+          {/* ── Bouton Mode Simplifié ────────────────────── */}
+          <button
+            onClick={toggleModeSimpleHeader}
+            disabled={savingModeSimple}
+            title={modeSimple ? "Mode simplifié actif — cliquer pour désactiver" : "Activer le mode simplifié (chantier)"}
+            style={{
+              background: modeSimple ? "rgba(255,140,0,0.18)" : "rgba(255,255,255,0.06)",
+              border: `1.5px solid ${modeSimple ? "rgba(255,140,0,0.55)" : "rgba(255,255,255,0.1)"}`,
+              color: modeSimple ? PRIMARY : "#8899aa",
+              borderRadius: "9px",
+              padding: isDesktop ? "8px 14px" : "0",
+              width: isDesktop ? "auto" : "40px",
+              height: "40px",
+              cursor: savingModeSimple ? "wait" : "pointer",
+              fontSize: isDesktop ? "13px" : "17px",
+              fontWeight: "700",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              gap: "6px", flexShrink: 0,
+              transition: "all 0.2s",
+            }}
+          >
+            <span>📱</span>
+            {isDesktop && <span>{modeSimple ? "Simplifié ✓" : "Simplifié"}</span>}
+          </button>
+
           {/* ── Bouton hamburger ☰ ──────────────────────── */}
           <button
             onClick={() => setHamburgerOpen(o => !o)}
@@ -1364,10 +1415,10 @@ export default function Dashboard({
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {[
-                    { label: "📝 Nouveau devis", desc: "Créer et envoyer un devis", color: PRIMARY, action: () => setPage("nouveau-devis") },
-                    { label: "📄 Nouvelle facture", desc: "Créer une facture professionnelle", color: "#6495ED", action: () => setPage("nouvelle-facture") },
-                    { label: "👥 Mes clients", desc: "Voir et contacter vos clients", color: "#4CAF50", action: () => setModeSimpleView("clients") },
-                  ].map(btn => (
+                    simplifieConfig.devis     && { label: "📝 Nouveau devis",    desc: "Créer et envoyer un devis",            color: PRIMARY,    action: () => setPage("nouveau-devis") },
+                    simplifieConfig.factures  && { label: "📄 Nouvelle facture", desc: "Créer une facture professionnelle",     color: "#6495ED",  action: () => setPage("nouvelle-facture") },
+                    simplifieConfig.clients   && { label: "👥 Mes clients",      desc: "Voir et contacter vos clients",         color: "#4CAF50",  action: () => setModeSimpleView("clients") },
+                  ].filter(Boolean).map(btn => (
                     <button
                       key={btn.label}
                       onClick={btn.action}
@@ -1389,6 +1440,36 @@ export default function Dashboard({
                     </button>
                   ))}
                 </div>
+
+                {/* Outils rapides */}
+                {(simplifieConfig.calculatrice || simplifieConfig.niveau || simplifieConfig.lampe || simplifieConfig.notes) && (
+                  <div style={{ marginTop: "24px" }}>
+                    <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+                      Outils rapides
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      {[
+                        simplifieConfig.calculatrice && { icon: "🧮", label: "Calculatrice" },
+                        simplifieConfig.niveau       && { icon: "🛠️", label: "Niveau à bulle" },
+                        simplifieConfig.lampe        && { icon: "🔦", label: "Lampe torche" },
+                        simplifieConfig.notes        && { icon: "📝", label: "Notes rapides" },
+                      ].filter(Boolean).map(outil => (
+                        <button
+                          key={outil.label}
+                          onClick={() => { setPage("dashboard"); setActiveTab("outils"); }}
+                          style={{
+                            background: CARD, border: "1px solid rgba(255,255,255,0.08)",
+                            color: "white", borderRadius: "14px", padding: "16px 12px",
+                            cursor: "pointer", textAlign: "center",
+                          }}
+                        >
+                          <div style={{ fontSize: "26px" }}>{outil.icon}</div>
+                          <div style={{ fontSize: "12px", marginTop: "6px", fontWeight: "700" }}>{outil.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Accès rapide aux devis récents */}
                 {devis.length > 0 && (
