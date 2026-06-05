@@ -1650,8 +1650,8 @@ function PageRGPD() {
             contenu: `Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos données : chiffrement HTTPS, authentification sécurisée via Supabase Auth, accès aux données restreint par Row Level Security (RLS), mots de passe hashés (bcrypt), clés API jamais exposées côté client.`,
           },
           {
-            titre: "8. Cookies",
-            contenu: `Artisan+ utilise des cookies strictement nécessaires au fonctionnement du Service (session utilisateur, préférences). Aucun cookie publicitaire ou de suivi tiers n'est utilisé. Vous pouvez configurer votre navigateur pour refuser les cookies, ce qui peut affecter le fonctionnement du Service.`,
+            titre: "8. Cookies et consentement",
+            contenu: `Artisan+ utilise deux catégories de cookies :\n\n• Cookies essentiels — indispensables au fonctionnement du Service (session utilisateur, authentification, préférences). Toujours actifs, ils ne peuvent pas être désactivés.\n• Cookies analytiques — mesure d'audience anonymisée pour améliorer l'application (optionnels). Aucune donnée transmise à des tiers publicitaires.\n\nÀ votre première visite, un bandeau de consentement vous permet d'accepter tout, refuser les cookies analytiques, ou personnaliser vos choix. Votre décision est mémorisée localement dans votre navigateur. Vous pouvez la modifier à tout moment en vidant les données du site dans les paramètres de votre navigateur.`,
           },
           {
             titre: "9. Modifications",

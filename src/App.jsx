@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "./supabase";
+import CookieBanner from "./CookieBanner";
 import Dashboard from "./Dashboard";
 import SignatureDevis from "./SignatureDevis";
 import SuiviChantier from "./SuiviChantier";
@@ -64,6 +65,7 @@ export default function App() {
   const [loginMode,          setLoginMode]          = useState("normal"); // "normal" | "join-team"
   const [inviteCode,         setInviteCode]         = useState("");
   const [joinMsg,            setJoinMsg]            = useState("");
+  const [cguAccepted,        setCguAccepted]        = useState(false);
 
   // ── Routing réactif : écoute les navigations internes de la vitrine ─────────
   const [routePath, setRoutePath] = useState(window.location.pathname);
@@ -308,6 +310,11 @@ export default function App() {
     }
 
     // ── 1b. Validation côté client ────────────────────────────────
+    if (!cguAccepted) {
+      setMessage("❌ Vous devez accepter les CGU et la Politique de confidentialité");
+      setLoading(false);
+      return;
+    }
     if (password !== passwordConfirm) {
       setMessage("❌ Les mots de passe ne correspondent pas");
       setLoading(false);
@@ -518,8 +525,8 @@ export default function App() {
     if (sessionLoading) return <PublicFallback />;
     const isLoginPath = routePath === "/login" || routePath === "/connexion" || routePath === "/inscription";
     if (!isLoginPath) {
-      if (routePath === "/blog" || routePath.startsWith("/blog/")) return <Suspense fallback={<PublicFallback />}><Blog /></Suspense>;
-      return <Suspense fallback={<PublicFallback />}><Vitrine /></Suspense>;
+      if (routePath === "/blog" || routePath.startsWith("/blog/")) return <><Suspense fallback={<PublicFallback />}><Blog /></Suspense><CookieBanner /></>;
+      return <><Suspense fallback={<PublicFallback />}><Vitrine /></Suspense><CookieBanner /></>;
     }
   }
 
@@ -678,6 +685,27 @@ export default function App() {
                       }}>🎁</span>
                     )}
                   </div>
+                  {/* ── Case CGU ── */}
+                  <label style={{
+                    display: "flex", alignItems: "flex-start", gap: "10px",
+                    cursor: "pointer", paddingTop: "4px",
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={cguAccepted}
+                      onChange={e => setCguAccepted(e.target.checked)}
+                      style={{ marginTop: "3px", accentColor: PRIMARY, width: "17px", height: "17px", flexShrink: 0 }}
+                    />
+                    <span style={{ color: "#8899aa", fontSize: "12px", lineHeight: "1.6" }}>
+                      J'ai lu et j'accepte les{" "}
+                      <a href="/cgu" target="_blank" rel="noopener noreferrer"
+                        style={{ color: PRIMARY, textDecoration: "underline" }}>CGU</a>
+                      {" "}et la{" "}
+                      <a href="/politique-confidentialite" target="_blank" rel="noopener noreferrer"
+                        style={{ color: PRIMARY, textDecoration: "underline" }}>Politique de confidentialité</a>
+                      {" "}*
+                    </span>
+                  </label>
                 </>
               )}
 
@@ -742,6 +770,7 @@ export default function App() {
         </button>
       </div>
     </div>
+    <CookieBanner />
     </>
   );
 }
