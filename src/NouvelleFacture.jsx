@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import CataloguePrestations from "./CataloguePrestations";
+import { genererPDFBase64 } from "./GenerateurPDF";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -45,6 +46,11 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [catalogueLigneIndex, setCatalogueLigneIndex] = useState(null);
 
+  // ── Après création : panneau "envoyer" ────────────────────────
+  const [factureCree, setFactureCree] = useState(null); // facture créée
+  const [profil, setProfil] = useState(null);
+  const [sendLoading, setSendLoading] = useState(false);
+
   // ── Mode simplifié ─────────────────────────────────────────────────────────
   const [descriptionSimple, setDescriptionSimple] = useState("");
   const [montantSimple, setMontantSimple]         = useState("");
@@ -53,7 +59,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
 
   // ── Chargement des clients + paramètres ───────────────────────────────────
   useEffect(() => {
-    // Charger le paramètre TVA sur les débits
+    // Charger les paramètres TVA
     supabase
       .from("parametres")
       .select("tva_sur_debits, tva_defaut")
@@ -63,6 +69,13 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
         if (data?.tva_sur_debits) setTvaSurDebits(true);
         if (data?.tva_defaut)     setTva(data.tva_defaut);
       });
+    // Charger le profil artisan pour la génération PDF
+    supabase
+      .from("profiles")
+      .select("nom, adresse, telephone, siret, email, iban")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => { if (data) setProfil(data); });
   }, [user.id]);
 
   useEffect(() => {
@@ -153,7 +166,8 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
 
     setMessage("✅ Facture créée avec succès !");
     setLoading(false);
-    setTimeout(() => onBack(), 1500);
+    // Afficher le panneau d'envoi au lieu de revenir immédiatement
+    setFactureCree({ ...factureData, clients: client });
   };
 
   // ── Sauvegarde simplifiée ──────────────────────────────────────────────────
@@ -210,6 +224,44 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     setTimeout(() => onBack(), 1500);
   };
 
+  // ── Partager / envoyer la facture au client ───────────────────────────────
+  const envoyerFacture = async () => {
+    if (!factureCree) return;
+    setSendLoading(true);
+    try {
+      const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
+      const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients, lignes || [], artisan, false);
+      // Convertir base64 → blob → File
+      const b64 = pdfBase64.split(",")[1];
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const file = new File([blob], `${factureCree.numero}.pdf`, { type: "application/pdf" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `Facture ${factureCree.numero}`,
+          text: `Bonjour,\n\nVeuillez trouver ci-joint votre facture ${factureCree.numero}.\n\nCordialement`,
+          files: [file],
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          title: `Facture ${factureCree.numero}`,
+          text: `Bonjour,\n\nVoici votre facture ${factureCree.numero} d'un montant de ${parseFloat(factureCree.total_ttc || 0).toFixed(2)} €.\n\nCordialement`,
+        });
+      } else {
+        // Fallback : téléchargement direct
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `${factureCree.numero}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") console.error("Erreur envoi:", err);
+    }
+    setSendLoading(false);
+  };
+
   // ── Rendu ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: "100vh", background: DARK, fontFamily: "'Segoe UI', sans-serif" }}>
@@ -224,8 +276,51 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       </div>
       <div style={{ padding: "24px" }}>
 
+      {/* ── PANNEAU POST-CRÉATION : ENVOYER AU CLIENT ────────────── */}
+      {factureCree && (
+        <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px" }}>
+          <div style={{ background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)", borderRadius: "20px", padding: "32px", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>✅</div>
+            <h2 style={{ color: "#4CAF50", fontWeight: "900", fontSize: "22px", margin: "0 0 8px" }}>Facture créée !</h2>
+            <p style={{ color: "#8899aa", fontSize: "14px", margin: "0 0 4px" }}>{factureCree.numero}</p>
+            <p style={{ color: "white", fontWeight: "800", fontSize: "18px", margin: 0 }}>
+              {parseFloat(factureCree.total_ttc || 0).toFixed(2)} €
+            </p>
+          </div>
+
+          {/* Bouton Envoyer */}
+          <button
+            onClick={envoyerFacture}
+            disabled={sendLoading}
+            style={{
+              background: sendLoading ? "#555" : PRIMARY, color: "white", border: "none",
+              borderRadius: "14px", padding: "18px", fontSize: "17px", fontWeight: "800",
+              cursor: sendLoading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+            }}
+          >
+            {sendLoading ? "Préparation du PDF…" : "📤 Envoyer la facture au client"}
+          </button>
+          <p style={{ color: "#8899aa", fontSize: "12px", textAlign: "center", margin: 0 }}>
+            Partage par SMS, WhatsApp, email ou autre — avec le PDF en pièce jointe
+          </p>
+
+          {/* Retour */}
+          <button
+            onClick={onBack}
+            style={{
+              background: "rgba(255,255,255,0.06)", color: "#8899aa", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px", padding: "14px", fontSize: "14px", fontWeight: "600",
+              cursor: "pointer",
+            }}
+          >
+            ← Retour aux factures
+          </button>
+        </div>
+      )}
+
       {/* ── FORMULAIRE SIMPLIFIÉ ────────────────────────────────── */}
-      {modeSimple && (
+      {!factureCree && modeSimple && (
         <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
           {/* Client */}
@@ -320,7 +415,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       )}
 
       {/* ── FORMULAIRE COMPLET (mode normal) ─────────────────────── */}
-      {!modeSimple && (
+      {!factureCree && !modeSimple && (
       <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
 
         {/* THÈME */}

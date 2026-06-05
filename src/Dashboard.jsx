@@ -177,6 +177,9 @@ export default function Dashboard({
   // ── Assistant Comptable ────────────────────────────────────────
   const [showComptable,  setShowComptable]  = useState(false);
 
+  // ── Modal Factur-X ────────────────────────────────────────────
+  const [facturXModal, setFacturXModal] = useState(null); // facture ou null
+
   // ── États chantiers (pour affichage dans la fiche client) ─────
   const [chantiers, setChantiers] = useState([]);
   const [clientChantierPreselect, setClientChantierPreselect] = useState(null);
@@ -2177,8 +2180,26 @@ export default function Dashboard({
                           cursor: "pointer", fontSize: "12px", fontWeight: "600"
                         }}>📄 PDF</button>
                         <button
-                          onClick={() => telechargerXML(f)}
-                          title="Télécharger la facture au format Factur-X (XML structuré, obligatoire dès 2026)"
+                          onClick={async () => {
+                            const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", f.id);
+                            const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
+                            try {
+                              if (navigator.share) {
+                                await navigator.share({ title: `Facture ${f.numero}`, text: `Bonjour,\n\nVeuillez trouver votre facture ${f.numero} — Total : ${parseFloat(f.total_ttc || 0).toFixed(2)} €.\n\nCordialement` });
+                              } else {
+                                await navigator.clipboard.writeText(`Facture ${f.numero} — ${parseFloat(f.total_ttc || 0).toFixed(2)} €`);
+                              }
+                            } catch(e) { if (e.name !== "AbortError") alert("Partage non disponible"); }
+                          }}
+                          title="Envoyer la facture au client"
+                          style={{
+                            background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
+                            color: "#4CAF50", borderRadius: "8px", padding: "7px 10px",
+                            cursor: "pointer", fontSize: "12px", fontWeight: "600"
+                          }}>📤 Envoyer</button>
+                        <button
+                          onClick={() => setFacturXModal(f)}
+                          title="Facture électronique obligatoire 2026 — cliquez pour en savoir plus"
                           style={{
                             background: "rgba(33,150,243,0.1)", border: "1px solid rgba(33,150,243,0.3)",
                             color: "#64B5F6", borderRadius: "8px", padding: "7px 10px",
@@ -2985,14 +3006,62 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* ── MODAL FACTUR-X ────────────────────────────────────── */}
+      {facturXModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.65)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "20px",
+        }}>
+          <div style={{
+            background: CARD, borderRadius: "20px", padding: "32px",
+            maxWidth: "460px", width: "100%",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+          }}>
+            <div style={{ textAlign: "center", fontSize: "44px", marginBottom: "14px" }}>⚡</div>
+            <h2 style={{ color: "white", fontSize: "20px", fontWeight: "800", textAlign: "center", marginBottom: "8px" }}>
+              Factur-X — Facture électronique
+            </h2>
+            <div style={{
+              background: "rgba(33,150,243,0.12)", border: "1px solid rgba(33,150,243,0.35)",
+              borderRadius: "14px", padding: "18px", marginBottom: "12px",
+            }}>
+              <p style={{ color: "white", fontSize: "15px", fontWeight: "600", lineHeight: "1.7", margin: 0 }}>
+                📁 Ce fichier est votre facture au format légal pour la <span style={{ color: "#64B5F6" }}>nouvelle loi 2026</span> — à envoyer à votre comptable.
+              </p>
+            </div>
+            <p style={{ color: "#8899aa", fontSize: "12px", lineHeight: "1.7", margin: "0 0 20px" }}>
+              Le format <strong style={{ color: "white" }}>Factur-X</strong> (XML structuré, norme EN 16931) est la norme française de facturation électronique. Il sera obligatoire pour la <strong style={{ color: "white" }}>réception dès septembre 2026</strong> et pour l'<strong style={{ color: "white" }}>émission (TPE/artisans) dès septembre 2027</strong>. Votre comptable peut l'importer directement dans son logiciel.
+            </p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => { telechargerXML(facturXModal); setFacturXModal(null); }}
+                style={{
+                  flex: 1, padding: "14px", background: "#2196F3", color: "white",
+                  border: "none", borderRadius: "12px", fontWeight: "700",
+                  fontSize: "14px", cursor: "pointer",
+                }}
+              >⬇️ Télécharger le XML</button>
+              <button
+                onClick={() => setFacturXModal(null)}
+                style={{
+                  padding: "14px 18px", background: "rgba(255,255,255,0.08)", color: "white",
+                  border: "none", borderRadius: "12px", fontWeight: "600",
+                  fontSize: "14px", cursor: "pointer",
+                }}
+              >Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── BOTTOM NAV mobile : 5 onglets ───────────────────────── */}
       {!isDesktop && <nav style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000,
         background: CARD,
         borderTop: "1px solid rgba(255,140,0,0.18)",
-        transform: "translateZ(0)",
-        WebkitTransform: "translateZ(0)",
-        willChange: "transform",
       }}>
         {/* Buttons row */}
         <div style={{ display: "flex", height: "64px" }}>

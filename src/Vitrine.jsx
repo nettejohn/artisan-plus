@@ -589,10 +589,17 @@ function navigate(to) {
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled,  setScrolled] = useState(false);
+  const [isMobile,  setIsMobile]  = useState(() => window.innerWidth < 768);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
+    const onResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+    };
   }, []);
 
   const navLinks = [
@@ -608,37 +615,85 @@ function Header() {
       borderBottom: scrolled ? "1px solid rgba(255,140,0,0.15)" : "1px solid transparent",
       backdropFilter: "blur(12px)",
       transition: "all 0.3s",
+      // Nécessaire pour positionner le menu mobile (dropdown absolu)
+      position: "sticky",
     }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {/* Logo */}
-        <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
+        <a href="/" onClick={e => { e.preventDefault(); navigate("/"); setMenuOpen(false); }} style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "24px", fontWeight: "900", color: "white", letterSpacing: "-0.5px" }}>
             Artisan<span style={{ color: P }}>+</span>
           </span>
         </a>
 
-        {/* Desktop nav */}
-        <nav style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        {/* Desktop nav — masqué sur mobile */}
+        {!isMobile && (
+          <nav style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {navLinks.map(l => (
+              <a key={l.label} href={l.href} onClick={e => { e.preventDefault(); navigate(l.href); }}
+                style={{ color: G, fontSize: "14px", fontWeight: "600", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", transition: "color 0.15s" }}
+                onMouseEnter={e => e.currentTarget.style.color = "white"}
+                onMouseLeave={e => e.currentTarget.style.color = G}
+              >{l.label}</a>
+            ))}
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ color: G, fontSize: "14px", fontWeight: "600", textDecoration: "none", padding: "6px 12px" }}>
+              Connexion
+            </a>
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ background: P, color: "white", fontSize: "14px", fontWeight: "700", textDecoration: "none", padding: "10px 20px", borderRadius: "10px", transition: "opacity 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >
+              Essai gratuit →
+            </a>
+          </nav>
+        )}
+
+        {/* Mobile : CTA + hamburger */}
+        {isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ background: P, color: "white", fontSize: "13px", fontWeight: "700", textDecoration: "none", padding: "9px 16px", borderRadius: "10px" }}
+            >
+              Essai gratuit
+            </a>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Menu"
+              style={{ background: "transparent", border: "none", color: "white", fontSize: "22px", cursor: "pointer", padding: "8px 4px", lineHeight: 1 }}
+            >
+              {menuOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile menu déroulant */}
+      {isMobile && menuOpen && (
+        <div style={{
+          background: "rgba(10,22,40,0.98)", backdropFilter: "blur(12px)",
+          borderTop: "1px solid rgba(255,140,0,0.15)",
+          borderBottom: "1px solid rgba(255,140,0,0.15)",
+          padding: "8px 20px 16px",
+          display: "flex", flexDirection: "column", gap: "2px",
+        }}>
           {navLinks.map(l => (
-            <a key={l.label} href={l.href} onClick={e => { e.preventDefault(); navigate(l.href); }}
-              style={{ color: G, fontSize: "14px", fontWeight: "600", textDecoration: "none", padding: "6px 12px", borderRadius: "8px", transition: "color 0.15s" }}
-              onMouseEnter={e => e.currentTarget.style.color = "white"}
-              onMouseLeave={e => e.currentTarget.style.color = G}
+            <a key={l.label} href={l.href}
+              onClick={e => { e.preventDefault(); navigate(l.href); setMenuOpen(false); }}
+              style={{ color: "white", fontSize: "16px", fontWeight: "600", textDecoration: "none", padding: "13px 4px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
             >{l.label}</a>
           ))}
-          <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-            style={{ color: G, fontSize: "14px", fontWeight: "600", textDecoration: "none", padding: "6px 12px" }}>
+          <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); setMenuOpen(false); }}
+            style={{ color: G, fontSize: "16px", fontWeight: "600", textDecoration: "none", padding: "13px 4px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             Connexion
           </a>
-          <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-            style={{ background: P, color: "white", fontSize: "14px", fontWeight: "700", textDecoration: "none", padding: "10px 20px", borderRadius: "10px", transition: "opacity 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-            onMouseLeave={e => e.currentTarget.style.opacity = "1"}
-          >
-            Essai gratuit →
+          <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); setMenuOpen(false); }}
+            style={{ display: "block", textAlign: "center", background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "14px", borderRadius: "12px", textDecoration: "none", marginTop: "10px" }}>
+            🚀 Essayer gratuitement
           </a>
-        </nav>
-      </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -927,6 +982,13 @@ const FAQ_ITEMS = [
 ];
 
 function PageHome() {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   useEffect(() => {
     setPageMeta(
       "Artisan+ | App Devis Factures Artisan - 7,99€/mois",
@@ -996,8 +1058,8 @@ function PageHome() {
       </div>
 
       {/* ── Hero ────────────────────────────────────────────────── */}
-      <section style={{ padding: "clamp(60px,8vw,100px) 20px clamp(40px,6vw,80px)", background: `linear-gradient(180deg, rgba(255,140,0,0.04) 0%, transparent 100%)` }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr auto", gap: "60px", alignItems: "center" }}>
+      <section style={{ padding: "clamp(48px,8vw,100px) 20px clamp(32px,6vw,80px)", background: `linear-gradient(180deg, rgba(255,140,0,0.04) 0%, transparent 100%)` }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto", gap: isMobile ? "40px" : "60px", alignItems: "center" }}>
           <div>
             {/* Badge */}
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 14px", marginBottom: "24px" }}>
@@ -1036,10 +1098,12 @@ function PageHome() {
             </div>
           </div>
 
-          {/* Mockup app */}
-          <div style={{ display: "flex", justifyContent: "center", minWidth: "300px" }}>
-            <AppMockup />
-          </div>
+          {/* Mockup app — masqué sur mobile pour éviter le débordement */}
+          {!isMobile && (
+            <div style={{ display: "flex", justifyContent: "center", minWidth: "300px" }}>
+              <AppMockup />
+            </div>
+          )}
         </div>
       </section>
 

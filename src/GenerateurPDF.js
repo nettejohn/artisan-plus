@@ -114,17 +114,12 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   // Décoration métier
   dessinerDecoration(doc, style);
 
-  // Nom app
-  doc.setTextColor(...theme.headerText);
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
-  doc.text("Artisan+", 15, 24);
-
-  // Métier
+  // Métier (centré verticalement dans le header de 50px)
   if (theme.metier) {
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(theme.metier, 15, 34);
+    doc.setTextColor(...theme.headerText);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(theme.metier, 15, 28);
   }
 
   // Numéro + type document
@@ -343,10 +338,10 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   // FOOTER
   doc.setFillColor(...theme.headerBg);
   doc.rect(0, 280, 210, 17, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
+  doc.setTextColor(200, 200, 200);
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.text("Généré avec Artisan+ — artisan-plus.vercel.app", 105, 290, { align: "center" });
+  doc.text("artisan-plus.fr", 105, 290, { align: "center" });
 
   return doc;
 }
