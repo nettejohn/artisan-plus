@@ -1991,6 +1991,503 @@ function PageFacturationElectronique() {
   );
 }
 
+// ── Données : variantes facturation électronique (4 nouvelles pages) ──────────
+
+const FACT_ELEC_VARIANTS = {
+  "/facturation-electronique-artisan": {
+    title: "Facturation électronique obligatoire pour les artisans 2026–2027 | Artisan+",
+    desc: "Tous les artisans sont concernés : réception obligatoire dès sept. 2026, émission dès sept. 2027. Artisan+ génère déjà le Factur-X conforme EN 16931 — essai gratuit.",
+    canonical: `${BASE}/facturation-electronique-artisan`,
+    badge: "🔨 Guide artisan — Réforme DGFiP 2024",
+    h1: ["Facturation électronique", "obligatoire pour les artisans", "tout ce qu'il faut savoir"],
+    intro: "Plombier, électricien, maçon, couvreur, auto-entrepreneur du BTP... tous les artisans français sont directement concernés par la réforme de la facturation électronique. Deux dates à retenir : septembre 2026 pour la réception, septembre 2027 pour l'émission. Artisan+ vous prépare dès aujourd'hui.",
+    bullets: [
+      { icon: "📥", titre: "Réception obligatoire : 1er sept. 2026", desc: "Vous devrez pouvoir recevoir des factures structurées de vos fournisseurs via une Plateforme de Dématérialisation Partenaire (PDP) agréée par la DGFiP." },
+      { icon: "📤", titre: "Émission obligatoire : 1er sept. 2027", desc: "Pour vos clients professionnels (B2B), vos factures PDF classiques ne suffiront plus. Vous devrez émettre des fichiers au format Factur-X, UBL ou CII." },
+      { icon: "🆓", titre: "Micro-entrepreneurs aussi concernés", desc: "Même sans TVA (franchise art. 293B CGI), vous devrez émettre des factures au format Factur-X profil MINIMUM à partir du 1er septembre 2027." },
+      { icon: "⚠️", titre: "Sanctions jusqu'à 15 000€/an", desc: "Des amendes de 15€ par facture non conforme, plafonnées à 15 000€ par an, sont prévues. Mieux vaut anticiper dès maintenant." },
+      { icon: "✅", titre: "Artisan+ déjà conforme", desc: "Artisan+ génère automatiquement le fichier XML Factur-X conforme EN 16931 pour chaque facture créée. Le bon profil est sélectionné selon votre régime TVA." },
+      { icon: "💶", titre: "À 7,99€/mois seulement", desc: "Artisan+ est le logiciel complet le moins cher du marché : devis, factures, Factur-X, suivi chantier, paiement en ligne — tout inclus." },
+    ],
+    faq: [
+      { q: "Tous les artisans sont-ils concernés par la réforme ?", a: "Oui : artisans en entreprise individuelle, auto-entrepreneurs, micro-entrepreneurs, EURL, SARL du BTP — toutes les structures sont concernées, quelle que soit leur taille." },
+      { q: "Un artisan micro-entrepreneur sans TVA est-il concerné ?", a: "Oui. Même sous le seuil de franchise TVA (article 293B CGI), vous devrez émettre des factures au format Factur-X profil MINIMUM à partir du 1er septembre 2027. Ce profil simplifié est prévu exactement pour ce cas." },
+      { q: "Comment Artisan+ me prépare-t-il à la réforme ?", a: "Artisan+ génère automatiquement le fichier XML Factur-X conforme EN 16931 pour chaque facture créée. Un bouton dans votre tableau de bord vous permet de le télécharger en un clic. Le bon profil (MINIMUM ou EN16931) est sélectionné automatiquement selon votre régime TVA." },
+      { q: "La réforme s'applique-t-elle aux factures pour particuliers ?", a: "Non. L'obligation concerne uniquement les transactions B2B (entre professionnels). Vos factures pour clients particuliers (B2C) restent au format PDF classique." },
+    ],
+    ctaTitre: <>Artisan+ prépare déjà<br /><span style={{ color: P }}>les artisans à la réforme 2026</span></>,
+    ctaSous: "Générez vos factures Factur-X conformes dès maintenant. Essai gratuit sans carte bancaire. Puis 7,99€/mois.",
+  },
+  "/facture-electronique-tpe-pme": {
+    title: "Facture électronique obligatoire TPE/PME 2026–2027 | Guide & conformité | Artisan+",
+    desc: "La facture électronique est obligatoire pour toutes les TPE et PME françaises : réception en sept. 2026, émission en sept. 2027. Formats acceptés, PDP, sanctions, solutions.",
+    canonical: `${BASE}/facture-electronique-tpe-pme`,
+    badge: "🏢 Guide TPE/PME — Réforme DGFiP 2026",
+    h1: ["Facture électronique obligatoire", "TPE & PME", "calendrier, formats et conformité"],
+    intro: "La réforme de la facturation électronique impacte toutes les entreprises françaises, des grandes entreprises aux micro-entreprises. Pour les TPE (moins de 10 salariés) et PME (moins de 250 salariés) du BTP et des services, les obligations arrivent progressivement. Voici tout ce que vous devez savoir pour anticiper sereinement.",
+    bullets: [
+      { icon: "📅", titre: "Calendrier adapté aux petites structures", desc: "Les TPE et PME ont jusqu'au 1er septembre 2027 pour l'émission (réception obligatoire dès 2026). Ce délai leur permet de s'adapter progressivement." },
+      { icon: "📄", titre: "3 formats acceptés par l'État", desc: "Factur-X (PDF + XML embarqué, standard français), UBL 2.1 (pan-européen) et CII (international). En France, le Factur-X est le format recommandé." },
+      { icon: "🔗", titre: "PDP : Plateforme de Dématérialisation Partenaire", desc: "Vous devrez passer par une PDP agréée par la DGFiP pour transmettre et recevoir vos factures électroniques. Artisan+ sera compatible avec les principales PDP." },
+      { icon: "🧾", titre: "B2B uniquement pour l'émission", desc: "L'obligation d'émission électronique s'applique uniquement aux transactions entre professionnels (B2B). Vos factures aux particuliers (B2C) restent au format PDF." },
+      { icon: "✅", titre: "Artisan+ conforme pour les TPE du BTP", desc: "Artisan+ est spécialement conçu pour les TPE et artisans du bâtiment. Il génère déjà les fichiers Factur-X XML conformes EN 16931 pour chaque facture." },
+      { icon: "💶", titre: "Moins de 8€/mois pour être conforme", desc: "Artisan+ est l'outil le plus abordable du marché incluant la génération Factur-X : 7,99€/mois avec devis, factures, suivi chantier et paiement en ligne inclus." },
+    ],
+    faq: [
+      { q: "TPE avec 2 salariés : quand devons-nous émettre des factures électroniques ?", a: "La date d'obligation d'émission pour les TPE (moins de 10 salariés) et PME est fixée au 1er septembre 2027. Vous avez jusqu'à cette date pour vous équiper d'un logiciel conforme." },
+      { q: "Nos factures PDF actuelles deviennent-elles invalides ?", a: "Pas pour les clients particuliers (B2C) — les PDF restent valides. Pour les clients professionnels (B2B) à partir du 1er septembre 2027, le format structuré (Factur-X, UBL ou CII) sera exigé." },
+      { q: "Qu'est-ce qu'une PDP et pourquoi en avons-nous besoin ?", a: "Une Plateforme de Dématérialisation Partenaire (PDP) est un opérateur agréé par la DGFiP pour transmettre les factures électroniques entre entreprises. Elle garantit la sécurité, la traçabilité et la conformité des échanges." },
+      { q: "Y a-t-il des aides de l'État pour financer la mise en conformité ?", a: "Des dispositifs d'accompagnement sont prévus. Renseignez-vous auprès de votre CMA ou expert-comptable. Avec Artisan+ à 7,99€/mois, la mise en conformité coûte moins qu'un repas au restaurant." },
+    ],
+    ctaTitre: <>Conformez votre TPE<br /><span style={{ color: P }}>à la réforme 2026–2027 avec Artisan+</span></>,
+    ctaSous: "Essai gratuit sans carte bancaire. Génération Factur-X incluse. Puis seulement 7,99€/mois.",
+  },
+  "/logiciel-facturation-electronique-gratuit": {
+    title: "Logiciel facturation électronique gratuit artisan 2026 : comparatif | Artisan+",
+    desc: "Quel logiciel de facturation électronique choisir pour être conforme en 2026 ? Comparatif des solutions gratuites et abordables pour artisans et TPE. Artisan+ à 7,99€/mois.",
+    canonical: `${BASE}/logiciel-facturation-electronique-gratuit`,
+    badge: "💻 Comparatif 2026 — Conformité Factur-X",
+    h1: ["Logiciel de facturation", "électronique conforme 2026", "le comparatif honnête"],
+    intro: "La réforme de 2026–2027 oblige à utiliser un logiciel compatible Factur-X ou UBL. Mais entre les solutions soi-disant gratuites et les abonnements à 40€/mois, comment choisir ? Voici un comparatif honnête des meilleures options pour les artisans et TPE, avec leurs vrais prix et fonctionnalités.",
+    bullets: [
+      { icon: "🏆", titre: "Artisan+ — 7,99€/mois", desc: "Meilleur rapport qualité-prix : devis, factures, Factur-X XML, suivi chantier, paiement en ligne, mini-site. Essai gratuit sans carte bancaire. Factur-X inclus dès le 1er mois." },
+      { icon: "⚖️", titre: "Tolteck — 19€/mois", desc: "Interface simple, correcte pour les devis/factures basiques. Pas de suivi chantier ni paiement en ligne. 2,4× plus cher qu'Artisan+." },
+      { icon: "⚖️", titre: "Obat — 39€/mois", desc: "Fonctionnalités complètes mais prix élevé. Interface complexe. 4,9× plus cher qu'Artisan+. Adapté plutôt aux entreprises de 5+ salariés." },
+      { icon: "✅", titre: "Ce que doit inclure un logiciel conforme", desc: "Génération Factur-X XML (conforme EN 16931), profil MINIMUM (micro-entreprises) ET profil EN16931 (TVA), téléchargement du fichier XML. Artisan+ remplit tous ces critères." },
+      { icon: "🆓", titre: "Les vraies solutions gratuites existent-elles ?", desc: "Excel ou PDF ne génèrent pas de Factur-X conforme. Pour être légalement en règle en 2027, un logiciel dédié est nécessaire. Artisan+ à 7,99€/mois est la solution la plus abordable." },
+      { icon: "🎯", titre: "Critères de choix pour un artisan", desc: "Vérifiez : génération Factur-X incluse, interface adaptée au terrain (smartphone), prix raisonnable, support client français, essai gratuit. Artisan+ coche toutes ces cases." },
+    ],
+    faq: [
+      { q: "Existe-t-il un logiciel de facturation électronique vraiment gratuit pour artisan ?", a: "Les solutions réellement gratuites (Excel, LibreOffice) ne génèrent pas de fichiers Factur-X conformes EN 16931. Pour être légalement conforme en 2027, un logiciel dédié est nécessaire. Artisan+ est la solution la plus abordable à 7,99€/mois avec un essai gratuit sans engagement." },
+      { q: "Artisan+ génère-t-il vraiment les fichiers Factur-X ?", a: "Oui. Pour chaque facture créée dans Artisan+, un bouton 'Factur-X' dans votre tableau de bord vous permet de télécharger instantanément le fichier XML structuré conforme EN 16931. Le profil MINIMUM (micro-entreprises) ou EN16931 (assujettis TVA) est sélectionné automatiquement." },
+      { q: "Y a-t-il des aides de l'État pour financer le logiciel ?", a: "Des dispositifs d'accompagnement PME/TPE sont prévus. Renseignez-vous auprès de votre CMA ou de votre expert-comptable. Avec Artisan+ à 7,99€/mois, la mise en conformité reste très abordable sans aide." },
+      { q: "Puis-je essayer Artisan+ gratuitement avant de m'abonner ?", a: "Oui. Artisan+ propose un essai gratuit complet sans carte bancaire. Vous pouvez créer vos devis, factures et télécharger vos fichiers Factur-X avant de décider si vous souhaitez vous abonner." },
+    ],
+    ctaTitre: <>Essai gratuit<br /><span style={{ color: P }}>Factur-X inclus dès le départ</span></>,
+    ctaSous: "7,99€/mois après l'essai gratuit. Le logiciel le moins cher du marché avec Factur-X, devis, factures, suivi chantier et paiement en ligne.",
+  },
+  "/facture-electronique-obligatoire-2027": {
+    title: "Facture électronique obligatoire 2027 — artisans et TPE : êtes-vous prêts ? | Artisan+",
+    desc: "Le 1er septembre 2027, tous les artisans et TPE devront émettre des factures électroniques structurées (Factur-X). Préparez-vous dès maintenant avec Artisan+.",
+    canonical: `${BASE}/facture-electronique-obligatoire-2027`,
+    badge: "⚠️ Deadline 2027 — Artisans & TPE concernés",
+    h1: ["Facture électronique", "obligatoire en 2027", "artisans et TPE : préparez-vous"],
+    intro: "Le 1er septembre 2027, il ne s'agit plus d'une recommandation : tous les artisans et TPE françaises devront émettre leurs factures professionnelles au format électronique structuré. Les factures PDF non structurées ne seront plus acceptées pour les transactions B2B. Voici comment anticiper sereinement avec Artisan+.",
+    bullets: [
+      { icon: "📅", titre: "1er sept. 2026 : réception obligatoire", desc: "Premier jalon : toutes les entreprises devront pouvoir recevoir des factures électroniques structurées via une PDP agréée." },
+      { icon: "📤", titre: "1er sept. 2027 : émission obligatoire TPE/artisans", desc: "C'est la date qui vous concerne directement : vos factures B2B devront être émises au format Factur-X, UBL ou CII. Les PDF non structurés ne suffiront plus." },
+      { icon: "👨‍👩‍👦", titre: "Particuliers non concernés par l'émission", desc: "L'obligation ne s'applique qu'aux transactions B2B (entre professionnels). Vos factures pour clients particuliers (B2C) restent au format PDF sans changement." },
+      { icon: "💰", titre: "Sanctions : jusqu'à 15 000€/an", desc: "Des amendes de 15€ par facture non conforme, plafonnées à 15 000€ par an, sont prévues. C'est pourquoi anticiper dès maintenant est la meilleure stratégie." },
+      { icon: "🔄", titre: "Factur-X : rien de visible pour vous", desc: "Avec Artisan+, rien ne change dans votre façon de travailler. Vous créez votre facture normalement, et le fichier XML Factur-X est généré automatiquement en arrière-plan." },
+      { icon: "🚀", titre: "Artisan+ : prêt pour 2027 dès aujourd'hui", desc: "Artisan+ génère déjà des fichiers Factur-X conformes EN 16931. Aucune mise à jour, aucun paramétrage supplémentaire ne sera nécessaire le 1er septembre 2027." },
+    ],
+    faq: [
+      { q: "Pourquoi 2027 pour les TPE alors que la réforme démarre en 2026 ?", a: "La réforme est progressive : 2026 pour la réception (toutes entreprises), 2027 pour l'émission des ETI, PME, TPE et micro-entreprises. Ce calendrier permet aux petites structures de s'adapter progressivement." },
+      { q: "Qu'est-ce qui change concrètement pour un artisan en 2027 ?", a: "Lorsque vous facturez une entreprise (maître d'ouvrage, autre artisan, SCI, etc.), votre facture PDF classique ne suffit plus. Vous devrez soit envoyer directement un fichier Factur-X, soit passer par une PDP pour transmettre la facture de façon dématérialisée." },
+      { q: "Et si je travaille exclusivement avec des particuliers ?", a: "Si 100% de votre activité est B2C (clients particuliers), vous n'êtes pas directement concerné par l'obligation d'émission de 2027. Mais vous devrez quand même pouvoir recevoir des factures électroniques de vos fournisseurs à partir de 2026." },
+      { q: "Comment démarrer avec Artisan+ pour être conforme en 2027 ?", a: "Créez votre compte Artisan+ gratuitement, renseignez votre SIRET et vos informations professionnelles, puis commencez à créer vos factures normalement. Pour chaque facture, le bouton 'Factur-X' dans votre tableau de bord génère instantanément le fichier XML conforme." },
+    ],
+    ctaTitre: <>Ne laissez pas 2027<br /><span style={{ color: P }}>vous surprendre — Artisan+ est prêt</span></>,
+    ctaSous: "Artisan+ génère déjà vos factures Factur-X conformes. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
+  },
+};
+
+// ── Données : variantes pages génériques mots-clés (9 nouvelles pages) ────────
+
+const GENERIC_VARIANTS = {
+  "/facture-en-ligne-gratuit": {
+    title: "Faire une facture en ligne gratuit — Artisan+ | Essai gratuit artisan",
+    desc: "Créez vos factures en ligne gratuitement avec Artisan+. Conforme à la loi française, envoi par email, paiement en ligne. Essai gratuit pour artisans et auto-entrepreneurs.",
+    canonical: `${BASE}/facture-en-ligne-gratuit`,
+    badge: "💶 Facture en ligne — Essai gratuit artisan",
+    h1: ["Faire une facture en ligne", "gratuitement", "en 2 minutes — pour les artisans"],
+    intro: "Vous êtes artisan ou auto-entrepreneur et vous cherchez à créer vos factures en ligne gratuitement, sans logiciel à installer et sans prise de tête ? Artisan+ vous permet de générer des factures conformes à la loi française, professionnelles et prêtes à envoyer par email — en moins de 2 minutes. Essai gratuit, sans carte bancaire.",
+    features: [
+      { icon: "⚡", titre: "Facture créée en 2 minutes", desc: "Remplissez les informations de votre client, sélectionnez vos prestations dans votre catalogue et envoyez directement par email. Simple, rapide, professionnel." },
+      { icon: "📋", titre: "Toutes les mentions légales incluses", desc: "TVA, SIRET, numéro de facture séquentiel, conditions de règlement, mentions obligatoires... Artisan+ génère automatiquement des factures conformes à la législation française." },
+      { icon: "📱", titre: "Sur smartphone, depuis le chantier", desc: "Pas besoin d'un ordinateur. Artisan+ fonctionne sur iPhone et Android. Créez et envoyez votre facture directement depuis votre chantier." },
+      { icon: "💳", titre: "Paiement en ligne inclus", desc: "Vos clients paient directement depuis leur facture par carte bancaire. Artisan+ intègre Stripe pour un paiement sécurisé en quelques clics." },
+      { icon: "🔄", titre: "Devis → Facture en 1 clic", desc: "Transformez un devis accepté en facture instantanément. Toutes les informations sont reprises automatiquement, sans ressaisie." },
+      { icon: "🏛️", titre: "Conforme réforme électronique 2026", desc: "Artisan+ génère également le fichier Factur-X XML conforme EN 16931, pour vous préparer à la réforme obligatoire dès 2026." },
+    ],
+    pricing: "Essai gratuit complet · Puis 7,99€/mois seulement",
+    faq: [
+      { q: "Artisan+ est-il vraiment gratuit pour créer des factures ?", a: "Artisan+ propose un essai gratuit complet sans carte bancaire. Après l'essai, l'abonnement est à 7,99€/mois — le tarif le plus bas du marché pour un logiciel complet incluant devis, factures, suivi chantier et paiement en ligne." },
+      { q: "Mes factures sont-elles légalement conformes ?", a: "Oui. Artisan+ génère des factures conformes à la législation française : numéro séquentiel unique, mentions obligatoires (SIRET, TVA, délai de paiement, pénalités de retard), format PDF professionnel." },
+      { q: "Comment mes clients reçoivent-ils leur facture ?", a: "Artisan+ envoie la facture directement par email au client, avec un bouton de paiement en ligne. Vous pouvez aussi télécharger le PDF pour l'envoyer manuellement ou l'imprimer." },
+      { q: "Combien de factures puis-je créer ?", a: "Illimité. Artisan+ ne limite pas le nombre de factures que vous pouvez créer. Créez autant de factures que vous le souhaitez pour l'abonnement mensuel fixe de 7,99€." },
+    ],
+    ctaTitre: <>Créez votre première facture<br /><span style={{ color: P }}>gratuitement en 2 minutes</span></>,
+    ctaSous: "Essai gratuit sans carte bancaire. Factures conformes, envoi email, paiement en ligne inclus. Puis 7,99€/mois.",
+  },
+  "/facture-en-ligne-artisan": {
+    title: "Facture en ligne artisan : créez et envoyez en 2 minutes | Artisan+",
+    desc: "Application de facturation en ligne pour artisans : devis, factures conformes, signature électronique, paiement en ligne. À 7,99€/mois — 2 à 5× moins cher que la concurrence.",
+    canonical: `${BASE}/facture-en-ligne-artisan`,
+    badge: "🔨 Facturation en ligne — Spécial artisans",
+    h1: ["Facture en ligne", "pour artisan", "le meilleur outil en 2026"],
+    intro: "En tant qu'artisan, vous n'avez ni le temps ni l'envie de passer des heures sur votre comptabilité. Artisan+ est conçu pour vous : une application de facturation en ligne simple, rapide et pensée pour le terrain. Créez vos factures depuis votre smartphone sur le chantier, envoyez-les par email et recevez vos paiements en ligne.",
+    features: [
+      { icon: "🔨", titre: "Conçu pour les artisans du BTP", desc: "Plombier, électricien, maçon, couvreur, menuisier... Artisan+ inclut un catalogue de prix adapté à votre métier, avec des modèles de prestations prédéfinis." },
+      { icon: "✍️", titre: "Signature électronique des devis", desc: "Vos clients signent leur devis depuis leur smartphone, en quelques secondes. La signature électronique est légalement valide et évite les allers-retours." },
+      { icon: "📊", titre: "Suivi chantier intégré", desc: "Suivez l'avancement de vos chantiers, ajoutez des photos, des notes vocales et des documents. Artisan+ va bien au-delà de la simple facturation." },
+      { icon: "👥", titre: "Gestion équipe et sous-traitants", desc: "Donnez accès à vos ouvriers avec des permissions adaptées. Ils peuvent voir les chantiers, ajouter des photos et noter l'avancement." },
+      { icon: "🌐", titre: "Mini-site vitrine inclus", desc: "Artisan+ génère automatiquement votre mini-site professionnel avec vos prestations, photos et avis clients. Votre carte de visite numérique, sans effort." },
+      { icon: "⚡", titre: "Prêt pour la réforme 2026", desc: "Artisan+ génère les fichiers Factur-X XML conformes EN 16931, obligatoires dès 2026. Vous êtes déjà prêt pour la réforme de la facturation électronique." },
+    ],
+    pricing: "7,99€/mois · Essai gratuit · Annulable à tout moment",
+    faq: [
+      { q: "Artisan+ est-il adapté à tous les corps de métier ?", a: "Oui. Artisan+ est utilisé par des plombiers, électriciens, maçons, couvreurs, menuisiers, jardiniers, paysagistes, climaticiens et plus de 50 métiers du BTP et des services. Le catalogue de prestations est personnalisable selon votre métier." },
+      { q: "Puis-je travailler hors connexion sur le chantier ?", a: "Oui. Artisan+ fonctionne hors connexion sur votre smartphone. Les données se synchronisent automatiquement quand vous retrouvez une connexion internet." },
+      { q: "Artisan+ est-il adapté à un auto-entrepreneur ?", a: "Oui. Artisan+ gère aussi bien les micro-entreprises sans TVA (profil simplifié) que les entreprises assujetties à la TVA (taux de 5,5%, 10% ou 20% configurables). Le régime est configurable dans votre profil." },
+      { q: "Comment Artisan+ se compare à Tolteck ou Obat ?", a: "Artisan+ est 2 à 5× moins cher que la concurrence (7,99€/mois contre 19€ pour Tolteck et 39€ pour Obat) et propose en plus : suivi de chantier avancé, mini-site vitrine, paiement en ligne et outils terrain." },
+    ],
+    ctaTitre: <>Rejoignez les artisans<br /><span style={{ color: P }}>qui gagnent du temps avec Artisan+</span></>,
+    ctaSous: "Essai gratuit sans carte bancaire. 7,99€/mois ensuite — annulable à tout moment.",
+  },
+  "/devis-en-ligne-gratuit": {
+    title: "Devis en ligne gratuit pour artisan : créez votre devis en 2 minutes | Artisan+",
+    desc: "Créez votre devis en ligne gratuitement avec Artisan+. Conforme aux mentions légales, signature électronique incluse. Essai gratuit pour artisans et auto-entrepreneurs.",
+    canonical: `${BASE}/devis-en-ligne-gratuit`,
+    badge: "📄 Devis en ligne — Gratuit artisans",
+    h1: ["Devis en ligne gratuit", "pour artisans", "professionnel et conforme en 2 minutes"],
+    intro: "Créer un devis professionnel ne devrait pas prendre plus de 2 minutes. Avec Artisan+, remplissez votre catalogue de prix une fois, et créez ensuite chaque devis en quelques clics. Vos clients reçoivent un devis PDF professionnel, le signent électroniquement depuis leur téléphone, et vous confirmez le chantier sans aller-retour.",
+    features: [
+      { icon: "⚡", titre: "Devis créé en 2 minutes", desc: "Sélectionnez vos prestations dans votre catalogue personnalisé, ajustez les quantités et envoyez. Votre catalogue mémorise tous vos prix habituels." },
+      { icon: "✍️", titre: "Signature électronique légalement valide", desc: "Vos clients signent depuis leur smartphone, en temps réel. La signature électronique a la même valeur légale qu'une signature manuscrite en France." },
+      { icon: "📋", titre: "Mentions obligatoires automatiques", desc: "Artisan+ inclut automatiquement toutes les mentions légales : durée de validité, taux de TVA, numéro SIRET, conditions d'acceptation et délai d'exécution prévisionnel." },
+      { icon: "🔄", titre: "Transformation en facture en 1 clic", desc: "Dès la signature, transformez votre devis en facture instantanément. Toutes les informations sont reprises automatiquement, aucune ressaisie n'est nécessaire." },
+      { icon: "📱", titre: "Depuis votre smartphone sur le chantier", desc: "Créez et envoyez vos devis depuis votre iPhone ou Android sur le chantier. Artisan+ fonctionne hors connexion et synchronise automatiquement." },
+      { icon: "💶", titre: "Paiement d'acompte en ligne", desc: "Après signature du devis, demandez un acompte payable directement en ligne par carte bancaire. Recevez le paiement avant de démarrer le chantier." },
+    ],
+    pricing: "Essai gratuit complet · Puis 7,99€/mois",
+    faq: [
+      { q: "Artisan+ est-il gratuit pour créer des devis ?", a: "Artisan+ propose un essai gratuit complet sans carte bancaire. Après l'essai, l'abonnement est à 7,99€/mois — le tarif le plus bas du marché pour un logiciel complet incluant devis, factures, signature électronique et paiement en ligne." },
+      { q: "La signature électronique est-elle légalement valide ?", a: "Oui. En France, la signature électronique est régie par le règlement eIDAS (UE n° 910/2014). Une signature électronique simple a la même valeur probante qu'une signature manuscrite lorsqu'elle est horodatée et liée à un document." },
+      { q: "Puis-je personnaliser mes modèles de devis ?", a: "Oui. Artisan+ vous permet de créer votre catalogue de prix personnalisé avec vos prestations habituelles et vos prix. Vous pouvez aussi ajouter votre logo, vos couleurs et vos mentions spécifiques (garantie décennale, etc.)." },
+      { q: "Combien de devis puis-je créer ?", a: "Illimité. Artisan+ ne limite pas le nombre de devis ou de factures que vous pouvez créer. Créez autant de devis que vous le souhaitez pour l'abonnement mensuel fixe." },
+    ],
+    ctaTitre: <>Créez votre premier devis<br /><span style={{ color: P }}>en ligne en 2 minutes — c'est gratuit</span></>,
+    ctaSous: "Essai gratuit sans carte bancaire. Devis conformes, signature électronique, transformation en facture. Puis 7,99€/mois.",
+  },
+  "/application-devis-facture-gratuite": {
+    title: "Application devis facture gratuite artisan 2026 : comparatif | Artisan+",
+    desc: "Quelle application de devis et facture choisir pour un artisan ? Comparatif des meilleures applications gratuites et abordables. Artisan+ : l'app complète à 7,99€/mois.",
+    canonical: `${BASE}/application-devis-facture-gratuite`,
+    badge: "📱 Comparatif app — Artisans 2026",
+    h1: ["Application devis & facture", "gratuite ou abordable", "pour artisans : le vrai comparatif"],
+    intro: "Vous cherchez une application de devis et facture pour artisan, gratuite ou à petit prix ? Le marché propose de nombreuses solutions, mais toutes ne se valent pas. Voici un comparatif honnête, basé sur les vraies fonctionnalités et le prix réel, pour vous aider à choisir l'application qui correspond à votre activité.",
+    features: [
+      { icon: "🏆", titre: "Artisan+ — 7,99€/mois (Recommandé)", desc: "Devis, factures, suivi chantier, signature électronique, paiement en ligne, mini-site, 20 outils terrain, Factur-X 2026. Le plus complet au meilleur prix." },
+      { icon: "⚖️", titre: "Tolteck — 19€/mois", desc: "Interface simple, devis et factures corrects. Pas de suivi chantier, pas de paiement en ligne, pas de mini-site. 2,4× plus cher qu'Artisan+." },
+      { icon: "⚖️", titre: "Obat — 39€/mois", desc: "Fonctionnalités complètes mais prix très élevé. Adapté aux entreprises de 5+ salariés. Interface complexe. 4,9× plus cher qu'Artisan+." },
+      { icon: "⚖️", titre: "ArtisanFacture — 29€/mois", desc: "Correct pour la facturation basique. Sans suivi chantier ni paiement en ligne. 3,6× plus cher qu'Artisan+. Interface vieillissante." },
+      { icon: "📱", titre: "Apps mobiles natives vs PWA", desc: "Artisan+ est une PWA installable sur iOS et Android — aussi performante qu'une app native, sans passer par l'App Store ou Google Play. Fonctionne hors connexion." },
+      { icon: "🎯", titre: "Critères de choix essentiels", desc: "Hors connexion, catalogue de prix personnalisable, signature électronique, paiement en ligne, conformité Factur-X 2026, prix abordable. Artisan+ coche toutes ces cases." },
+    ],
+    pricing: "Artisan+ : 7,99€/mois · Essai gratuit · Sans engagement",
+    faq: [
+      { q: "Il existe-t-il une vraie application gratuite pour devis et factures artisan ?", a: "Les applications réellement gratuites et complètes n'existent pas dans ce secteur. Les offres gratuites sont soit très limitées (nombre de devis, fonctionnalités bloquées), soit des freemiums avec les vraies fonctionnalités payantes. Artisan+ à 7,99€/mois est la solution la plus abordable avec un essai gratuit complet." },
+      { q: "Artisan+ fonctionne-t-il sur iPhone et Android ?", a: "Oui. Artisan+ est une Progressive Web App (PWA) installable sur iOS (iPhone, iPad) et Android. Elle s'utilise comme une application native, fonctionne hors connexion et ne nécessite pas de passer par l'App Store ou le Google Play Store." },
+      { q: "Artisan+ est-il conforme à la réforme de la facturation électronique 2026 ?", a: "Oui. Artisan+ génère déjà des fichiers Factur-X XML conformes EN 16931 pour chaque facture créée. Vous serez conforme à la réforme de septembre 2026 (réception) et septembre 2027 (émission) sans aucune mise à jour nécessaire." },
+      { q: "Puis-je gérer plusieurs artisans ou ouvriers avec Artisan+ ?", a: "Oui. Artisan+ propose une gestion d'équipe : vous pouvez ajouter des ouvriers ou des sous-traitants à vos chantiers avec des permissions adaptées." },
+    ],
+    ctaTitre: <>Essayez l'application la plus complète<br /><span style={{ color: P }}>au meilleur prix — dès maintenant</span></>,
+    ctaSous: "Artisan+ : l'application devis facture pour artisans. Essai gratuit sans carte bancaire. 7,99€/mois ensuite.",
+  },
+  "/logiciel-devis-facture-artisan": {
+    title: "Meilleur logiciel devis facture artisan 2026 : comparatif complet | Artisan+",
+    desc: "Quel logiciel de devis et facture choisir pour votre activité d'artisan ? Comparatif Artisan+, Tolteck, Obat, ArtisanFacture. Prix, fonctionnalités, conformité 2026.",
+    canonical: `${BASE}/logiciel-devis-facture-artisan`,
+    badge: "💻 Comparatif logiciels — Artisans 2026",
+    h1: ["Meilleur logiciel", "devis et facture", "pour artisan en 2026"],
+    intro: "Choisir son logiciel de devis et facturation est une décision importante pour un artisan. Un bon outil vous fait gagner plusieurs heures par semaine sur la gestion administrative. Voici notre comparatif complet et honnête des meilleurs logiciels disponibles en 2026, avec leurs vrais prix et fonctionnalités.",
+    features: [
+      { icon: "🥇", titre: "Artisan+ — 7,99€/mois", desc: "Meilleur rapport qualité-prix du marché. Devis professionnels, factures conformes, suivi de chantier avancé, signature électronique, paiement en ligne, mini-site, Factur-X 2026 inclus." },
+      { icon: "📊", titre: "Fonctionnalités indispensables", desc: "Catalogue de prix personnalisable, mentions légales automatiques, envoi par email, transformation devis→facture, numérotation automatique, export PDF, mode mobile." },
+      { icon: "🔬", titre: "Fonctionnalités avancées d'Artisan+", desc: "Suivi chantier avec photos, notes vocales et checklist, gestion d'équipe/ouvriers, mini-site vitrine automatique, 20 outils terrain (niveau, boussole, mesure IA)." },
+      { icon: "⚡", titre: "Prêt pour la réforme 2026", desc: "Artisan+ génère les fichiers Factur-X XML conformes EN 16931, obligatoires pour la facturation électronique B2B dès 2027. Vous êtes prêt sans action supplémentaire." },
+      { icon: "📱", titre: "Vraiment utilisable sur le terrain", desc: "Interface conçue pour être utilisée sur un smartphone, sur un chantier. Fonctionne hors connexion et synchronise automatiquement." },
+      { icon: "💶", titre: "2 à 5× moins cher que la concurrence", desc: "Artisan+ à 7,99€/mois contre 19€ (Tolteck), 29€ (ArtisanFacture) et 39€ (Obat). Moins cher pour plus de fonctionnalités." },
+    ],
+    pricing: "Artisan+ : 7,99€/mois · Essai gratuit · Annulable à tout moment",
+    faq: [
+      { q: "Quel est le meilleur logiciel de devis et facture pour artisan ?", a: "Artisan+ est le meilleur rapport qualité-prix du marché en 2026 : 7,99€/mois avec toutes les fonctionnalités nécessaires (devis, factures, suivi chantier, paiement en ligne, Factur-X). C'est aussi le moins cher du marché pour un outil complet." },
+      { q: "Artisan+ est-il adapté à tous les métiers ?", a: "Oui. Artisan+ est utilisé par plus de 50 corps de métier : plombiers, électriciens, maçons, couvreurs, menuisiers, peintres, carreleurs, jardiniers, paysagistes et bien d'autres. Le catalogue de prix est entièrement personnalisable." },
+      { q: "Comment Artisan+ se différencie-t-il de Tolteck ?", a: "Artisan+ propose plus de fonctionnalités (suivi chantier, mini-site, paiement en ligne, outils terrain, Factur-X) pour un prix 2,4× inférieur (7,99€ vs 19€). Tolteck est simple mais limité aux devis et factures basiques." },
+      { q: "Y a-t-il un engagement de durée ?", a: "Non. Artisan+ est sans engagement. Vous pouvez annuler à tout moment depuis votre compte, sans frais de résiliation. L'essai gratuit vous permet de tester toutes les fonctionnalités sans risque." },
+    ],
+    ctaTitre: <>Le logiciel qu'il vous faut<br /><span style={{ color: P }}>à 7,99€/mois — essai gratuit</span></>,
+    ctaSous: "Devis, factures, suivi chantier, paiement en ligne, Factur-X 2026. Tout inclus. Sans engagement. Annulable à tout moment.",
+  },
+  "/faire-une-facture-gratuitement": {
+    title: "Comment faire une facture gratuitement ? Guide complet artisan 2026 | Artisan+",
+    desc: "Comment créer une facture conforme gratuitement ? Mentions obligatoires, format, envoi et paiement en ligne. Guide pratique pour artisans et auto-entrepreneurs.",
+    canonical: `${BASE}/faire-une-facture-gratuitement`,
+    badge: "📄 Guide pratique — Facture conforme artisan",
+    h1: ["Comment faire", "une facture gratuitement", "guide complet pour artisans 2026"],
+    intro: "Créer une facture conforme à la législation française peut sembler compliqué pour un artisan. Entre les mentions légales obligatoires, la numérotation correcte et la TVA, il y a beaucoup à retenir. Ce guide vous explique exactement comment procéder — et comment Artisan+ automatise tout ça pour vous.",
+    features: [
+      { icon: "📋", titre: "Mentions légales obligatoires sur une facture", desc: "Numéro de facture séquentiel, date d'émission, vos coordonnées complètes (SIRET, TVA intracommunautaire), coordonnées du client, description des prestations, taux de TVA applicable, montant HT et TTC, conditions de règlement, pénalités de retard." },
+      { icon: "🔢", titre: "Numérotation chronologique obligatoire", desc: "Les factures doivent être numérotées de façon chronologique et sans rupture de séquence. Artisan+ génère automatiquement les numéros de facture conformes (ex: 2026-001, 2026-002...) sans que vous ayez à y penser." },
+      { icon: "💶", titre: "TVA : quel taux appliquer ?", desc: "Le taux de TVA dépend du type de travaux : 5,5% pour les travaux d'amélioration énergétique, 10% pour la rénovation, 20% pour les travaux neufs. Si vous êtes sous le seuil de franchise TVA, la mention 'TVA non applicable - art. 293B CGI' suffit." },
+      { icon: "📧", titre: "Comment envoyer la facture à votre client ?", desc: "La facture peut être envoyée par email (PDF), remise en main propre ou envoyée par courrier. Artisan+ vous permet d'envoyer directement par email depuis l'application, avec un bouton de paiement en ligne intégré." },
+      { icon: "💳", titre: "Facture payable en ligne", desc: "Artisan+ intègre Stripe pour permettre à vos clients de payer leur facture en ligne par carte bancaire. Plus besoin d'attendre un virement ou un chèque." },
+      { icon: "⚡", titre: "Factur-X : la nouvelle obligation 2027", desc: "À partir de septembre 2027, vos factures B2B devront aussi inclure un fichier XML structuré (Factur-X). Artisan+ génère ce fichier automatiquement pour chaque facture." },
+    ],
+    pricing: "Essai gratuit · Puis 7,99€/mois · Sans engagement",
+    faq: [
+      { q: "Quelles sont les mentions obligatoires sur une facture d'artisan ?", a: "Une facture d'artisan doit obligatoirement mentionner : numéro de facture séquentiel, date d'émission, vos nom/prénom/adresse professionnelle, votre SIRET, les coordonnées complètes du client, la description des travaux et prestations, les prix unitaires HT, le taux de TVA applicable et le montant TTC, les conditions de règlement et les pénalités de retard (mention obligatoire en B2B)." },
+      { q: "Puis-je créer une facture sur Word ou Excel ?", a: "Techniquement oui, mais c'est déconseillé. Un modèle Word ou Excel vous expose à oublier des mentions légales, à avoir une numérotation incorrecte et à ne pas être conforme à la réforme de la facturation électronique 2026. Un logiciel dédié comme Artisan+ garantit la conformité automatiquement." },
+      { q: "Combien de temps dois-je conserver mes factures ?", a: "En France, les factures doivent être conservées pendant 10 ans à compter de la date de clôture de l'exercice comptable. Artisan+ stocke toutes vos factures en ligne de façon sécurisée, accessibles à tout moment depuis votre smartphone ou ordinateur." },
+      { q: "La facture doit-elle être signée par le client ?", a: "Non, la facture n'a pas besoin d'être signée par le client — c'est le devis qui doit l'être. La facture est émise par le professionnel une fois les travaux réalisés. Elle constate la dette du client envers vous." },
+    ],
+    ctaTitre: <>Automatisez votre facturation<br /><span style={{ color: P }}>avec Artisan+ — c'est gratuit pour commencer</span></>,
+    ctaSous: "Factures conformes, numérotation automatique, envoi email, paiement en ligne. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
+  },
+  "/faire-un-devis-gratuitement": {
+    title: "Comment faire un devis gratuitement ? Guide pour artisans 2026 | Artisan+",
+    desc: "Comment créer un devis professionnel et conforme gratuitement ? Mentions obligatoires, calcul du prix, envoi et signature électronique. Guide artisan 2026.",
+    canonical: `${BASE}/faire-un-devis-gratuitement`,
+    badge: "📝 Guide pratique — Devis artisan conforme",
+    h1: ["Comment faire", "un devis gratuitement", "guide complet et pratique artisan"],
+    intro: "Un devis bien rédigé est votre meilleure chance de décrocher un chantier et de vous protéger en cas de litige. Mais comment s'assurer que votre devis est conforme à la loi française, professionnel et percutant ? Ce guide vous explique tout — et comment Artisan+ automatise la partie fastidieuse.",
+    features: [
+      { icon: "📋", titre: "Mentions obligatoires sur un devis", desc: "Date d'émission et durée de validité, vos coordonnées complètes et SIRET, coordonnées du client, description détaillée des travaux, prix unitaires HT et TTC, taux de TVA, conditions d'acceptation, mention de l'assurance décennale si applicable." },
+      { icon: "💰", titre: "Comment calculer le prix d'un devis", desc: "Additionnez : main d'œuvre (heures × taux horaire), matériaux (avec votre marge), frais de déplacement, marge bénéficiaire. Ajoutez 10-15% pour les imprévus. Artisan+ calcule automatiquement les totaux HT, TVA et TTC." },
+      { icon: "✍️", titre: "Signature électronique légalement valide", desc: "En France, la signature électronique d'un devis est légalement valide depuis 2016. Artisan+ permet à vos clients de signer depuis leur smartphone — sans imprimer, sans scanner, sans courrier." },
+      { icon: "📱", titre: "Devis depuis votre smartphone", desc: "Créez votre devis depuis le chantier avec votre smartphone lors de la visite du client. Envoyez-le par email avant de repartir — votre client est impressionné, vous décrochez plus souvent le chantier." },
+      { icon: "🔄", titre: "Transformer le devis en facture", desc: "Dès que le client signe, transformez le devis en facture en un clic. Artisan+ reprend toutes les informations automatiquement — aucune ressaisie, aucune perte de temps." },
+      { icon: "📊", titre: "Suivi des devis en attente", desc: "Artisan+ affiche l'état de chaque devis : envoyé, signé, refusé, expiré. Vous savez en un coup d'œil quels chantiers vous avez décrochés et lesquels nécessitent une relance." },
+    ],
+    pricing: "Essai gratuit complet · Puis 7,99€/mois · Sans engagement",
+    faq: [
+      { q: "Un devis est-il obligatoire pour un artisan ?", a: "Le devis est obligatoire dès que le montant des travaux dépasse 150€ pour un client particulier (consommateur). En pratique, il est recommandé pour tout chantier, quelle que soit la valeur, pour éviter les litiges et vous protéger juridiquement." },
+      { q: "Combien de temps un devis est-il valable ?", a: "La durée de validité d'un devis doit être mentionnée sur le document. Elle est généralement de 30 jours, mais vous pouvez la fixer librement. Artisan+ génère automatiquement la date d'expiration selon la durée que vous configurez." },
+      { q: "Le client peut-il refuser de payer après avoir signé le devis ?", a: "Un devis signé constitue un contrat. Si le client refuse de payer après avoir signé et que les travaux ont été réalisés conformément au devis, vous pouvez le mettre en demeure. Artisan+ conserve toutes les preuves de signature électronique horodatées." },
+      { q: "Artisan+ permet-il de créer des devis personnalisés par métier ?", a: "Oui. Artisan+ propose un catalogue de prix personnalisable : vous créez vos propres prestations (plomberie, électricité, maçonnerie, etc.) avec vos prix habituels. Quand vous créez un devis, il vous suffit de sélectionner les prestations et ajuster les quantités." },
+    ],
+    ctaTitre: <>Créez votre premier devis<br /><span style={{ color: P }}>en 2 minutes — essai gratuit</span></>,
+    ctaSous: "Devis conformes, signature électronique légalement valide, transformation en facture en 1 clic. Essai gratuit, puis 7,99€/mois.",
+  },
+  "/application-facturation-gratuite": {
+    title: "Application de facturation gratuite artisan 2026 : comparatif | Artisan+",
+    desc: "Quelle application de facturation gratuite choisir pour un artisan ou auto-entrepreneur ? Comparatif honnête des meilleures solutions. Artisan+ : l'app complète à 7,99€/mois.",
+    canonical: `${BASE}/application-facturation-gratuite`,
+    badge: "📱 Comparatif apps facturation — 2026",
+    h1: ["Application de facturation", "pour artisan", "gratuite ou abordable : notre sélection"],
+    intro: "Une bonne application de facturation peut vous faire gagner plusieurs heures par semaine. Mais entre les apps vraiment gratuites (souvent très limitées) et les solutions payantes, comment choisir ? Voici notre sélection honnête des meilleures applications de facturation pour artisans en 2026.",
+    features: [
+      { icon: "🏆", titre: "Artisan+ : 7,99€/mois (Recommandé)", desc: "La plus complète pour les artisans : devis, factures, Factur-X 2026, suivi chantier, paiement en ligne, mini-site. Essai gratuit complet sans carte bancaire." },
+      { icon: "📱", titre: "Fonctionnement sur smartphone : essentiel", desc: "Un artisan n'est pas derrière un bureau. L'application doit fonctionner sur smartphone, hors connexion, et être simple à utiliser d'une main. Artisan+ est conçu pour ça." },
+      { icon: "⚡", titre: "Rapidité de création : critère n°1", desc: "La meilleure application est celle que vous utilisez vraiment. Artisan+ permet de créer un devis ou une facture en moins de 2 minutes depuis le chantier, grâce au catalogue de prix personnalisable." },
+      { icon: "💳", titre: "Paiement en ligne : un vrai plus", desc: "Les applications qui intègrent le paiement en ligne (Stripe) vous permettent d'être payé plus vite. Artisan+ intègre Stripe pour un paiement par carte bancaire directement depuis la facture." },
+      { icon: "🏛️", titre: "Conformité légale et Factur-X 2026", desc: "Vérifiez que l'application génère des documents conformes (mentions légales, numérotation) et, pour 2026, un fichier Factur-X XML. Artisan+ est conforme sur tous ces points." },
+      { icon: "💶", titre: "Le vrai coût total de possession", desc: "Une application à 0€ mais limitée vous coûtera du temps perdu. Artisan+ à 7,99€/mois vous fait gagner en moyenne 3 à 5 heures par semaine — un ROI immédiat dès le premier mois." },
+    ],
+    pricing: "Artisan+ : 7,99€/mois · Essai gratuit sans carte bancaire",
+    faq: [
+      { q: "Existe-t-il une vraie application de facturation artisan gratuite ?", a: "Les applications de facturation réellement gratuites et complètes sont rares. La plupart proposent un freemium limité (nombre de factures, fonctionnalités bloquées) ou une période d'essai. Artisan+ propose un essai gratuit complet, puis 7,99€/mois — le tarif le plus bas du marché pour un outil professionnel." },
+      { q: "Artisan+ est-il conforme à la législation française ?", a: "Oui. Artisan+ génère des factures et devis conformes à la législation française : mentions légales obligatoires, numérotation chronologique, TVA correcte selon le type de travaux, et fichiers Factur-X XML pour la réforme de 2026." },
+      { q: "L'application fonctionne-t-elle hors connexion ?", a: "Oui. Artisan+ est une PWA (Progressive Web App) qui fonctionne hors connexion sur votre smartphone. Les données créées sans connexion se synchronisent automatiquement quand vous retrouvez un réseau." },
+      { q: "Puis-je importer mes clients et données existantes ?", a: "Oui. Artisan+ permet d'importer vos clients et de renseigner votre catalogue de prix dès le démarrage. Le support client vous accompagne dans la migration si vous passez d'un autre logiciel." },
+    ],
+    ctaTitre: <>Testez l'app de facturation artisan<br /><span style={{ color: P }}>la plus complète — gratuitement</span></>,
+    ctaSous: "Artisan+ : devis, factures, suivi chantier, paiement en ligne, Factur-X 2026. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
+  },
+  "/facture-auto-entrepreneur-gratuit": {
+    title: "Facture auto-entrepreneur gratuit 2026 : guide complet | Artisan+",
+    desc: "Comment créer une facture conforme en tant qu'auto-entrepreneur artisan ? Mentions obligatoires, TVA, numérotation. Artisan+ : l'outil idéal pour démarrer gratuitement.",
+    canonical: `${BASE}/facture-auto-entrepreneur-gratuit`,
+    badge: "🧾 Guide auto-entrepreneur — Facturation 2026",
+    h1: ["Facture auto-entrepreneur", "gratuit et conforme", "guide complet 2026"],
+    intro: "Auto-entrepreneur dans le BTP ou les services ? La facturation a ses propres règles pour votre statut : mentions obligatoires spécifiques, gestion de la franchise TVA, numérotation chronologique... Voici tout ce que vous devez savoir pour créer des factures conformes et comment Artisan+ vous simplifie la vie dès le premier mois.",
+    features: [
+      { icon: "📋", titre: "Mentions spécifiques auto-entrepreneur", desc: "Mention 'TVA non applicable, art. 293B du CGI' si vous êtes sous le seuil de franchise TVA. Votre numéro SIRET, votre forme juridique (EI), votre numéro de registre des métiers (RM) pour les artisans." },
+      { icon: "🔢", titre: "Numérotation obligatoire et continue", desc: "Chaque facture doit avoir un numéro unique, chronologique et sans rupture. Artisan+ gère automatiquement la numérotation de vos factures (format 2026-001, 2026-002...) dans le respect des obligations légales." },
+      { icon: "💶", titre: "Franchise TVA : comment l'indiquer ?", desc: "Si votre chiffre d'affaires est sous le seuil de franchise TVA, vous ne facturez pas de TVA. La mention légale 'TVA non applicable, art. 293B CGI' est obligatoire sur chaque facture. Artisan+ l'ajoute automatiquement." },
+      { icon: "📧", titre: "Envoi et archivage obligatoire 10 ans", desc: "Les factures doivent être conservées 10 ans. Artisan+ archive toutes vos factures dans le cloud, accessibles à tout moment depuis votre smartphone ou ordinateur." },
+      { icon: "⚡", titre: "Factur-X même pour les auto-entrepreneurs", desc: "Même en tant qu'auto-entrepreneur, vous devrez émettre des factures Factur-X pour vos clients professionnels à partir de septembre 2027. Artisan+ génère le profil MINIMUM spécialement prévu pour les micro-entreprises." },
+      { icon: "🚀", titre: "Démarrez rapidement avec Artisan+", desc: "Créez votre compte, renseignez votre SIRET et votre statut (auto-entrepreneur sans TVA), et créez votre première facture en moins de 5 minutes. Essai gratuit, sans carte bancaire." },
+    ],
+    pricing: "Essai gratuit complet · Puis 7,99€/mois · Sans engagement",
+    faq: [
+      { q: "Quelles sont les mentions obligatoires sur une facture d'auto-entrepreneur artisan ?", a: "Pour un auto-entrepreneur artisan : nom/prénom, adresse professionnelle, numéro SIRET, numéro au Registre des Métiers (RM), date de la facture, numéro chronologique, description des prestations, montant HT ou TTC selon régime TVA, et la mention 'TVA non applicable, art. 293B CGI' si vous êtes en franchise de TVA." },
+      { q: "Un auto-entrepreneur doit-il obligatoirement utiliser un logiciel ?", a: "Non, ce n'est pas légalement obligatoire. Mais un logiciel comme Artisan+ garantit la conformité automatique de vos factures (numérotation, mentions légales, archivage) et vous fait gagner du temps. Avec la réforme de 2026, un logiciel capable de générer du Factur-X devient pratiquement incontournable." },
+      { q: "Artisan+ est-il adapté aux auto-entrepreneurs sans TVA ?", a: "Oui. Artisan+ gère les deux régimes : avec TVA (taux configurables) et sans TVA (franchise art. 293B CGI). La mention légale spécifique est ajoutée automatiquement sur chaque facture selon votre configuration." },
+      { q: "La réforme de la facturation électronique s'applique-t-elle aux auto-entrepreneurs ?", a: "Oui. Même en tant qu'auto-entrepreneur, vous devrez émettre des factures au format structuré Factur-X profil MINIMUM pour vos clients professionnels à partir du 1er septembre 2027. Artisan+ gère ce profil automatiquement." },
+    ],
+    ctaTitre: <>Artisan+ est fait pour<br /><span style={{ color: P }}>les auto-entrepreneurs artisans</span></>,
+    ctaSous: "Factures conformes, gestion franchise TVA automatique, Factur-X 2026 inclus. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
+  },
+};
+
+// ── Composant partagé : pages facturation électronique (variantes) ─────────────
+
+function PageFactElecVariante({ slug }) {
+  const v = FACT_ELEC_VARIANTS[slug];
+  useEffect(() => {
+    if (!v) return;
+    setPageMeta(v.title, v.desc, v.canonical);
+    const schema = {
+      "@context": "https://schema.org", "@type": "FAQPage",
+      "mainEntity": v.faq.map(f => ({ "@type": "Question", "name": f.q, "acceptedAnswer": { "@type": "Answer", "text": f.a } }))
+    };
+    let el = document.getElementById("schema-fe-v");
+    if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "schema-fe-v"; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(schema);
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!v) return <PageHome />;
+  return (
+    <>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: "linear-gradient(180deg,rgba(255,140,0,0.06) 0%,transparent 100%)" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-flex", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "24px" }}>
+            <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>{v.badge}</span>
+          </div>
+          <h1 style={{ color: "white", fontSize: "clamp(28px,5vw,52px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
+            {v.h1[0]}<br /><span style={{ color: P }}>{v.h1[1]}</span>{v.h1[2] && <><br />{v.h1[2]}</>}
+          </h1>
+          <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", maxWidth: "720px", margin: "0 auto 36px" }}>{v.intro}</p>
+          <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
+              🚀 Essayer gratuitement — déjà conforme
+            </a>
+            <a href="/facturation-electronique-obligatoire-2026" onClick={e => { e.preventDefault(); navigate("/facturation-electronique-obligatoire-2026"); }}
+              style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
+              Guide complet réforme →
+            </a>
+          </div>
+        </div>
+      </section>
+      <section style={{ background: C, padding: "24px 20px", borderTop: "1px solid rgba(255,140,0,0.1)", borderBottom: "1px solid rgba(255,140,0,0.1)" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "20px" }}>
+          {[{ icon: "✅", label: "Factur-X XML conforme EN 16931" }, { icon: "✅", label: "Profil MINIMUM (micro-entreprise)" }, { icon: "✅", label: "Profil EN16931 (TVA)" }, { icon: "✅", label: "Téléchargement XML en 1 clic" }].map(b => (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "18px" }}>{b.icon}</span>
+              <span style={{ color: "white", fontSize: "13px", fontWeight: "600" }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(22px,3.5vw,36px)", fontWeight: "900", margin: "0 0 48px", textAlign: "center" }}>Ce que vous devez savoir</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "24px" }}>
+            {v.bullets.map((b, i) => (
+              <div key={i} style={{ background: C, borderRadius: "16px", padding: "28px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{b.icon}</div>
+                <h3 style={{ color: "white", fontWeight: "800", fontSize: "16px", margin: "0 0 10px" }}>{b.titre}</h3>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: 0 }}>{b.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px", background: C }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(20px,3vw,32px)", fontWeight: "900", margin: "0 0 40px", textAlign: "center" }}>Questions fréquentes</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {v.faq.map((f, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "14px", padding: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <h3 style={{ color: "white", fontWeight: "700", fontSize: "15px", margin: "0 0 10px" }}>{f.q}</h3>
+                <p style={{ color: G, fontSize: "14px", lineHeight: "1.7", margin: 0 }}>{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <CTASection titre={v.ctaTitre} sous={v.ctaSous} />
+        </div>
+      </section>
+    </>
+  );
+}
+
+// ── Composant partagé : pages génériques mots-clés ────────────────────────────
+
+function PageGenerique({ slug }) {
+  const v = GENERIC_VARIANTS[slug];
+  useEffect(() => {
+    if (!v) return;
+    setPageMeta(v.title, v.desc, v.canonical);
+    const schema = {
+      "@context": "https://schema.org", "@type": "FAQPage",
+      "mainEntity": v.faq.map(f => ({ "@type": "Question", "name": f.q, "acceptedAnswer": { "@type": "Answer", "text": f.a } }))
+    };
+    let el = document.getElementById("schema-gen");
+    if (!el) { el = document.createElement("script"); el.type = "application/ld+json"; el.id = "schema-gen"; document.head.appendChild(el); }
+    el.textContent = JSON.stringify(schema);
+  }, [slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!v) return <PageHome />;
+  return (
+    <>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: "linear-gradient(180deg,rgba(255,140,0,0.06) 0%,transparent 100%)" }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-flex", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "24px" }}>
+            <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>{v.badge}</span>
+          </div>
+          <h1 style={{ color: "white", fontSize: "clamp(28px,5vw,52px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
+            {v.h1[0]}<br /><span style={{ color: P }}>{v.h1[1]}</span>{v.h1[2] && <><br />{v.h1[2]}</>}
+          </h1>
+          <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", maxWidth: "720px", margin: "0 auto 36px" }}>{v.intro}</p>
+          <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
+              style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
+              🚀 Essayer gratuitement
+            </a>
+            <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }}
+              style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
+              Voir toutes les fonctionnalités
+            </a>
+          </div>
+        </div>
+      </section>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
+            {v.features.map((f, i) => (
+              <div key={i} style={{ background: C, borderRadius: "16px", padding: "28px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{f.icon}</div>
+                <h3 style={{ color: "white", fontWeight: "800", fontSize: "16px", margin: "0 0 10px" }}>{f.titre}</h3>
+                <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: 0 }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+          {v.pricing && (
+            <div style={{ textAlign: "center", marginTop: "40px" }}>
+              <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "10px", padding: "8px 20px", color: P, fontWeight: "700", fontSize: "13px" }}>
+                {v.pricing}
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px", background: C }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <h2 style={{ color: "white", fontSize: "clamp(20px,3vw,32px)", fontWeight: "900", margin: "0 0 40px", textAlign: "center" }}>Questions fréquentes</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {v.faq.map((f, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", borderRadius: "14px", padding: "24px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <h3 style={{ color: "white", fontWeight: "700", fontSize: "15px", margin: "0 0 10px" }}>{f.q}</h3>
+                <p style={{ color: G, fontSize: "14px", lineHeight: "1.7", margin: 0 }}>{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+          <CTASection titre={v.ctaTitre} sous={v.ctaSous} />
+        </div>
+      </section>
+    </>
+  );
+}
+
 // ── Routeur principal ─────────────────────────────────────────────────────────
 export default function Vitrine() {
   const [path, setPath] = useState(window.location.pathname);
@@ -2014,6 +2511,8 @@ export default function Vitrine() {
   else if (path === "/cgu")                                               PageContent = <PageCGU />;
   else if (path === "/politique-confidentialite")                         PageContent = <PageRGPD />;
   else if (path === "/facturation-electronique-obligatoire-2026")        PageContent = <PageFacturationElectronique />;
+  else if (FACT_ELEC_VARIANTS[path])                                      PageContent = <PageFactElecVariante slug={path} />;
+  else if (GENERIC_VARIANTS[path])                                        PageContent = <PageGenerique slug={path} />;
   else                                                                    PageContent = <PageHome />;
 
   return (

@@ -26,6 +26,13 @@ const VITRINE_PREFIXES = [
   "/devis-facture-", "/artisan-", "/alternative-",
   "/cgu", "/politique-confidentialite", "/fonctionnalites", "/tarifs",
   "/blog",
+  // Facturation électronique
+  "/facturation-electronique-", "/facture-electronique-",
+  "/logiciel-facturation-electronique-",
+  // Génériques mots-clés
+  "/facture-en-ligne-", "/devis-en-ligne-", "/application-devis-facture-",
+  "/logiciel-devis-facture-", "/faire-une-facture-", "/faire-un-devis-",
+  "/application-facturation-", "/facture-auto-entrepreneur-",
 ];
 
 const PRIMARY = "#FF8C00";
