@@ -243,7 +243,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
       const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false);
       const b64 = pdfBase64.split(",")[1] || pdfBase64;
-      const resp = await fetch("/api/send-facture", {
+      const resp = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
