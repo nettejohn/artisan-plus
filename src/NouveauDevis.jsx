@@ -50,6 +50,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   const [montantSimple, setMontantSimple]         = useState("");
   const [clientNomSimple, setClientNomSimple]     = useState("");
   const [clientTelSimple, setClientTelSimple]     = useState("");
+  const [devisCree,       setDevisCree]           = useState(null);
 
   // ── Import photo (analyse IA) ──────────────────────────────────────────────
   const photoInputRef = useRef(null);
@@ -243,9 +244,8 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       return;
     }
 
-    setMessage("✅ Devis créé avec succès !");
     setLoading(false);
-    setTimeout(() => onBack(), 1500);
+    setDevisCree({ ...devisData, clients: { nom: nomClient, telephone: clientTelSimple || null } });
   };
 
   // ── Sauvegarde ─────────────────────────────────────────────────────────────
@@ -487,8 +487,31 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       </div>
       <div style={{ padding: "24px" }}>
 
+      {/* ── PANNEAU POST-CRÉATION DEVIS ────────────────────────── */}
+      {devisCree && (
+        <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px" }}>
+          <div style={{ background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)", borderRadius: "20px", padding: "32px", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "12px" }}>✅</div>
+            <h2 style={{ color: "#4CAF50", fontWeight: "900", fontSize: "22px", margin: "0 0 8px" }}>Devis créé !</h2>
+            <p style={{ color: "#8899aa", fontSize: "14px", margin: "0 0 4px" }}>{devisCree.numero}</p>
+            <p style={{ color: "white", fontWeight: "800", fontSize: "18px", margin: 0 }}>
+              {parseFloat(devisCree.total_ttc || 0).toFixed(2)} €
+            </p>
+          </div>
+          <button
+            onClick={onBack}
+            style={{
+              background: "rgba(255,255,255,0.06)", color: "#8899aa", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "12px", padding: "14px", fontSize: "14px", fontWeight: "600", cursor: "pointer",
+            }}
+          >
+            ← Retour aux devis
+          </button>
+        </div>
+      )}
+
       {/* ── FORMULAIRE SIMPLIFIÉ ───────────────────────────────── */}
-      {modeSimple && (
+      {modeSimple && !devisCree && (
         <div style={{ maxWidth: "520px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
           {/* Vocal IA */}

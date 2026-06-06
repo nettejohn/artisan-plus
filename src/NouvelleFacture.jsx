@@ -50,6 +50,9 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   const [factureCree, setFactureCree] = useState(null); // facture créée
   const [profil, setProfil] = useState(null);
   const [sendLoading, setSendLoading] = useState(false);
+  const [emailEnvoi,  setEmailEnvoi]  = useState("");
+  const [sendSuccess, setSendSuccess] = useState(false);
+  const [sendError,   setSendError]   = useState("");
 
   // ── Mode simplifié ─────────────────────────────────────────────────────────
   const [descriptionSimple, setDescriptionSimple] = useState("");
@@ -224,45 +227,68 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       return;
     }
 
-    setMessage("✅ Facture créée avec succès !");
     setLoading(false);
-    setTimeout(() => onBack(), 1500);
+    setFactureCree({ ...factureData, clients: { nom: nomClient, email: null, telephone: clientTelSimple || null } });
   };
 
-  // ── Partager / envoyer la facture au client ───────────────────────────────
-  const envoyerFacture = async () => {
+  // ── Envoyer la facture par email via Resend ───────────────────────────────
+  const envoyerParEmail = async () => {
+    if (!factureCree) return;
+    const dest = factureCree.clients?.email || emailEnvoi.trim();
+    if (!dest) { setSendError("Veuillez saisir l'email du client."); return; }
+    setSendLoading(true);
+    setSendError("");
+    try {
+      const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
+      const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false);
+      const b64 = pdfBase64.split(",")[1] || pdfBase64;
+      const resp = await fetch("/api/send-facture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emailClient:   dest,
+          emailArtisan:  profil?.email || user.email || "",
+          nomArtisan:    artisan.nom || "",
+          nomClient:     factureCree.clients?.nom || "",
+          numeroFacture: factureCree.numero,
+          montantTTC:    parseFloat(factureCree.total_ttc || 0),
+          pdfBase64:     b64,
+        }),
+      });
+      if (!resp.ok) {
+        const e = await resp.json().catch(() => ({}));
+        throw new Error(e.erreurs?.[0] || `Erreur serveur ${resp.status}`);
+      }
+      setSendSuccess(true);
+    } catch (err) {
+      setSendError("Erreur d'envoi : " + err.message);
+    }
+    setSendLoading(false);
+  };
+
+  const partagerFacture = async () => {
     if (!factureCree) return;
     setSendLoading(true);
     try {
       const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients, lignes || [], artisan, false);
-      // Convertir base64 → blob → File
-      const b64 = pdfBase64.split(",")[1];
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false);
+      const b64 = pdfBase64.split(",")[1] || pdfBase64;
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });
       const file = new File([blob], `${factureCree.numero}.pdf`, { type: "application/pdf" });
-
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `Facture ${factureCree.numero}`,
-          text: `Bonjour,\n\nVeuillez trouver ci-joint votre facture ${factureCree.numero}.\n\nCordialement`,
-          files: [file],
-        });
+        await navigator.share({ title: `Facture ${factureCree.numero}`, files: [file] });
       } else if (navigator.share) {
-        await navigator.share({
-          title: `Facture ${factureCree.numero}`,
-          text: `Bonjour,\n\nVoici votre facture ${factureCree.numero} d'un montant de ${parseFloat(factureCree.total_ttc || 0).toFixed(2)} €.\n\nCordialement`,
-        });
+        await navigator.share({ title: `Facture ${factureCree.numero}`, text: `Facture ${factureCree.numero} — ${parseFloat(factureCree.total_ttc || 0).toFixed(2)} €` });
       } else {
-        // Fallback : téléchargement direct
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = `${factureCree.numero}.pdf`; a.click();
+        const a = document.createElement("a"); a.href = url; a.download = `${factureCree.numero}.pdf`; a.click();
         URL.revokeObjectURL(url);
       }
     } catch (err) {
-      if (err.name !== "AbortError") console.error("Erreur envoi:", err);
+      if (err.name !== "AbortError") setSendError("Erreur : " + err.message);
     }
     setSendLoading(false);
   };
@@ -293,22 +319,47 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
             </p>
           </div>
 
-          {/* Bouton Envoyer */}
-          <button
-            onClick={envoyerFacture}
-            disabled={sendLoading}
-            style={{
-              background: sendLoading ? "#555" : PRIMARY, color: "white", border: "none",
-              borderRadius: "14px", padding: "18px", fontSize: "17px", fontWeight: "800",
-              cursor: sendLoading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
-            }}
-          >
-            {sendLoading ? "Préparation du PDF…" : "📤 Envoyer la facture au client"}
-          </button>
-          <p style={{ color: "#8899aa", fontSize: "12px", textAlign: "center", margin: 0 }}>
-            Partage par SMS, WhatsApp, email ou autre — avec le PDF en pièce jointe
-          </p>
+          {sendSuccess ? (
+            <div style={{ background: "rgba(76,175,80,0.12)", border: "1px solid rgba(76,175,80,0.4)", borderRadius: "14px", padding: "20px", textAlign: "center", color: "#4CAF50", fontWeight: "700", fontSize: "16px" }}>
+              📧 Email envoyé avec succès !
+            </div>
+          ) : (
+            <>
+              {!factureCree.clients?.email && (
+                <input
+                  type="email"
+                  placeholder="Email du client pour l'envoi"
+                  value={emailEnvoi}
+                  onChange={e => setEmailEnvoi(e.target.value)}
+                  style={{ ...inputStyle, fontSize: "15px", padding: "14px 16px" }}
+                />
+              )}
+              {sendError && <p style={{ color: "#ff6b6b", fontSize: "13px", margin: 0, textAlign: "center" }}>{sendError}</p>}
+              <button
+                onClick={envoyerParEmail}
+                disabled={sendLoading}
+                style={{
+                  background: sendLoading ? "#555" : PRIMARY, color: "white", border: "none",
+                  borderRadius: "14px", padding: "18px", fontSize: "17px", fontWeight: "800",
+                  cursor: sendLoading ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                }}
+              >
+                {sendLoading ? "Envoi en cours…" : factureCree.clients?.email ? `📧 Envoyer par email (${factureCree.clients.email})` : "📧 Envoyer par email"}
+              </button>
+              <button
+                onClick={partagerFacture}
+                disabled={sendLoading}
+                style={{
+                  background: "rgba(255,140,0,0.1)", color: PRIMARY, border: "1px solid rgba(255,140,0,0.3)",
+                  borderRadius: "14px", padding: "16px", fontSize: "15px", fontWeight: "700",
+                  cursor: sendLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                📤 Partager (SMS, WhatsApp…)
+              </button>
+            </>
+          )}
 
           {/* Retour */}
           <button

@@ -160,7 +160,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Mode simplifié ────────────────────────────────
   const [modeSimplifie,       setModeSimplifie]       = useState(false);
   const [savingModeSimplifie, setSavingModeSimplifie] = useState(false);
-  const [simplifieConfig,     setSimplifieConfig]     = useState({ factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false });
+  const [simplifieConfig,     setSimplifieConfig]     = useState({ factures: true, devis: true, clients: true, chantiers: false, agenda: false, catalogue: false, mini_site: false, recap: false, calculatrice: true, niveau: false, lampe: false, notes: false });
   const [savingConfig,        setSavingConfig]        = useState(false);
 
   // ── Éditeur visuel ───────────────────────────────────
@@ -2165,18 +2165,23 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           {/* ── Personnaliser le mode simplifié ─────────── */}
           <SCard titre="🎛️ Personnaliser le mode simplifié">
             <p style={{ color: "#8899aa", fontSize: "14px", lineHeight: "1.65", margin: "0 0 22px" }}>
-              Choisissez quels raccourcis s'affichent quand le mode simplifié est actif.
+              Choisissez quelles fonctionnalités s'affichent dans le mode simplifié. Chaque option activée apparaît comme un bouton sur l'accueil.
               {savingConfig && <span style={{ color: PRIMARY, marginLeft: "10px" }}>⏳ Sauvegarde…</span>}
             </p>
 
-            {/* Raccourcis principaux */}
+            {/* Fonctionnalités métier */}
             <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
-              Raccourcis principaux
+              Fonctionnalités métier
             </div>
             {[
-              { key: "devis",    icon: "📝", label: "Nouveau devis",    desc: "Créer un devis rapide depuis l'accueil" },
-              { key: "factures", icon: "📄", label: "Nouvelle facture", desc: "Créer une facture rapide depuis l'accueil" },
-              { key: "clients",  icon: "👥", label: "Mes clients",      desc: "Accès rapide à vos clients (appel, SMS)" },
+              { key: "devis",     icon: "📝", label: "Nouveau devis",    desc: "Créer un devis rapide depuis l'accueil" },
+              { key: "factures",  icon: "📄", label: "Nouvelle facture", desc: "Créer une facture professionnelle depuis l'accueil" },
+              { key: "clients",   icon: "👥", label: "Mes clients",      desc: "Accès rapide à vos clients (appel, SMS, nouveau doc)" },
+              { key: "chantiers", icon: "🏗️", label: "Chantiers",        desc: "Suivre et gérer vos chantiers en cours" },
+              { key: "agenda",    icon: "📅", label: "Agenda",           desc: "Voir votre planning et rendez-vous" },
+              { key: "catalogue", icon: "📦", label: "Catalogue",        desc: "Accéder à vos prestations et tarifs" },
+              { key: "mini_site", icon: "🌐", label: "Mon mini-site",    desc: "Gérer votre vitrine en ligne" },
+              { key: "recap",     icon: "📊", label: "Récap mensuel",    desc: "Consulter le bilan de votre activité" },
             ].map(item => (
               <div key={item.key} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -2190,7 +2195,6 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                     <div style={{ color: "#8899aa", fontSize: "12px" }}>{item.desc}</div>
                   </div>
                 </div>
-                {/* Toggle switch */}
                 <button
                   onClick={() => sauvegarderSimplifieConfig({ ...simplifieConfig, [item.key]: !simplifieConfig[item.key] })}
                   style={{
@@ -2215,13 +2219,13 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
             {/* Outils rapides */}
             <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px", margin: "22px 0 12px" }}>
-              Outils rapides (raccourcis vers l'onglet Outils)
+              Outils rapides (accès direct vers l'onglet Outils)
             </div>
             {[
-              { key: "calculatrice", icon: "🧮", label: "Calculatrice",  desc: "Accès rapide à la calculatrice" },
+              { key: "calculatrice", icon: "🧮", label: "Calculatrice",   desc: "Calculatrice intégrée" },
               { key: "niveau",       icon: "🛠️", label: "Niveau à bulle", desc: "Utiliser le gyroscope du téléphone" },
-              { key: "lampe",        icon: "🔦", label: "Lampe torche",  desc: "Activer la lampe via l'app" },
-              { key: "notes",        icon: "📝", label: "Notes rapides", desc: "Prise de notes rapide sur le chantier" },
+              { key: "lampe",        icon: "🔦", label: "Lampe torche",   desc: "Activer la lampe via l'app" },
+              { key: "notes",        icon: "📝", label: "Notes rapides",  desc: "Prise de notes rapide sur le chantier" },
             ].map(item => (
               <div key={item.key} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",

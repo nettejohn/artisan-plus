@@ -152,8 +152,8 @@ export default function Dashboard({
   const [modeSimple,      setModeSimple]      = useState(false);
   const [modeSimpleView,  setModeSimpleView]  = useState(null); // null | 'clients'
   const [savingModeSimple, setSavingModeSimple] = useState(false);
-  const DEFAULT_SIMPLIFIE_CONFIG = { factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false };
-  const [simplifieConfig, setSimplifieConfig] = useState({ factures: true, devis: true, clients: true, calculatrice: true, niveau: false, lampe: false, notes: false });
+  const DEFAULT_SIMPLIFIE_CONFIG = { factures: true, devis: true, clients: true, chantiers: false, agenda: false, catalogue: false, mini_site: false, recap: false, calculatrice: true, niveau: false, lampe: false, notes: false };
+  const [simplifieConfig, setSimplifieConfig] = useState({ factures: true, devis: true, clients: true, chantiers: false, agenda: false, catalogue: false, mini_site: false, recap: false, calculatrice: true, niveau: false, lampe: false, notes: false });
 
   // Calculateur de rentabilité
   const [calc, setCalc] = useState({
@@ -1265,7 +1265,7 @@ export default function Dashboard({
         )}
 
         {/* ── MODE SIMPLIFIÉ ────────────────────────────────────── */}
-        {page !== "parametres" && modeSimple && (
+        {page !== "parametres" && modeSimple && activeTab === "accueil" && (
           <div style={{ maxWidth: "480px", margin: "0 auto", padding: "8px 0 24px" }}>
 
             {/* Bandeau "Repasser en mode normal" */}
@@ -1415,9 +1415,14 @@ export default function Dashboard({
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   {[
-                    simplifieConfig.devis     && { label: "📝 Nouveau devis",    desc: "Créer et envoyer un devis",            color: PRIMARY,    action: () => setPage("nouveau-devis") },
-                    simplifieConfig.factures  && { label: "📄 Nouvelle facture", desc: "Créer une facture professionnelle",     color: "#6495ED",  action: () => setPage("nouvelle-facture") },
-                    simplifieConfig.clients   && { label: "👥 Mes clients",      desc: "Voir et contacter vos clients",         color: "#4CAF50",  action: () => setModeSimpleView("clients") },
+                    simplifieConfig.devis      && { label: "📝 Nouveau devis",    desc: "Créer et envoyer un devis",            color: PRIMARY,     action: () => setPage("nouveau-devis") },
+                    simplifieConfig.factures   && { label: "📄 Nouvelle facture", desc: "Créer une facture professionnelle",     color: "#6495ED",   action: () => setPage("nouvelle-facture") },
+                    simplifieConfig.clients    && { label: "👥 Mes clients",      desc: "Voir et contacter vos clients",         color: "#4CAF50",   action: () => setModeSimpleView("clients") },
+                    simplifieConfig.chantiers  && { label: "🏗️ Chantiers",        desc: "Suivre vos chantiers en cours",         color: "#FF9800",   action: () => { setPage("dashboard"); setActiveTab("chantiers"); } },
+                    simplifieConfig.agenda     && { label: "📅 Agenda",           desc: "Voir et gérer votre planning",          color: "#9C27B0",   action: () => { setPage("dashboard"); setActiveTab("agenda"); } },
+                    simplifieConfig.catalogue  && { label: "📦 Catalogue",        desc: "Vos prestations et tarifs",             color: "#00BCD4",   action: () => setPage("catalogue") },
+                    simplifieConfig.mini_site  && { label: "🌐 Mon mini-site",    desc: "Votre vitrine en ligne",                color: "#E91E63",   action: () => { setParametresSection("minisite"); setPage("parametres"); } },
+                    simplifieConfig.recap      && { label: "📊 Récap mensuel",    desc: "Bilan de votre activité",               color: "#26A69A",   action: () => setShowRecap(true) },
                   ].filter(Boolean).map(btn => (
                     <button
                       key={btn.label}
@@ -1508,7 +1513,7 @@ export default function Dashboard({
         )}
 
         {/* ONGLETS */}
-        {page !== "parametres" && !modeSimple && <>
+        {page !== "parametres" && (!modeSimple || activeTab !== "accueil") && <>
 
         {/* GARDE ACCÈS RÔLE ÉQUIPE */}
         {!canAccess(activeTab) && (
