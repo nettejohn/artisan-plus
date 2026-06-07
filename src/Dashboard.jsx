@@ -92,7 +92,7 @@ const TOUR_STEPS = [
 
 // Droits d'accès par rôle équipe
 const ROLE_TABS = {
-  associe:       ["accueil", "documents", "clients", "chantiers", "outils"],
+  associe:       ["accueil", "documents", "clients", "chantiers", "agenda"],
   collaborateur: ["accueil", "chantiers"],
   comptable:     ["accueil", "documents"],
 };
@@ -1095,7 +1095,7 @@ export default function Dashboard({
               { id: "documents", icon: "📄",  label: "Documents" },
               { id: "clients",   icon: "👥",  label: "Clients"   },
               { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-              { id: "outils",    icon: "🔧",  label: "Outils"    },
+              { id: "agenda",    icon: "📅",  label: "Agenda"    },
             ].filter(tab => canAccess(tab.id)).map(tab => {
               const isActive = activeTab === tab.id && page !== "parametres";
               return (
@@ -2124,6 +2124,151 @@ export default function Dashboard({
 
                     </div>
                   )}
+                </div>
+              );
+            })()}
+
+            {/* ══════════════════════════════════════════════════
+                  DÉCOUVRIR ARTISAN+ — toutes les fonctionnalités
+            ══════════════════════════════════════════════════ */}
+            {(() => {
+              const GROUPES = [
+                {
+                  titre: "Gestion commerciale",
+                  couleur: PRIMARY,
+                  items: [
+                    { icon: "📝", label: "Devis", desc: "Créez un devis pro et envoyez-le pour signature électronique en quelques minutes", action: () => { setActiveTab("documents"); setDocSub("devis"); } },
+                    { icon: "📄", label: "Factures", desc: "Factures PDF avec 5 thèmes visuels, numérotation auto et envoi email avec PDF joint", action: () => { setActiveTab("documents"); setDocSub("factures"); } },
+                    { icon: "✍️", label: "Signature électronique", desc: "Votre client signe son devis sur son téléphone — valeur légale, horodaté", action: () => { setActiveTab("documents"); setDocSub("devis"); } },
+                    { icon: "📦", label: "Catalogue", desc: "Enregistrez vos articles et tarifs habituels, insérez-les en 1 clic dans vos devis", action: () => { setActiveTab("documents"); setDocSub("catalogue"); } },
+                  ],
+                },
+                {
+                  titre: "Clients & Chantiers",
+                  couleur: "#6495ED",
+                  items: [
+                    { icon: "👥", label: "Clients", desc: "Fiche complète, historique factures/devis, appel et SMS directement depuis la fiche", action: () => setActiveTab("clients") },
+                    { icon: "🏗️", label: "Chantiers", desc: "Suivi rentabilité en temps réel, photos HD, dépenses matériaux et heures de travail", action: () => setActiveTab("chantiers") },
+                    { icon: "🌤️", label: "Météo chantier", desc: "Météo en temps réel sur chaque chantier pour planifier vos journées de travail", action: () => setActiveTab("chantiers") },
+                    { icon: "📅", label: "Agenda", desc: "Planifiez vos rendez-vous, rappels, livraisons et suivez votre planning de la semaine", action: () => setActiveTab("agenda") },
+                  ],
+                },
+                {
+                  titre: "Intelligence Artificielle",
+                  couleur: "#9C27B0",
+                  items: [
+                    { icon: "🎤", label: "Devis vocal IA", desc: "Dictez votre devis à voix haute, l'IA le transcrit et le rédige automatiquement pour vous", action: () => { setActiveTab("documents"); setDocSub("devis"); } },
+                    { icon: "📸", label: "Scan factures IA", desc: "Photographiez une facture fournisseur, l'IA extrait automatiquement tous les montants", action: () => setActiveTab("chantiers") },
+                    { icon: "🤖", label: "Compte-rendu IA", desc: "Prenez des photos de chantier, l'IA génère le compte-rendu complet en quelques secondes", action: () => setActiveTab("chantiers") },
+                    { icon: "📋", label: "Plan de travaux IA", desc: "Décrivez votre projet en quelques mots, l'IA crée un plan de chantier détaillé", action: () => setActiveTab("chantiers") },
+                  ],
+                },
+                {
+                  titre: "Comptabilité & Finances",
+                  couleur: "#4CAF50",
+                  items: [
+                    { icon: "🧮", label: "Assistant comptable", desc: "TVA à reverser, URSSAF estimé, seuil auto-entrepreneur, trésorerie prévisionnelle", action: () => { if (!isPro) { ouvrirUpgrade("comptable"); } else setShowComptable(true); } },
+                    { icon: "📊", label: "Récap mensuel IA", desc: "Bilan complet de votre mois avec analyse IA, conseils personnalisés et export PDF", action: () => { if (!isPro) { ouvrirUpgrade("recap"); } else setShowRecap(true); } },
+                    { icon: "💳", label: "Paiement en ligne", desc: "Vos clients paient vos factures directement par carte bancaire via un lien sécurisé", action: () => { setParametresSection("paiements"); setPage("parametres"); } },
+                    { icon: "💰", label: "Calculateur rentabilité", desc: "Calculez votre seuil de rentabilité, vos marges et votre bénéfice net mensuel", action: () => {} },
+                  ],
+                },
+                {
+                  titre: "Ma présence en ligne",
+                  couleur: "#E91E63",
+                  items: [
+                    { icon: "🌐", label: "Mini-site vitrine", desc: "Votre site web professionnel gratuit avec vos coordonnées et prestations en ligne", action: () => { setParametresSection("minisite"); setPage("parametres"); } },
+                    { icon: "✅", label: "Badge Artisan Vérifié", desc: "Obtenez le badge de confiance après vérification SIRET — visible sur tous vos documents", action: () => { setParametresSection("verif"); setPage("parametres"); } },
+                    { icon: "👷", label: "Gestion équipe", desc: "Ajoutez vos collaborateurs, définissez leurs rôles et gérez leurs accès à l'application", action: () => { setParametresSection("equipe"); setPage("parametres"); } },
+                    { icon: "🎁", label: "Parrainage", desc: "Parrainez vos collègues artisans et recevez 1 mois Pro offert pour chaque parrainage", action: () => { setParametresSection("parrainage"); setPage("parametres"); } },
+                  ],
+                },
+                {
+                  titre: "Outils terrain",
+                  couleur: "#00BCD4",
+                  items: [
+                    { icon: "🔧", label: "Niveau à bulle", desc: "Vérifiez l'horizontalité d'une surface avec votre téléphone — aucun outil physique", action: () => setActiveTab("outils") },
+                    { icon: "🔦", label: "Lampe torche", desc: "Éclairez vos interventions et vos chantiers directement depuis l'application", action: () => setActiveTab("outils") },
+                    { icon: "🌍", label: "Traducteur IA", desc: "Communiquez avec vos clients ou fournisseurs étrangers, traduit en temps réel", action: () => setActiveTab("outils") },
+                    { icon: "📐", label: "Mesure photo IA", desc: "Photographiez un objet ou une pièce et mesurez-le grâce à l'intelligence artificielle", action: () => setActiveTab("outils") },
+                    { icon: "🧭", label: "Boussole", desc: "Orientez-vous sur vos chantiers et relevez les orientations avec la boussole intégrée", action: () => setActiveTab("outils") },
+                    { icon: "🪨", label: "Identificateur matériaux", desc: "Photographiez un matériau inconnu, l'IA l'identifie et vous donne ses caractéristiques", action: () => setActiveTab("outils") },
+                  ],
+                },
+              ];
+
+              return (
+                <div style={{ marginTop: "32px" }}>
+                  {/* Titre section */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
+                    <h3 style={{ color: "white", fontSize: isDesktop ? "20px" : "18px", fontWeight: "900", margin: 0 }}>
+                      ✨ Tout ce qu'Artisan+ peut faire pour vous
+                    </h3>
+                  </div>
+                  <p style={{ color: "#8899aa", fontSize: "13px", margin: "0 0 24px", lineHeight: "1.5" }}>
+                    Cliquez sur une fonctionnalité pour l'utiliser directement
+                  </p>
+
+                  {GROUPES.map(groupe => (
+                    <div key={groupe.titre} style={{ marginBottom: "24px" }}>
+                      {/* Titre groupe */}
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: "8px",
+                        marginBottom: "12px",
+                      }}>
+                        <div style={{
+                          height: "3px", width: "20px", borderRadius: "2px",
+                          background: groupe.couleur, flexShrink: 0,
+                        }} />
+                        <span style={{
+                          color: groupe.couleur, fontSize: "11px", fontWeight: "800",
+                          textTransform: "uppercase", letterSpacing: "0.7px",
+                        }}>
+                          {groupe.titre}
+                        </span>
+                      </div>
+
+                      {/* Cards */}
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: isDesktop ? "repeat(auto-fill, minmax(200px, 1fr))" : "repeat(2, 1fr)",
+                        gap: "10px",
+                      }}>
+                        {groupe.items.map(item => (
+                          <div
+                            key={item.label}
+                            onClick={item.action}
+                            style={{
+                              background: CARD,
+                              border: `1px solid ${groupe.couleur}22`,
+                              borderRadius: "14px",
+                              padding: "16px 14px",
+                              cursor: "pointer",
+                              transition: "transform 0.15s, box-shadow 0.15s, border-color 0.15s",
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.transform = "translateY(-2px)";
+                              e.currentTarget.style.boxShadow = `0 6px 20px ${groupe.couleur}22`;
+                              e.currentTarget.style.borderColor = `${groupe.couleur}55`;
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.transform = "none";
+                              e.currentTarget.style.boxShadow = "none";
+                              e.currentTarget.style.borderColor = `${groupe.couleur}22`;
+                            }}
+                          >
+                            <div style={{ fontSize: "26px", marginBottom: "8px" }}>{item.icon}</div>
+                            <div style={{ color: "white", fontWeight: "700", fontSize: "13px", marginBottom: "5px", lineHeight: "1.2" }}>
+                              {item.label}
+                            </div>
+                            <div style={{ color: "#6677aa", fontSize: "11px", lineHeight: "1.5" }}>
+                              {item.desc}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               );
             })()}
@@ -3156,7 +3301,7 @@ export default function Dashboard({
             { id: "documents", icon: "📄",  label: "Docs"      },
             { id: "clients",   icon: "👥",  label: "Clients"   },
             { id: "chantiers", icon: "🏗️", label: "Chantiers" },
-            { id: "outils",    icon: "🔧",  label: "Outils"    },
+            { id: "agenda",    icon: "📅",  label: "Agenda"    },
           ].filter(tab => canAccess(tab.id)).map(tab => {
             const isActive = activeTab === tab.id && page !== "parametres";
             return (
@@ -3266,41 +3411,105 @@ export default function Dashboard({
               </div>
             </div>
 
-            {/* Items de navigation */}
-            <div style={{ flex: 1 }}>
+            {/* Navigation groupée en sections */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
               {[
-                { icon: "📅", label: "Agenda",         action: () => { setPage("dashboard"); setActiveTab("agenda"); setHamburgerOpen(false); } },
-                { icon: "👥", label: "Mon équipe",     action: () => { setParametresSection("equipe"); setPage("parametres"); setHamburgerOpen(false); } },
-                { icon: "🌐", label: "Mon site web",   action: () => { setParametresSection("minisite"); setPage("parametres"); setHamburgerOpen(false); } },
-                { icon: "👤", label: "Mon profil",     action: () => { setPage("profil");      setHamburgerOpen(false); } },
-                { icon: "💎", label: "Mon abonnement", action: () => { setParametresSection("abonnement"); setPage("parametres"); setHamburgerOpen(false); } },
-                { icon: "⚙️", label: "Paramètres",     action: () => { setParametresSection("profil");     setPage("parametres"); setHamburgerOpen(false); } },
-                { icon: "❓", label: "Centre d'aide",  action: () => { setParametresSection("aide");        setPage("parametres"); setHamburgerOpen(false); } },
-              ].map(item => (
-                <button
-                  key={item.label}
-                  onClick={item.action}
-                  style={{
-                    width: "100%", background: "transparent", border: "none",
-                    borderBottom: "1px solid rgba(255,255,255,0.04)",
-                    color: "white", textAlign: "left",
-                    padding: "15px 20px", fontSize: "15px", fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: "14px",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <span style={{ fontSize: "20px", width: "26px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  <span style={{ color: "#8899aa", fontSize: "16px" }}>›</span>
-                </button>
+                {
+                  section: "🔧 Outils",
+                  color: PRIMARY,
+                  items: [
+                    { icon: "🔧", label: "Tous les outils terrain", action: () => { setPage("dashboard"); setActiveTab("outils"); setHamburgerOpen(false); } },
+                  ],
+                },
+                {
+                  section: "📊 Mon activité",
+                  color: "#7ec8e3",
+                  items: [
+                    { icon: "📊", label: "Récap mensuel IA", action: () => { if (!isPro) { setProGateModal("recap"); } else { setShowRecap(true); } setHamburgerOpen(false); } },
+                    { icon: "💶", label: "Assistant comptable", action: () => { if (!isPro) { setProGateModal("comptable"); } else { setPage("dashboard"); setActiveTab("accueil"); setShowComptable(true); } setHamburgerOpen(false); } },
+                  ],
+                },
+                {
+                  section: "👥 Mon équipe",
+                  color: "#9C27B0",
+                  items: [
+                    { icon: "👷", label: "Gérer l'équipe", action: () => { setParametresSection("equipe"); setPage("parametres"); setHamburgerOpen(false); } },
+                  ],
+                },
+                {
+                  section: "🌐 Ma présence",
+                  color: "#E91E63",
+                  items: [
+                    { icon: "🌐", label: "Mon site web", action: () => { setParametresSection("minisite"); setPage("parametres"); setHamburgerOpen(false); } },
+                    { icon: "✅", label: "Badge Artisan Vérifié", action: () => { setParametresSection("verif"); setPage("parametres"); setHamburgerOpen(false); } },
+                  ],
+                },
+                {
+                  section: "⚙️ Réglages",
+                  color: "#607D8B",
+                  items: [
+                    { icon: "👤", label: "Profil artisan", action: () => { setPage("profil"); setHamburgerOpen(false); } },
+                    { icon: "🎨", label: "Apparence & PDFs", action: () => { setParametresSection("apparence"); setPage("parametres"); setHamburgerOpen(false); } },
+                    { icon: "💳", label: "Paiements en ligne", action: () => { setParametresSection("paiements"); setPage("parametres"); setHamburgerOpen(false); } },
+                    { icon: "🔔", label: "Notifications", action: () => { setParametresSection("notifications"); setPage("parametres"); setHamburgerOpen(false); } },
+                  ],
+                },
+                {
+                  section: "💎 Pro",
+                  color: PRIMARY,
+                  items: [
+                    { icon: "💎", label: "Abonnement Pro", action: () => { setParametresSection("abonnement"); setPage("parametres"); setHamburgerOpen(false); } },
+                    { icon: "🎁", label: "Parrainage", action: () => { setParametresSection("parrainage"); setPage("parametres"); setHamburgerOpen(false); } },
+                  ],
+                },
+              ].map(group => (
+                <div key={group.section}>
+                  <div style={{
+                    padding: "10px 20px 4px",
+                    fontSize: "10px", fontWeight: "800",
+                    textTransform: "uppercase", letterSpacing: "0.7px",
+                    color: group.color,
+                    borderTop: "1px solid rgba(255,255,255,0.04)",
+                  }}>
+                    {group.section}
+                  </div>
+                  {group.items.map(item => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      style={{
+                        width: "100%", background: "transparent", border: "none",
+                        borderBottom: "1px solid rgba(255,255,255,0.03)",
+                        color: "white", textAlign: "left",
+                        padding: "12px 20px 12px 28px", fontSize: "14px", fontWeight: "600",
+                        cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: "12px",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <span style={{ fontSize: "18px", width: "22px", textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      <span style={{ color: "#445566", fontSize: "14px" }}>›</span>
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
 
-            {/* Déconnexion */}
-            <div style={{ padding: "20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* Aide + Déconnexion */}
+            <div style={{ padding: "14px 20px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <button
+                onClick={() => { setParametresSection("aide"); setPage("parametres"); setHamburgerOpen(false); }}
+                style={{
+                  width: "100%", background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.1)", color: "#8899aa",
+                  borderRadius: "10px", padding: "11px", fontSize: "13px",
+                  fontWeight: "600", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                }}
+              >❓ Centre d'aide</button>
               <button
                 onClick={() => { handleLogout(); setHamburgerOpen(false); }}
                 style={{
