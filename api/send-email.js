@@ -39,11 +39,69 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Corps de requête invalide" });
   }
 
-  // ── Routage : facture ou devis ──────────────────────────────────────────────
+  // ── Routage ─────────────────────────────────────────────────────────────────
+  if (body.type === "support") {
+    return handleSupport(apiKey, body, res);
+  }
   if (body.numeroFacture) {
     return handleFacture(apiKey, body, res);
   }
   return handleDevis(apiKey, body, res);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Support — Centre d'aide
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handleSupport(apiKey, body, res) {
+  const { sujet, message, emailUtilisateur, nomUtilisateur } = body;
+  if (!message?.trim()) return res.status(400).json({ error: "Message vide" });
+
+  const SUPPORT_EMAIL = "cassou101514@gmail.com";
+  const date = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+
+  try {
+    await appelResend(apiKey, {
+      from: FROM,
+      to: [SUPPORT_EMAIL],
+      reply_to: emailUtilisateur || undefined,
+      subject: `[Artisan+ Support] ${sujet || "Message de l'app"}`,
+      html: `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+    <div style="background:#0a1628;padding:24px 32px;text-align:center;">
+      <span style="font-size:26px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span>
+      <div style="color:#8899aa;font-size:12px;margin-top:4px;">Centre d'aide — nouveau message</div>
+    </div>
+    <div style="background:#FF8C00;padding:16px 32px;">
+      <div style="color:#fff;font-size:16px;font-weight:700;">📬 ${sujet || "Message support"}</div>
+    </div>
+    <div style="padding:32px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;width:120px;">De</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${nomUtilisateur || "Utilisateur"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${emailUtilisateur}" style="color:#FF8C00;">${emailUtilisateur || "—"}</a></td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Sujet</td><td style="color:#1a1a2e;font-size:14px;">${sujet || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${date}</td></tr>
+      </table>
+      <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;border-left:4px solid #FF8C00;">
+        <div style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Message</div>
+        <div style="color:#1a1a2e;font-size:14px;line-height:1.8;white-space:pre-wrap;">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+      </div>
+    </div>
+    <div style="background:#0a1628;padding:16px 32px;text-align:center;">
+      <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr · Répondre directement à cet email</span>
+    </div>
+  </div>
+</body>
+</html>`,
+    });
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("[send-email/support] Erreur :", err.message);
+    return res.status(500).json({ error: err.message });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

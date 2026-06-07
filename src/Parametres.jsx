@@ -132,8 +132,13 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const [deleteStep,        setDeleteStep]        = useState(0);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
-  // ── Centre d'aide (accordéon) ─────────────────────
-  const [aideOpenId, setAideOpenId] = useState(null);
+  // ── Centre d'aide (accordéon + formulaire contact) ─
+  const [aideOpenId,       setAideOpenId]       = useState(null);
+  const [contactSujet,     setContactSujet]     = useState("Problème technique");
+  const [contactMsg,       setContactMsg]       = useState("");
+  const [contactLoading,   setContactLoading]   = useState(false);
+  const [contactSuccess,   setContactSuccess]   = useState(false);
+  const [contactError,     setContactError]     = useState("");
 
   // ── Abonnement Stripe ────────────────────────────
   const [planInfo,      setPlanInfo]      = useState({ plan: "free", stripe_customer_id: null });
@@ -2520,24 +2525,113 @@ ALTER TABLE profils
 
           {/* ── Contacter le support ─────────────────────── */}
           <SCard titre="📬 Contacter le support">
-            <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 18px" }}>
-              Tu n'as pas trouvé la réponse à ta question ? Notre équipe répond en moins de 24h du lundi au vendredi.
+            <p style={{ color: "#8899aa", fontSize: "13px", lineHeight: "1.6", margin: "0 0 20px" }}>
+              Tu n'as pas trouvé la réponse ? Envoie-nous un message, on répond en moins de 24h du lundi au vendredi.
             </p>
-            <a
-              href="mailto:contact@artisan-plus.fr?subject=Support Artisan+"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "8px",
-                background: PRIMARY, color: "white",
-                borderRadius: "12px", padding: "14px 26px",
-                fontSize: "15px", fontWeight: "800",
-                textDecoration: "none", letterSpacing: "0.2px",
-              }}
-            >
-              ✉️ Contacter le support
-            </a>
-            <div style={{ color: "#555", fontSize: "12px", marginTop: "10px" }}>
-              contact@artisan-plus.fr · Réponse sous 24h · Lun–Ven
-            </div>
+
+            {contactSuccess ? (
+              <div style={{
+                background: "rgba(76,175,80,0.12)", border: "1.5px solid rgba(76,175,80,0.35)",
+                borderRadius: "14px", padding: "24px", textAlign: "center",
+              }}>
+                <div style={{ fontSize: "40px", marginBottom: "10px" }}>✅</div>
+                <div style={{ color: "#4CAF50", fontWeight: "800", fontSize: "16px", marginBottom: "6px" }}>
+                  Message envoyé !
+                </div>
+                <div style={{ color: "#8899aa", fontSize: "13px", marginBottom: "16px" }}>
+                  Notre équipe vous répondra dans les 24h.
+                </div>
+                <button
+                  onClick={() => { setContactSuccess(false); setContactMsg(""); }}
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "white", borderRadius: "10px", padding: "10px 20px", fontSize: "13px", cursor: "pointer" }}
+                >
+                  Envoyer un autre message
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                {/* Sujet */}
+                <div>
+                  <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+                    Sujet
+                  </label>
+                  <select
+                    value={contactSujet}
+                    onChange={e => setContactSujet(e.target.value)}
+                    style={{ ...inp, cursor: "pointer" }}
+                  >
+                    {["Problème technique", "Question abonnement", "Bug dans l'application", "Suggestion d'amélioration", "Autre"].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label style={{ color: "#8899aa", fontSize: "12px", fontWeight: "600", display: "block", marginBottom: "6px" }}>
+                    Votre message *
+                  </label>
+                  <textarea
+                    placeholder="Décrivez votre problème ou question en détail..."
+                    value={contactMsg}
+                    onChange={e => setContactMsg(e.target.value)}
+                    rows={5}
+                    style={{ ...inp, resize: "vertical", minHeight: "110px", fontFamily: "inherit" }}
+                  />
+                </div>
+
+                {contactError && (
+                  <div style={{ color: "#ff6b6b", fontSize: "13px", background: "rgba(255,107,107,0.1)", borderRadius: "8px", padding: "10px 14px" }}>
+                    ❌ {contactError}
+                  </div>
+                )}
+
+                <button
+                  disabled={contactLoading || !contactMsg.trim()}
+                  onClick={async () => {
+                    if (!contactMsg.trim()) return;
+                    setContactLoading(true);
+                    setContactError("");
+                    try {
+                      const r = await fetch("/api/send-email", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          type: "support",
+                          sujet: contactSujet,
+                          message: contactMsg.trim(),
+                          emailUtilisateur: user?.email || "",
+                          nomUtilisateur: user?.email || "Utilisateur",
+                        }),
+                      });
+                      const j = await r.json();
+                      if (j.ok) {
+                        setContactSuccess(true);
+                      } else {
+                        setContactError(j.error || "Erreur lors de l'envoi, réessayez.");
+                      }
+                    } catch {
+                      setContactError("Erreur réseau — vérifiez votre connexion.");
+                    }
+                    setContactLoading(false);
+                  }}
+                  style={{
+                    background: contactLoading || !contactMsg.trim() ? "#334" : PRIMARY,
+                    color: "white", border: "none", borderRadius: "12px",
+                    padding: "14px 24px", fontSize: "15px", fontWeight: "800",
+                    cursor: contactLoading || !contactMsg.trim() ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  {contactLoading ? "Envoi en cours…" : "✉️ Envoyer le message"}
+                </button>
+
+                <div style={{ color: "#445566", fontSize: "11px", textAlign: "center" }}>
+                  Réponse sous 24h · Lun–Ven
+                </div>
+              </div>
+            )}
           </SCard>
 
           {/* ── Nouveautés ───────────────────────────────── */}
