@@ -456,7 +456,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     try {
       const imagesB64 = (await Promise.all(crPhotosSelec.map(url => compresserPhotoB64(url)))).filter(Boolean);
       if (imagesB64.length === 0) { setCrMsg("❌ Photos non chargées"); setCrGenerating(false); return; }
-      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const API_URL = import.meta.env.VITE_API_URL || "";
       const resp = await fetch(`${API_URL}/api/vision-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -514,7 +514,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     // Footer
     doc.setFillColor(...PRIMARY_RGB); doc.rect(0, 288, 210, 9, "F");
     doc.setFontSize(8); doc.setFont("helvetica", "bold"); doc.setTextColor(255,255,255);
-    doc.text("Généré par Artisan+  ·  artisan-plus.vercel.app", 105, 294, { align: "center" });
+    doc.text("Généré par Artisan+  ·  artisan-plus.fr", 105, 294, { align: "center" });
 
     doc.save(`compte-rendu-${fiche.nom.replace(/\s+/g,"-").toLowerCase()}-${new Date().toISOString().slice(0,10)}.pdf`);
   };
@@ -679,7 +679,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setPlanData(null);
     try {
       const base64 = await compresserPlan(file);
-      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const API_URL = import.meta.env.VITE_API_URL || "";
       const resp = await fetch(`${API_URL}/api/vision-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -786,7 +786,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
     setScanFrMsg({ text: "", ok: true });
     try {
       const base64 = await compresserImageFr(file);
-      const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const API_URL = import.meta.env.VITE_API_URL || "";
       const resp = await fetch(`${API_URL}/api/vision-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1866,7 +1866,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                 <button onClick={() => {
                   const client = fiche.clients;
                   if (!client?.email) { alert("Pas d'email client renseigné"); return; }
-                  const API = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+                  const API = import.meta.env.VITE_API_URL || "";
                   fetch(`${API}/api/send-email`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ to: client.email, subject: `Compte-rendu chantier — ${fiche.nom}`, html: `<pre style="font-family:Arial;font-size:14px;white-space:pre-wrap">${crTexte}</pre>` }),

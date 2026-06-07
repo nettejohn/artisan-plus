@@ -5,7 +5,7 @@ import jsPDF from "jspdf";
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
 const CARD    = "#111e35";
-const API_URL = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 const MOIS_FR = ["Janvier","Février","Mars","Avril","Mai","Juin",
                  "Juillet","Août","Septembre","Octobre","Novembre","Décembre"];

@@ -299,7 +299,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
     setVocalError("");
     setVocalTexte("");
     try {
-      const API = import.meta.env.VITE_API_URL || "https://artisan-plus.vercel.app";
+      const API = import.meta.env.VITE_API_URL || "";
       const r = await fetch(`${API}/api/process-vocal-devis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
