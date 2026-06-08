@@ -88,7 +88,6 @@ export default function App() {
     !_initPath.startsWith("/site/") &&
     !_initPath.startsWith("/ouvrier/") &&
     !VITRINE_PREFIXES.some(pfx => _initPath.startsWith(pfx)) &&
-    _initPath !== "/" && _initPath !== "/login" &&
     _initPath !== "/connexion" && _initPath !== "/inscription";
   const [showSplash, setShowSplash] = useState(isSplashPage);
   const [splashOut,  setSplashOut]  = useState(false);
