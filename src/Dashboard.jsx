@@ -353,6 +353,16 @@ export default function Dashboard({
   const isPro = profil?.plan === "pro" ||
     (profil?.referral_pro_until && new Date(profil.referral_pro_until) > new Date());
 
+  // Compte les documents créés dans le mois courant (limite freemium mensuelle)
+  const countMonthly = (items) => {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    return items.filter(x => {
+      const d = new Date(x.created_at || x.date_creation || "");
+      return d.getFullYear() === y && d.getMonth() === m;
+    }).length;
+  };
+
   const chargerProfil = async () => {
     const { data } = await supabase
       .from("profils")
@@ -485,7 +495,7 @@ export default function Dashboard({
 
   const sauvegarderClient = async () => {
     if (!clientForm.nom.trim()) { setClientMessage("❌ Le nom est obligatoire"); return; }
-    if (!clientEdite && !isPro && clients.length >= 5) { ouvrirUpgrade("clients"); return; }
+    if (!clientEdite && !isPro && clients.length >= 10) { ouvrirUpgrade("clients"); return; }
     setClientLoading(true);
     setClientMessage("");
 
@@ -881,7 +891,7 @@ export default function Dashboard({
     <Profil user={user} onBack={() => { setPage("dashboard"); chargerProfil(); }} />
   );
   if (page === "nouvelle-facture") return (
-    <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
+    <NouvelleFacture user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} isPro={isPro} onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
   );
   if (page === "nouveau-devis") return (
     <NouveauDevis user={user} clientInitialId={clientPreSelectionne} modeSimple={modeSimple} isPro={isPro} onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }} onBack={() => { setPage("dashboard"); setClientPreSelectionne(null); chargerDonnees(); }} />
@@ -2180,7 +2190,7 @@ export default function Dashboard({
                     { icon: "🌐", label: "Mini-site vitrine", desc: "Votre site web professionnel gratuit avec vos coordonnées et prestations en ligne", action: () => { setParametresSection("minisite"); setPage("parametres"); } },
                     { icon: "✅", label: "Badge Artisan Vérifié", desc: "Obtenez le badge de confiance après vérification SIRET — visible sur tous vos documents", action: () => { setParametresSection("verif"); setPage("parametres"); } },
                     { icon: "👷", label: "Gestion équipe", desc: "Ajoutez vos collaborateurs, définissez leurs rôles et gérez leurs accès à l'application", action: () => { setParametresSection("equipe"); setPage("parametres"); } },
-                    { icon: "🎁", label: "Parrainage", desc: "Parrainez vos collègues artisans et recevez 1 mois Pro offert pour chaque parrainage", action: () => { setParametresSection("parrainage"); setPage("parametres"); } },
+                    { icon: "🎁", label: "Parrainage", desc: "Parrainez vos collègues artisans et recevez 1 mois Pro offert pour chaque parrainage", action: () => { if (!isPro) { setHamburgerOpen(false); setProGateModal("parrainage"); return; } setParametresSection("parrainage"); setPage("parametres"); } },
                   ],
                 },
                 {
@@ -2315,11 +2325,11 @@ export default function Dashboard({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📄 Mes Factures</h2>
-                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{factures.length}/5</span>}
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{countMonthly(factures)}/10 ce mois</span>}
               </div>
               <button
                 onClick={() => {
-                  if (!isPro && factures.length >= 5) {
+                  if (!isPro && countMonthly(factures) >= 10) {
                     ouvrirUpgrade("factures");
                   } else {
                     setPage("nouvelle-facture");
@@ -2456,11 +2466,11 @@ export default function Dashboard({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "12px", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📝 Mes Devis</h2>
-                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{devis.length}/5</span>}
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{countMonthly(devis)}/10 ce mois</span>}
               </div>
               <button
                 onClick={() => {
-                  if (!isPro && devis.length >= 5) {
+                  if (!isPro && countMonthly(devis) >= 10) {
                     ouvrirUpgrade("devis");
                   } else {
                     setPage("nouveau-devis");
@@ -2601,9 +2611,9 @@ export default function Dashboard({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>👥 Mes Clients</h2>
-                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{clients.length}/5</span>}
+                {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{clients.length}/10</span>}
               </div>
-              <button onClick={() => { if (!isPro && clients.length >= 5) { ouvrirUpgrade("clients"); return; } ouvrirModalAjout(); }} style={{
+              <button onClick={() => { if (!isPro && clients.length >= 10) { ouvrirUpgrade("clients"); return; } ouvrirModalAjout(); }} style={{
                 background: PRIMARY, color: "white", border: "none",
                 borderRadius: "10px", padding: "12px 24px",
                 fontSize: "15px", fontWeight: "700", cursor: "pointer"

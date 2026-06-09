@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import CataloguePrestations from "./CataloguePrestations";
 import { genererPDFBase64 } from "./GenerateurPDF";
+import ProGate from "./ProGate";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -27,7 +28,7 @@ const THEMES = [
   { id: "traitement", label: "🧹 Traitement toiture",  desc: "Nettoyage & anti-mousse",   color: "#1565C0" },
 ];
 
-export default function NouvelleFacture({ user, onBack, clientInitialId, modeSimple = false }) {
+export default function NouvelleFacture({ user, onBack, clientInitialId, modeSimple = false, isPro = true, onUpgrade }) {
   // ── Clients ────────────────────────────────────────────────────────────────
   const [clientsExistants, setClientsExistants] = useState([]);
   const [clientSelectionne, setClientSelectionne] = useState("nouveau"); // "nouveau" | id
@@ -45,6 +46,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   const [tvaSurDebits, setTvaSurDebits] = useState(false);
   const [showCatalogue, setShowCatalogue] = useState(false);
   const [catalogueLigneIndex, setCatalogueLigneIndex] = useState(null);
+  const [proGateModal, setProGateModal] = useState(null);
 
   // ── Après création : panneau "envoyer" ────────────────────────
   const [factureCree, setFactureCree] = useState(null); // facture créée
@@ -563,7 +565,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <button
-                  onClick={() => { setCatalogueLigneIndex(i); setShowCatalogue(true); }}
+                  onClick={() => { if (!isPro) { setProGateModal("catalogue"); return; } setCatalogueLigneIndex(i); setShowCatalogue(true); }}
                   title="Choisir depuis le catalogue"
                   style={{
                     background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.35)",
@@ -712,6 +714,16 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       </div>
       )}
       </div>{/* end padding wrapper */}
+
+      {/* ProGate modal — fonctionnalités Pro */}
+      {proGateModal && (
+        <ProGate
+          featureKey={proGateModal}
+          mode="modal"
+          onUpgrade={() => { setProGateModal(null); onUpgrade?.(); }}
+          onDismiss={() => setProGateModal(null)}
+        />
+      )}
     </div>
   );
 }

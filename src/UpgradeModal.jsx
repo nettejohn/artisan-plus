@@ -8,10 +8,10 @@ const DARK    = "#0a1628";
 const CARD    = "#111e35";
 
 const FEATURES_FREE = [
-  "5 factures max",
-  "5 devis max",
-  "5 chantiers max",
-  "5 clients max",
+  "10 factures/mois max",
+  "10 devis/mois max",
+  "10 chantiers/mois max",
+  "10 clients max",
 ];
 
 const FEATURES_PRO = [

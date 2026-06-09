@@ -2103,14 +2103,21 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   // VUE LISTE
   // ══════════════════════════════════════════════════════════════
 
+  const now = new Date();
+  const chantiersMonthCount = chantiers.filter(c => {
+    const d = new Date(c.created_at || "");
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }).length;
+
   return (
     <div>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
         <h2 style={{ color: "white", fontSize: "24px", margin: 0 }}>🏗️ Mes Chantiers</h2>
+        {!isPro && <span style={{ background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "3px 12px", color: "#FF8C00", fontSize: "12px", fontWeight: "700" }}>{chantiersMonthCount}/10 ce mois</span>}
         <button
           onClick={() => {
-            if (!isPro && chantiers.length >= 5) {
+            if (!isPro && chantiersMonthCount >= 10) {
               onUpgrade?.();
             } else {
               setNvMsg(""); setNvForm({ nom: "", client_id: "", adresse: "", date_debut: "", date_fin_prevue: "", statut: "en_attente", description: "", prix_chantier: "", heures_mo: "", taux_horaire: "", budget_materiaux: "", km_deplacement: "" }); setNvModal(true);
@@ -2144,7 +2151,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
           {filtreStatut === "tous" && (
             <button
               onClick={() => {
-                if (!isPro && chantiers.length >= 5) {
+                if (!isPro && chantiersMonthCount >= 10) {
                   onUpgrade?.();
                 } else {
                   setNvModal(true);

@@ -1308,6 +1308,9 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ══════════════════════════════════════════════════ */}
       {activeSection === "apparence" && (
         <SCard titre="🎨 Apparence des PDF">
+          {!isPro ? (
+            <ProGate featureKey="theme_pdf" mode="card" onUpgrade={() => setActiveSection("abonnement")} onDismiss={null} />
+          ) : (<>
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
             {/* Thème */}
@@ -1357,6 +1360,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
           {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
           <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder l'apparence" />
+          </>)}
         </SCard>
       )}
 
@@ -1911,6 +1915,9 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           PARRAINAGE
       ══════════════════════════════════════════════════ */}
       {activeSection === "parrainage" && (() => {
+        if (!isPro) return (
+          <ProGate featureKey="parrainage" mode="card" onUpgrade={() => setActiveSection("abonnement")} onDismiss={null} />
+        );
         const lienRef = referralInfo.code
           ? `https://www.artisan-plus.fr?ref=${referralInfo.code}`
           : null;

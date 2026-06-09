@@ -175,6 +175,50 @@ export const PRO_CONFIGS = {
       { icon: "💡", text: "Prévision de fin d'année selon votre tendance" },
     ],
   },
+  clients_illimites: {
+    icon: "👥", gradient: "linear-gradient(135deg,#3498db,#2980b9)",
+    title: "Clients illimités",
+    subtitle: "Gérez tous vos clients sans aucune limite",
+    benefits: [
+      { icon: "♾️", text: "Ajoutez autant de clients que nécessaire" },
+      { icon: "📋", text: "Fiches clients complètes avec historique complet" },
+      { icon: "📊", text: "Suivi devis et factures par client en un coup d'œil" },
+      { icon: "🔍", text: "Recherche et filtrage avancés sur toute votre base" },
+    ],
+  },
+  catalogue: {
+    icon: "📚", gradient: "linear-gradient(135deg,#8e44ad,#6c3483)",
+    title: "Catalogue de prestations",
+    subtitle: "Vos tarifs enregistrés pour des devis ultra-rapides",
+    benefits: [
+      { icon: "⚡", text: "Ajoutez vos lignes en 1 clic depuis votre catalogue" },
+      { icon: "💰", text: "Tarifs personnalisés mémorisés par prestation" },
+      { icon: "📋", text: "Catalogue partagé entre vos devis et factures" },
+      { icon: "🔍", text: "Recherche instantanée parmi tous vos articles" },
+    ],
+  },
+  parrainage: {
+    icon: "🎁", gradient: "linear-gradient(135deg,#27ae60,#1a8a47)",
+    title: "Programme de parrainage",
+    subtitle: "Parrainez vos collègues, gagnez tous les deux 1 mois Pro offert",
+    benefits: [
+      { icon: "🤝", text: "Parrainez un artisan : 1 mois Pro gratuit pour vous deux" },
+      { icon: "🔗", text: "Lien et code de parrainage personnalisés" },
+      { icon: "📱", text: "Partagez par SMS, WhatsApp ou email en 1 tap" },
+      { icon: "🎉", text: "Suivi de vos parrainages en temps réel" },
+    ],
+  },
+  theme_pdf: {
+    icon: "🎨", gradient: "linear-gradient(135deg,#e67e22,#d35400)",
+    title: "Thèmes PDF professionnels",
+    subtitle: "Personnalisez l'apparence de vos devis et factures",
+    benefits: [
+      { icon: "✨", text: "5 thèmes élégants : Moderne, Classic, Minimal…" },
+      { icon: "🎨", text: "Couleur d'accentuation entièrement personnalisée" },
+      { icon: "📄", text: "PDF professionnel parfaitement à votre image" },
+      { icon: "🏆", text: "+40% de taux d'acceptation avec un devis soigné" },
+    ],
+  },
 };
 
 // ── Composant ProGate ────────────────────────────────────────────────────────

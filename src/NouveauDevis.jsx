@@ -721,7 +721,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <button
-                  onClick={() => { setCatalogueLigneIndex(i); setShowCatalogue(true); }}
+                  onClick={() => { if (!isPro) { setProGateModal("catalogue"); return; } setCatalogueLigneIndex(i); setShowCatalogue(true); }}
                   title="Choisir depuis le catalogue"
                   style={{
                     background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.35)",
