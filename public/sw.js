@@ -6,7 +6,7 @@
 //   • API cross-origin   → Pass-through (Supabase, etc.)
 // ───────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `artisan-plus-${CACHE_VERSION}`;
 
 // Ressources à précacher lors de l'installation

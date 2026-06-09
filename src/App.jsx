@@ -531,7 +531,7 @@ export default function App() {
   if (!user) {
     // Pendant la vérification de session : spinner pour éviter le flash vitrine
     // (ne s'applique pas aux pages publiques qui ont déjà fait return plus haut)
-    if (sessionLoading) return <PublicFallback />;
+    if (sessionLoading) return <>{splashEl}<PublicFallback /></>;
     const isLoginPath = routePath === "/login" || routePath === "/connexion" || routePath === "/inscription";
     if (!isLoginPath) {
       if (routePath === "/blog" || routePath.startsWith("/blog/")) return <><Suspense fallback={<PublicFallback />}><Blog /></Suspense><CookieBanner /></>;
