@@ -4,6 +4,7 @@
  *          /alternative-:concurrent, /cgu, /politique-confidentialite
  */
 import { useState, useEffect } from "react";
+import { useLanguage } from "./i18n";
 
 const P  = "#FF8C00";
 const D  = "#0a1628";
@@ -693,6 +694,7 @@ function navigate(to) {
 
 // ── Composant : En-tête ───────────────────────────────────────────────────────
 function Header() {
+  const { lang, setLang } = useLanguage();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled,  setScrolled] = useState(false);
   const [isMobile,  setIsMobile]  = useState(() => window.innerWidth < 768);
@@ -708,11 +710,17 @@ function Header() {
     };
   }, []);
 
-  const navLinks = [
-    { label: "Fonctionnalités", href: "/#fonctionnalites" },
-    { label: "Tarifs",          href: "/#tarifs" },
-    { label: "Métiers",         href: "/#metiers" },
-  ];
+  const navLinks = lang === "en"
+    ? [
+        { label: "Features",  href: "/#fonctionnalites" },
+        { label: "Pricing",   href: "/#tarifs" },
+        { label: "Trades",    href: "/#metiers" },
+      ]
+    : [
+        { label: "Fonctionnalités", href: "/#fonctionnalites" },
+        { label: "Tarifs",          href: "/#tarifs" },
+        { label: "Métiers",         href: "/#metiers" },
+      ];
 
   return (
     <header style={{
@@ -742,27 +750,36 @@ function Header() {
                 onMouseLeave={e => e.currentTarget.style.color = G}
               >{l.label}</a>
             ))}
+            {/* Bouton FR/EN */}
+            <button
+              onClick={() => setLang(lang === "fr" ? "en" : "fr")}
+              style={{ background: "rgba(255,140,0,0.1)", border: "1.5px solid rgba(255,140,0,0.35)", color: P, borderRadius: "8px", padding: "5px 12px", cursor: "pointer", fontSize: "13px", fontWeight: "700", marginRight: "4px" }}
+            >{lang === "fr" ? "🇬🇧 EN" : "🇫🇷 FR"}</button>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ color: G, fontSize: "14px", fontWeight: "600", textDecoration: "none", padding: "6px 12px" }}>
-              Connexion
+              {lang === "en" ? "Login" : "Connexion"}
             </a>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontSize: "14px", fontWeight: "700", textDecoration: "none", padding: "10px 20px", borderRadius: "10px", transition: "opacity 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              Essai gratuit →
+              {lang === "en" ? "Free trial →" : "Essai gratuit →"}
             </a>
           </nav>
         )}
 
-        {/* Mobile : CTA + hamburger */}
+        {/* Mobile : CTA + langue + hamburger */}
         {isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              onClick={() => setLang(lang === "fr" ? "en" : "fr")}
+              style={{ background: "rgba(255,140,0,0.1)", border: "1.5px solid rgba(255,140,0,0.35)", color: P, borderRadius: "8px", padding: "5px 10px", cursor: "pointer", fontSize: "12px", fontWeight: "700" }}
+            >{lang === "fr" ? "EN" : "FR"}</button>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontSize: "13px", fontWeight: "700", textDecoration: "none", padding: "9px 16px", borderRadius: "10px" }}
             >
-              Essai gratuit
+              {lang === "en" ? "Free trial" : "Essai gratuit"}
             </a>
             <button
               onClick={() => setMenuOpen(o => !o)}
@@ -792,7 +809,7 @@ function Header() {
           ))}
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); setMenuOpen(false); }}
             style={{ color: G, fontSize: "16px", fontWeight: "600", textDecoration: "none", padding: "13px 4px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            Connexion
+            {lang === "en" ? "Login" : "Connexion"}
           </a>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); setMenuOpen(false); }}
             style={{ display: "block", textAlign: "center", background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "14px", borderRadius: "12px", textDecoration: "none", marginTop: "10px" }}>
@@ -2660,6 +2677,7 @@ function PageGenerique({ slug }) {
 
 // ── Routeur principal ─────────────────────────────────────────────────────────
 export default function Vitrine() {
+  const { lang, setLang, t } = useLanguage();
   const [path, setPath] = useState(window.location.pathname);
 
   useEffect(() => {

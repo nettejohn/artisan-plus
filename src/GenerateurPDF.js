@@ -1,5 +1,11 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { fr as frPDF } from "./locales/fr";
+import { en as enPDF } from "./locales/en";
+
+function getPDFLabels(lang) {
+  return lang === "en" ? enPDF.pdf : frPDF.pdf;
+}
 
 const THEMES = {
   classique: {
@@ -91,7 +97,9 @@ function dessinerDecoration(doc, style) {
  * @param {string} options.nomSignataire   – nom du signataire (optionnel)
  */
 function construireDoc(document, client, lignes, artisan, estDevis = false, options = {}) {
-  const { signatureImage = null, nomSignataire = "" } = options;
+  const { signatureImage = null, nomSignataire = "", lang = "fr" } = options;
+  const lbl = getPDFLabels(lang);
+  const locale = lang === "en" ? "en-GB" : "fr-FR";
 
   const doc = new jsPDF();
   const style = document.style || "classique";
@@ -128,7 +136,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.text(document.numero, 195, 18, { align: "right" });
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("Date : " + new Date(document.created_at).toLocaleDateString("fr-FR"), 195, 26, { align: "right" });
+  doc.text(lbl.dateLabel + new Date(document.created_at).toLocaleDateString(locale), 195, 26, { align: "right" });
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text(typeDoc, 195, 36, { align: "right" });
@@ -137,14 +145,14 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   if (estDevis && document.date_validite) {
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("Valide jusqu'au : " + new Date(document.date_validite).toLocaleDateString("fr-FR"), 195, 44, { align: "right" });
+    doc.text(lbl.validUntil + new Date(document.date_validite).toLocaleDateString(locale), 195, 44, { align: "right" });
   }
 
   // INFOS ARTISAN
   doc.setTextColor(...theme.grayColor);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text("DE", 15, 62);
+  doc.text(lbl.from, 15, 62);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...theme.textColor);
   doc.setFontSize(11);
@@ -154,8 +162,8 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.setTextColor(...theme.grayColor);
   let yArtisan = 77;
   if (artisan.adresse) { doc.text(artisan.adresse, 15, yArtisan); yArtisan += 7; }
-  if (artisan.telephone) { doc.text("Tél : " + artisan.telephone, 15, yArtisan); yArtisan += 7; }
-  if (artisan.siret) { doc.text("SIRET : " + artisan.siret, 15, yArtisan); }
+  if (artisan.telephone) { doc.text(lbl.tel + artisan.telephone, 15, yArtisan); yArtisan += 7; }
+  if (artisan.siret) { doc.text(lbl.siret + artisan.siret, 15, yArtisan); }
 
   // INFOS CLIENT
   doc.setFillColor(...theme.tableBg);
@@ -163,7 +171,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.setTextColor(...theme.grayColor);
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.text(estDevis ? "DEVIS POUR" : "FACTURÉ À", 120, 63);
+  doc.text(estDevis ? lbl.toDevis : lbl.to, 120, 63);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...theme.textColor);
   doc.setFontSize(11);
@@ -174,7 +182,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   let yClient = 78;
   if (client?.adresse) { doc.text(client.adresse, 120, yClient); yClient += 7; }
   if (client?.email) { doc.text(client.email, 120, yClient); yClient += 7; }
-  if (client?.telephone) { doc.text("Tél : " + client.telephone, 120, yClient); }
+  if (client?.telephone) { doc.text(lbl.tel + client.telephone, 120, yClient); }
 
   // LIGNE SÉPARATRICE
   doc.setDrawColor(...theme.accent);
@@ -191,7 +199,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
 
   autoTable(doc, {
     startY: 107,
-    head: [["Description", "Qté", "Prix unitaire HT", "Total HT"]],
+    head: [[lbl.description, lbl.qty, lbl.unitPriceHT, lbl.totalHT]],
     body: tableData,
     theme: "striped",
     headStyles: {
@@ -223,13 +231,13 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.setTextColor(...theme.grayColor);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Total HT :", 125, finalY + 5);
+  doc.text(lbl.totalHTLabel, 125, finalY + 5);
   doc.setTextColor(...theme.textColor);
   doc.text(totalHT.toFixed(2) + " €", 192, finalY + 5, { align: "right" });
 
   if (appliquerTva) {
     doc.setTextColor(...theme.grayColor);
-    doc.text(`TVA (${document.tva}%) :`, 125, finalY + 14);
+    doc.text(`${lbl.vatLabel} (${document.tva}%) :`, 125, finalY + 14);
     doc.setTextColor(...theme.textColor);
     doc.text(montantTVA.toFixed(2) + " €", 192, finalY + 14, { align: "right" });
     doc.setDrawColor(...theme.accent);
@@ -238,7 +246,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.accent);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Total TTC :", 125, finalY + 27);
+    doc.text(lbl.totalTTC, 125, finalY + 27);
     doc.text(totalFinal.toFixed(2) + " €", 192, finalY + 27, { align: "right" });
   } else {
     doc.setDrawColor(...theme.accent);
@@ -247,7 +255,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.accent);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Total :", 125, finalY + 18);
+    doc.text(lbl.total, 125, finalY + 18);
     doc.text(totalFinal.toFixed(2) + " €", 192, finalY + 18, { align: "right" });
   }
 
@@ -255,7 +263,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("TVA non applicable, art. 293 B du CGI", 15, finalY + 18);
+    doc.text(lbl.vatExempt, 15, finalY + 18);
   }
 
   // NATURE DE L'OPÉRATION (boîte à gauche du bloc totaux)
@@ -265,7 +273,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
-    doc.text("NATURE DE L'OPÉRATION", 20, finalY + 3);
+    doc.text(lbl.operation, 20, finalY + 3);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...theme.textColor);
     doc.setFontSize(9);
@@ -281,23 +289,23 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text("BON POUR ACCORD — Signature client :", 18, sigY + 7);
+    doc.text(lbl.signature, 18, sigY + 7);
     doc.setFont("helvetica", "normal");
 
     if (signatureImage && nomSignataire) {
       // Devis signé : on intègre les données réelles
-      const dateSig = new Date().toLocaleDateString("fr-FR");
-      doc.text("Date : " + dateSig, 18, sigY + 15);
-      doc.text("Nom : " + nomSignataire, 18, sigY + 22);
+      const dateSig = new Date().toLocaleDateString(locale);
+      doc.text(lbl.date + dateSig, 18, sigY + 15);
+      doc.text(lbl.name + nomSignataire, 18, sigY + 22);
       try {
         doc.addImage(signatureImage, "PNG", 18, sigY + 24, 60, 12);
       } catch (_) { /* ignore si l'image est invalide */ }
     } else {
       // Devis non encore signé : cases vides
-      doc.text("Date : ____________________", 18, sigY + 15);
-      doc.text("Nom : ____________________", 18, sigY + 22);
+      doc.text(lbl.dateEmpty, 18, sigY + 15);
+      doc.text(lbl.nameEmpty, 18, sigY + 22);
       doc.line(18, sigY + 35, 95, sigY + 35);
-      doc.text("Signature", 18, sigY + 33);
+      doc.text(lbl.signatureLabel, 18, sigY + 33);
     }
   }
 
@@ -309,7 +317,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
-    doc.text("NOTES", estDevis ? 110 : 20, notesY + 2);
+    doc.text(lbl.notes, estDevis ? 110 : 20, notesY + 2);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...theme.textColor);
     const lignesNotes = doc.splitTextToSize(document.notes, 75);
@@ -323,7 +331,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.text("Règlement par virement : " + artisan.iban, 15, yMentions);
+    doc.text(lbl.bankTransfer + " " + artisan.iban, 15, yMentions);
     yMentions += 7;
   }
 
@@ -331,7 +339,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setTextColor(...theme.grayColor);
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("TVA exigible d'après les débits.", 15, yMentions);
+    doc.text(lbl.vatOnDebits, 15, yMentions);
     yMentions += 7;
   }
 
@@ -356,6 +364,11 @@ export function genererFacturePDF(document, client, lignes, artisan, estDevis = 
   doc.save(document.numero + ".pdf");
 }
 
+// Alias avec paramètre lang explicite pour les appelants qui le passent séparément
+export function genererFacturePDFLang(document, client, lignes, artisan, estDevis, options, lang) {
+  return genererFacturePDF(document, client, lignes, artisan, estDevis, { ...options, lang });
+}
+
 /**
  * Retourne le PDF en base64 data URI (pour l'envoi email).
  * @param {object} options.signatureImage  – data URI canvas (optionnel)
@@ -364,6 +377,10 @@ export function genererFacturePDF(document, client, lignes, artisan, estDevis = 
 export function genererPDFBase64(document, client, lignes, artisan, estDevis = false, options = {}) {
   const doc = construireDoc(document, client, lignes, artisan, estDevis, options);
   return doc.output("datauristring"); // "data:application/pdf;base64,..."
+}
+
+export function genererPDFBase64Lang(document, client, lignes, artisan, estDevis, options, lang) {
+  return genererPDFBase64(document, client, lignes, artisan, estDevis, { ...options, lang });
 }
 
 // ── Factur-X XML — facturation électronique structurée (EN 16931) ─────────────

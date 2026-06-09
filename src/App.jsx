@@ -7,6 +7,7 @@ import SuiviChantier from "./SuiviChantier";
 import MiniSite from "./MiniSite";
 import OuvrierChantier from "./OuvrierChantier";
 import { usePWA } from "./usePWA";
+import { useLanguage, useLocale } from "./i18n";
 
 // Lazy-load les pages marketing (non critiques au premier paint de l'app)
 const Vitrine = lazy(() => import("./Vitrine"));
@@ -39,7 +40,7 @@ const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
-const SPLASH_PHRASES = [
+const SPLASH_PHRASES_FR = [
   "Calcul du bénéfice... croisons les doigts 🤞",
   "Préparation de l'app... le café c'est pour vous ☕",
   "Vos clients attendent... enfin presque 😄",
@@ -55,6 +56,8 @@ const SPLASH_PHRASES = [
 ];
 
 export default function App() {
+  const { lang, setLang, t } = useLanguage();
+  const locale = useLocale();
   const [page, setPage] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -91,9 +94,9 @@ export default function App() {
     _initPath !== "/connexion" && _initPath !== "/inscription";
   const [showSplash, setShowSplash] = useState(isSplashPage);
   const [splashOut,  setSplashOut]  = useState(false);
-  const [phrase] = useState(
-    () => SPLASH_PHRASES[Math.floor(Math.random() * SPLASH_PHRASES.length)]
-  );
+  const splashPhrases = locale?.splash?.phrases ?? SPLASH_PHRASES_FR;
+  const [phraseIndex] = useState(() => Math.floor(Math.random() * 12));
+  const phrase = splashPhrases[phraseIndex % splashPhrases.length];
 
   // ── Parrainage en attente : appliqué au premier login ────────
   // Cas : inscription avec code + confirmation email → pas de session immédiate
@@ -243,7 +246,7 @@ export default function App() {
     setLoading(true);
     setJoinMsg("");
     const code = inviteCode.trim().toUpperCase();
-    if (!code) { setJoinMsg("❌ Entrez un code d'invitation"); setLoading(false); return; }
+    if (!code) { setJoinMsg(t("auth.inviteRequired")); setLoading(false); return; }
 
     // 1. Vérifier le code
     const { data: invite, error } = await supabase
@@ -252,8 +255,8 @@ export default function App() {
       .eq("code_invitation", code)
       .single();
 
-    if (error || !invite) { setJoinMsg("❌ Code invalide ou expiré"); setLoading(false); return; }
-    if (invite.statut === "actif") { setJoinMsg("⚠️ Ce code a déjà été utilisé"); setLoading(false); return; }
+    if (error || !invite) { setJoinMsg(t("auth.invalidInvite")); setLoading(false); return; }
+    if (invite.statut === "actif") { setJoinMsg(t("auth.usedInvite")); setLoading(false); return; }
 
     // 2. Connexion / inscription
     const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
@@ -265,7 +268,7 @@ export default function App() {
       });
       if (signErr) { setJoinMsg("❌ " + signErr.message); setLoading(false); return; }
       if (!signData.session) {
-        setJoinMsg("✅ Compte créé ! Vérifiez votre email puis revenez rejoindre l'équipe.");
+        setJoinMsg(t("auth.accountCreatedCheckEmail"));
         setLoading(false);
         return;
       }
@@ -273,13 +276,13 @@ export default function App() {
 
     // 3. Récupérer l'utilisateur connecté et lier
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setJoinMsg("❌ Connexion échouée"); setLoading(false); return; }
+    if (!session) { setJoinMsg(t("auth.loginFailed")); setLoading(false); return; }
 
     await supabase.from("equipe_membres")
       .update({ membre_id: session.user.id, statut: "actif" })
       .eq("code_invitation", code);
 
-    setJoinMsg("✅ Bienvenue dans l'équipe !");
+    setJoinMsg(t("auth.welcomeTeam"));
     setLoading(false);
   };
 
@@ -304,12 +307,12 @@ export default function App() {
         .eq("referral_code", trimmedCode)
         .single();
       if (errCheck || !parrain) {
-        setMessage("❌ Code de parrainage invalide");
+        setMessage(t("auth.invalidReferral"));
         setLoading(false);
         return;
       }
       if (parrain.referral_used) {
-        setMessage("❌ Ce code a déjà été utilisé");
+        setMessage(t("auth.usedReferral"));
         setLoading(false);
         return;
       }
@@ -317,17 +320,17 @@ export default function App() {
 
     // ── 1b. Validation côté client ────────────────────────────────
     if (!cguAccepted) {
-      setMessage("❌ Vous devez accepter les CGU et la Politique de confidentialité");
+      setMessage(t("auth.acceptCgu"));
       setLoading(false);
       return;
     }
     if (password !== passwordConfirm) {
-      setMessage("❌ Les mots de passe ne correspondent pas");
+      setMessage(t("auth.passwordMismatch"));
       setLoading(false);
       return;
     }
     if (password.length < 6) {
-      setMessage("❌ Le mot de passe doit faire au moins 6 caractères");
+      setMessage(t("auth.passwordTooShort"));
       setLoading(false);
       return;
     }
@@ -357,9 +360,9 @@ export default function App() {
       }
       // Backup localStorage (couvre le cas confirmation email)
       localStorage.setItem("artisan_pending_referral", JSON.stringify({ userId, code: trimmedCode }));
-      setMessage("✅ Compte créé ! 🎁 Parrainage activé — vous gagnez 1 mois Pro gratuit lors de votre abonnement.");
+      setMessage(t("auth.accountCreatedReferral"));
     } else {
-      setMessage("✅ Compte créé ! Vous pouvez vous connecter.");
+      setMessage(t("auth.accountCreated"));
     }
     setLoading(false);
   };
@@ -582,7 +585,26 @@ export default function App() {
             Artisan<span style={{ color: PRIMARY }}>+</span>
           </div>
           <div style={{ color: "#8899aa", fontSize: "14px", marginTop: "4px" }}>
-            Gérez votre activité simplement
+            {t("auth.subtitle")}
+          </div>
+
+          {/* Sélecteur de langue */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "12px" }}>
+            {[{ code: "fr", label: "🇫🇷 FR" }, { code: "en", label: "🇬🇧 EN" }].map(({ code, label }) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                style={{
+                  background: lang === code ? "rgba(255,140,0,0.18)" : "transparent",
+                  border: lang === code ? "1.5px solid rgba(255,140,0,0.6)" : "1.5px solid rgba(255,255,255,0.12)",
+                  color: lang === code ? PRIMARY : "#556677",
+                  borderRadius: "8px", padding: "5px 12px", cursor: "pointer",
+                  fontSize: "12px", fontWeight: "700", transition: "all 0.2s"
+                }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Bouton d'installation PWA */}
@@ -599,7 +621,7 @@ export default function App() {
                 transition: "all 0.2s"
               }}
             >
-              📲 Installer l'app
+              {t("auth.installApp")}
             </button>
           )}
         </div>
@@ -613,7 +635,7 @@ export default function App() {
               color: (tab === "join-team" ? loginMode === "join-team" : (tab === page && loginMode === "normal")) ? "white" : "#8899aa",
               fontWeight: "600", fontSize: "12px", transition: "all 0.2s", lineHeight: "1.2"
             }}>
-              {tab === "login" ? "Connexion" : tab === "register" ? "Inscription" : "👥 Rejoindre"}
+              {tab === "login" ? t("auth.login") : tab === "register" ? t("auth.register") : t("auth.joinTeam")}
             </button>
           ))}
         </div>
@@ -622,16 +644,16 @@ export default function App() {
         {loginMode === "join-team" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <div style={{ background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "12px", padding: "14px 16px" }}>
-              <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px", marginBottom: "4px" }}>👥 Rejoindre l'équipe d'un artisan</div>
-              <div style={{ color: "#8899aa", fontSize: "12px" }}>Entrez le code d'invitation reçu par email, puis connectez-vous ou créez votre compte.</div>
+              <div style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px", marginBottom: "4px" }}>{t("auth.joinTeamTitle")}</div>
+              <div style={{ color: "#8899aa", fontSize: "12px" }}>{t("auth.joinTeamDesc")}</div>
             </div>
-            <input placeholder="Code d'invitation (ex: EQUIP-ABC123)" value={inviteCode}
+            <input placeholder={t("auth.inviteCodePlaceholder")} value={inviteCode}
               onChange={e => setInviteCode(e.target.value.toUpperCase())} style={{ ...inputStyle, textAlign: "center", fontWeight: "700", fontSize: "16px", letterSpacing: "2px" }} />
-            <input placeholder="Votre nom complet" value={nom}
+            <input placeholder={t("auth.fullName")} value={nom}
               onChange={e => setNom(e.target.value)} style={inputStyle} />
-            <input placeholder="Email" value={email}
+            <input placeholder={t("auth.email")} value={email}
               onChange={e => setEmail(e.target.value)} style={inputStyle} />
-            <input placeholder="Mot de passe" type="password" value={password}
+            <input placeholder={t("auth.password")} type="password" value={password}
               onChange={e => setPassword(e.target.value)} style={inputStyle} />
             {joinMsg && (
               <div style={{ color: joinMsg.includes("✅") ? "#4CAF50" : joinMsg.includes("⚠️") ? PRIMARY : "#ff6b6b", fontSize: "13px", textAlign: "center" }}>
@@ -643,28 +665,28 @@ export default function App() {
               borderRadius: "10px", padding: "14px", fontSize: "16px", fontWeight: "700",
               cursor: loading ? "not-allowed" : "pointer"
             }}>
-              {loading ? "Connexion…" : "🚀 Rejoindre l'équipe"}
+              {loading ? t("auth.joining") : t("auth.joinTeamBtn")}
             </button>
           </div>
         ) : (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {page === "register" && (
-                <input placeholder="Nom complet" value={nom}
+                <input placeholder={t("auth.fullName")} value={nom}
                   onChange={e => setNom(e.target.value)} style={inputStyle} />
               )}
-              <input placeholder="Email" value={email}
+              <input placeholder={t("auth.email")} value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !loading && (page === "login" ? handleLogin() : handleRegister())}
                 style={inputStyle} />
-              <input placeholder="Mot de passe" type="password" value={password}
+              <input placeholder={t("auth.password")} type="password" value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !loading && page === "login" && handleLogin()}
                 style={inputStyle} />
               {page === "register" && (
                 <>
                   <input
-                    placeholder="Confirmer le mot de passe"
+                    placeholder={t("auth.confirmPassword")}
                     type="password"
                     value={passwordConfirm}
                     onChange={e => setPasswordConfirm(e.target.value)}
@@ -673,7 +695,7 @@ export default function App() {
                   />
                   <div style={{ position: "relative" }}>
                     <input
-                      placeholder="Code de parrainage (optionnel)"
+                      placeholder={t("auth.referralCode")}
                       value={referralInput}
                       onChange={e => setReferralInput(e.target.value.toUpperCase())}
                       style={{
@@ -703,12 +725,12 @@ export default function App() {
                       style={{ marginTop: "3px", accentColor: PRIMARY, width: "17px", height: "17px", flexShrink: 0 }}
                     />
                     <span style={{ color: "#8899aa", fontSize: "12px", lineHeight: "1.6" }}>
-                      J'ai lu et j'accepte les{" "}
+                      {t("auth.cguAccept")}{" "}
                       <a href="/cgu" target="_blank" rel="noopener noreferrer"
-                        style={{ color: PRIMARY, textDecoration: "underline" }}>CGU</a>
-                      {" "}et la{" "}
+                        style={{ color: PRIMARY, textDecoration: "underline" }}>{t("auth.cguLink")}</a>
+                      {" "}{t("auth.and")}{" "}
                       <a href="/politique-confidentialite" target="_blank" rel="noopener noreferrer"
-                        style={{ color: PRIMARY, textDecoration: "underline" }}>Politique de confidentialité</a>
+                        style={{ color: PRIMARY, textDecoration: "underline" }}>{t("auth.privacyLink")}</a>
                       {" "}*
                     </span>
                   </label>
@@ -729,17 +751,17 @@ export default function App() {
                   fontSize: "16px", fontWeight: "700", cursor: loading ? "not-allowed" : "pointer",
                   marginTop: "8px"
                 }}>
-                {loading ? "Chargement..." : page === "login" ? "Se connecter" : "Créer mon compte artisan"}
+                {loading ? t("auth.loading") : page === "login" ? t("auth.signIn") : t("auth.createAccount")}
               </button>
             </div>
 
             {page === "login" && (
               <div style={{ textAlign: "center", marginTop: "16px" }}>
-                <span style={{ color: "#8899aa", fontSize: "13px" }}>Pas encore de compte ? </span>
+                <span style={{ color: "#8899aa", fontSize: "13px" }}>{t("auth.noAccount")} </span>
                 <span onClick={() => setPage("register")} style={{
                   color: PRIMARY, fontSize: "13px", cursor: "pointer", fontWeight: "600"
                 }}>
-                  S'inscrire gratuitement
+                  {t("auth.signUpFree")}
                 </span>
               </div>
             )}
@@ -749,7 +771,7 @@ export default function App() {
         {/* ── Séparateur + bouton invité ── */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "20px 0 4px" }}>
           <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
-          <span style={{ color: "#556677", fontSize: "12px", whiteSpace: "nowrap" }}>ou</span>
+          <span style={{ color: "#556677", fontSize: "12px", whiteSpace: "nowrap" }}>{t("auth.or")}</span>
           <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.07)" }} />
         </div>
 
@@ -768,10 +790,10 @@ export default function App() {
           onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.10)"}
         >
           <span style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>
-            👤 Essayer sans compte
+            {t("auth.tryWithoutAccount")}
           </span>
           <span style={{ color: "#556677", fontSize: "11px" }}>
-            Accès gratuit limité · Aucune inscription
+            {t("auth.limitedFreeAccess")}
           </span>
         </button>
       </div>

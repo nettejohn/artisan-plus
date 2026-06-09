@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
+import { useLanguage, useLocale } from "./i18n";
 import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
 import { genererFacturePDF, telechargerFactureXML } from "./GenerateurPDF";
@@ -19,75 +20,16 @@ const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
 const CARD = "#111e35";
 
-// ── Étapes de la visite guidée ────────────────────────────────────────────
-const TOUR_STEPS = [
-  {
-    tab: "accueil",
-    emoji: "🏠",
-    title: "Accueil — tableau de bord",
-    desc: "Suivez en temps réel votre CA encaissé, les factures à encaisser, vos devis en attente et vos chantiers actifs. Le graphique CA affiche l'évolution sur les 6 derniers mois.",
-  },
-  {
-    tab: "documents",
-    emoji: "📄",
-    title: "Factures — PDFs pro en 1 minute",
-    desc: "Créez une facture professionnelle en quelques secondes. 5 thèmes visuels (Moderne, Classique, Élégant…), numérotation automatique, téléchargement PDF. Convertissez un devis accepté en facture d'un seul clic.",
-  },
-  {
-    tab: "documents",
-    emoji: "✍️",
-    title: "Devis — signature électronique",
-    desc: "Créez un devis et envoyez le lien de signature à votre client par SMS, WhatsApp ou email. Il signe directement sur son téléphone avec son doigt. La signature est horodatée et légalement valable.",
-  },
-  {
-    tab: "clients",
-    emoji: "👥",
-    title: "Clients — fiches & historique complet",
-    desc: "Appelez, envoyez un SMS ou un email à votre client en 1 clic. Consultez l'historique complet : factures, devis, chantiers, notes et appréciations — tout en un seul endroit.",
-  },
-  {
-    tab: "chantiers",
-    emoji: "🏗️",
-    title: "Chantiers — rentabilité en temps réel",
-    desc: "Créez un chantier, saisissez vos dépenses matériaux et heures de travail. Artisan+ calcule votre bénéfice net automatiquement. Ajoutez des photos HD directement depuis votre téléphone.",
-  },
-  {
-    tab: "chantiers",
-    emoji: "⛅",
-    title: "Météo — planifiez selon la météo",
-    desc: "Chaque chantier affiche la météo en temps réel : température, conditions et risque de pluie. Planifiez vos journées de travail selon les prévisions directement depuis la liste des chantiers.",
-  },
-  {
-    tab: "documents",
-    emoji: "📦",
-    title: "Catalogue de prestations",
-    desc: "Enregistrez vos articles, fournitures et prestations habituelles avec leurs prix unitaires. Lors d'un devis ou d'une facture, insérez-les en 1 clic — fini de tout ressaisir à chaque fois !",
-    note: "Accessible depuis ➜ Documents › Catalogue",
-  },
-  {
-    tab: null,
-    emoji: "📱",
-    title: "Mode simplifié — pour aller vite",
-    desc: "Activez le mode simplifié pour une interface ultra-épurée : 3 grands boutons, formulaires raccourcis, appel & SMS directs. Idéal quand vous êtes sur un chantier et voulez aller à l'essentiel.",
-    isParams: true,
-    paramsSection: "simplifie",
-  },
-  {
-    tab: null,
-    emoji: "✅",
-    title: "Badge Artisan Vérifié",
-    desc: "Soumettez votre SIRET et un justificatif pour obtenir le badge ✓ Artisan Vérifié. Il apparaît sur votre profil et vos PDFs, renforçant la confiance de vos clients.",
-    isParams: true,
-    paramsSection: "verif",
-  },
-  {
-    tab: null,
-    emoji: "💎",
-    title: "Plan Pro — tout illimité",
-    desc: "Factures, devis, clients et chantiers illimités. Logo professionnel sur les PDFs, photos HD, notifications intelligentes et support prioritaire. Résiliable à tout moment, sans engagement.",
-    isParams: true,
-    paramsSection: "abonnement",
-  },
+// ── Étapes de la visite guidée (structure, les textes viennent du contexte i18n) ──
+const TOUR_TABS = [
+  "accueil", "documents", "documents", "clients", "chantiers",
+  "chantiers", "documents", null, null, null,
+];
+const TOUR_IS_PARAMS = [
+  false, false, false, false, false, false, false, true, true, true,
+];
+const TOUR_PARAMS_SECTIONS = [
+  null, null, null, null, null, null, null, "simplifie", "verif", "abonnement",
 ];
 
 // Droits d'accès par rôle équipe
@@ -110,6 +52,8 @@ export default function Dashboard({
   stripeConnectStatus = null, onStripeConnectStatusCleared,
   paymentStatus = null, onPaymentStatusCleared,
 }) {
+  const { lang, setLang, t } = useLanguage();
+  const locale = useLocale();
   // Rôle effectif : 'patron' si pas dans une équipe, sinon le rôle assigné
   const teamRole   = teamInfo?.role ?? "patron";
   const allowedTabs = teamRole === "patron" ? null : ROLE_TABS[teamRole] ?? [];
@@ -300,10 +244,21 @@ export default function Dashboard({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fonctions onboarding
+  const getTourSteps = () => {
+    const steps = locale?.tour?.steps ?? [];
+    return steps.map((s, i) => ({
+      ...s,
+      tab: TOUR_TABS[i],
+      isParams: TOUR_IS_PARAMS[i],
+      paramsSection: TOUR_PARAMS_SECTIONS[i],
+    }));
+  };
+
   const demarrerVisite = () => {
+    const steps = getTourSteps();
     setTourStep(0);
     setOnboardingPhase("tour");
-    naviguerVersStep(TOUR_STEPS[0]);
+    if (steps[0]) naviguerVersStep(steps[0]);
   };
 
   const naviguerVersStep = (step) => {
@@ -317,20 +272,22 @@ export default function Dashboard({
   };
 
   const avancerTour = () => {
+    const steps = getTourSteps();
     const next = tourStep + 1;
-    if (next >= TOUR_STEPS.length) {
+    if (next >= steps.length) {
       terminerTour();
     } else {
       setTourStep(next);
-      naviguerVersStep(TOUR_STEPS[next]);
+      naviguerVersStep(steps[next]);
     }
   };
 
   const reculerTour = () => {
+    const steps = getTourSteps();
     const prev = tourStep - 1;
     if (prev >= 0) {
       setTourStep(prev);
-      naviguerVersStep(TOUR_STEPS[prev]);
+      naviguerVersStep(steps[prev]);
     }
   };
 
@@ -341,8 +298,8 @@ export default function Dashboard({
   };
 
   const relancerVisite = () => {
-    // Trouver l'étape correspondant au tab actuel
-    const idx = TOUR_STEPS.findIndex(s =>
+    const steps = getTourSteps();
+    const idx = steps.findIndex(s =>
       s.tab === activeTab || (s.isParams && page === "parametres")
     );
     setTourStep(Math.max(0, idx));
@@ -406,6 +363,10 @@ export default function Dashboard({
       .single();
     if (data) {
       setModeSimple(data.mode_simplifie || false);
+      // Synchronise la langue depuis Supabase vers le contexte i18n
+      if (data.langue && (data.langue === "en" || data.langue === "fr")) {
+        setLang(data.langue);
+      }
       // Charger la config personnalisée (colonne JSONB optionnelle)
       if (data.simplifie_config) {
         setSimplifieConfig(prev => ({ ...prev, ...data.simplifie_config }));
@@ -646,7 +607,7 @@ export default function Dashboard({
       .select("*")
       .eq("facture_id", facture.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
-    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false);
+    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang });
   };
 
   // ── Factur-X XML (facturation électronique structurée, conforme EN 16931) ────
@@ -665,7 +626,7 @@ export default function Dashboard({
       .select("*")
       .eq("devis_id", d.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
-    genererFacturePDF(d, d.clients, lignes || [], artisan, true);
+    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang });
   };
 
   const supprimerFacture = async (id) => {
@@ -3595,14 +3556,14 @@ export default function Dashboard({
             color: "white", fontSize: "clamp(24px, 6vw, 32px)",
             fontWeight: "900", margin: "0 0 12px", textAlign: "center",
           }}>
-            Bienvenue sur Artisan<span style={{ color: PRIMARY }}>+</span> 👋
+            {t("onboarding.welcome").replace("Artisan+", "")}Artisan<span style={{ color: PRIMARY }}>+</span> 👋
           </h1>
           <p style={{
             color: "#8899aa", fontSize: "clamp(14px, 3.5vw, 16px)",
             textAlign: "center", maxWidth: "360px",
             lineHeight: "1.6", margin: "0 0 36px",
           }}>
-            Votre assistant pour gérer factures, devis, clients et chantiers en quelques clics.
+            {t("onboarding.desc")}
           </p>
 
           {/* Aperçu des fonctions */}
@@ -3634,7 +3595,7 @@ export default function Dashboard({
             onMouseEnter={e => e.currentTarget.style.transform = "scale(1.04)"}
             onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
           >
-            🚀 Commencer la visite guidée
+            {t("onboarding.start")}
           </button>
           <button
             onClick={terminerTour}
@@ -3644,15 +3605,17 @@ export default function Dashboard({
               cursor: "pointer", padding: "8px",
             }}
           >
-            Passer — je connais déjà
+            {t("onboarding.skip")}
           </button>
         </div>
       )}
 
       {/* ── TOUR GUIDÉ ───────────────────────────────────────────── */}
       {onboardingPhase === "tour" && (() => {
-        const step  = TOUR_STEPS[tourStep];
-        const total = TOUR_STEPS.length;
+        const steps = getTourSteps();
+        const step  = steps[tourStep];
+        const total = steps.length;
+        if (!step) return null;
         return (
           <>
             {/* Backdrop semi-transparent — clic = pas de fermeture accidentelle */}
@@ -3681,7 +3644,7 @@ export default function Dashboard({
             }}>
               {/* Dots de progression */}
               <div style={{ display: "flex", gap: "5px", justifyContent: "center", marginBottom: "18px" }}>
-                {TOUR_STEPS.map((_, i) => (
+                {steps.map((_, i) => (
                   <div key={i} style={{
                     height: "5px", borderRadius: "3px", transition: "all 0.3s",
                     width: i === tourStep ? "22px" : "5px",
@@ -3692,7 +3655,7 @@ export default function Dashboard({
 
               {/* Compteur */}
               <div style={{ textAlign: "center", color: "#556070", fontSize: "11px", fontWeight: "700", letterSpacing: "0.5px", marginBottom: "12px" }}>
-                ÉTAPE {tourStep + 1} / {total}
+                {t("dashboard.step").toUpperCase()} {tourStep + 1} / {total}
               </div>
 
               {/* Emoji + titre */}
@@ -3731,7 +3694,7 @@ export default function Dashboard({
                       fontSize: "13px", fontWeight: "600",
                       flexShrink: 0,
                     }}
-                  >‹ Retour</button>
+                  >{t("dashboard.prev")}</button>
                 )}
                 <button
                   onClick={avancerTour}
@@ -3743,7 +3706,7 @@ export default function Dashboard({
                     boxShadow: "0 4px 18px rgba(255,140,0,0.3)",
                   }}
                 >
-                  {tourStep < total - 1 ? "Suivant →" : "🎉 Terminer la visite !"}
+                  {tourStep < total - 1 ? t("dashboard.next") : "🎉 " + t("dashboard.close") + " !"}
                 </button>
                 <button
                   onClick={terminerTour}
@@ -3753,7 +3716,7 @@ export default function Dashboard({
                     cursor: "pointer", padding: "8px 4px",
                     flexShrink: 0,
                   }}
-                >Passer</button>
+                >{t("common.close")}</button>
               </div>
             </div>
           </>

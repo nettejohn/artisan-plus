@@ -13,6 +13,7 @@ export async function envoyerEmailsSignature({
   artisan,
   nomSignataire,
   signatureImage,
+  lang = "fr",
 }) {
   // Générer le PDF signé en base64 (côté navigateur — jsPDF)
   let pdfBase64 = "";
@@ -20,6 +21,7 @@ export async function envoyerEmailsSignature({
     const dataUri = genererPDFBase64(devis, client, lignes, artisan, true, {
       signatureImage,
       nomSignataire,
+      lang,
     });
     pdfBase64 = dataUri.split(",")[1];
   } catch (err) {
@@ -40,6 +42,7 @@ export async function envoyerEmailsSignature({
         numeroDevis:   devis.numero,
         montantTTC:    devis.total_ttc  ?? null,
         pdfBase64,
+        lang,
       }),
     });
 

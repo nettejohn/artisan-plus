@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import EditeurSite from "./EditeurSite";
 import ProGate from "./ProGate";
+import { useLanguage } from "./i18n";
 
 const PRIMARY = "#FF8C00";
 const DARK    = "#0a1628";
@@ -80,6 +81,7 @@ function SaveBtn({ onClick, saving, label = "Enregistrer" }) {
 }
 
 export default function Parametres({ user, onBack, isDesktop = false, initialSection = "profil", onModeSimpleChange, isPro = true, onUpgrade, stripeConnectStatus = null, onStripeConnectStatusCleared }) {
+  const { lang, setLang, t } = useLanguage();
   const [activeSection, setActiveSection] = useState(initialSection);
   const [loading,       setLoading]       = useState(true);
   const [savingProfil,  setSavingProfil]  = useState(false);
@@ -360,8 +362,15 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       tva_defaut: parseFloat(params.tva_defaut) || 20,
     }, { onConflict: "user_id" });
     setSavingParams(false);
-    if (error) setMsgParams("❌ " + error.message);
-    else       setMsgParams("✅ Paramètres sauvegardés !");
+    if (error) {
+      setMsgParams("❌ " + error.message);
+    } else {
+      // Synchronise la langue dans le contexte i18n global
+      if (params.langue === "en" || params.langue === "fr") {
+        setLang(params.langue);
+      }
+      setMsgParams(lang === "en" ? "✅ Settings saved!" : "✅ Paramètres sauvegardés !");
+    }
     setTimeout(() => setMsgParams(""), 3500);
   };
 
@@ -738,19 +747,19 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
             <SaveBtn onClick={sauvegarderProfil} saving={savingProfil} label="Sauvegarder le profil" />
           </SCard>
 
-          <SCard titre="📧 Compte">
-            <label style={lbl}>Adresse email</label>
+          <SCard titre={t("settings.account")}>
+            <label style={lbl}>{t("settings.emailAddress")}</label>
             <div style={{ ...inp, color: "#8899aa", cursor: "not-allowed", userSelect: "none" }}>{user.email}</div>
-            <div style={{ color: "#555", fontSize: "11px", marginTop: "6px" }}>Pour changer d'adresse email, contactez le support.</div>
+            <div style={{ color: "#555", fontSize: "11px", marginTop: "6px" }}>{t("settings.emailChangeContact")}</div>
           </SCard>
 
-          <SCard titre="🌍 Préférences">
+          <SCard titre={t("settings.preferences")}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px" }}>
                 {/* Langue */}
                 <div>
-                  <label style={lbl}>🌐 Langue de l'application</label>
+                  <label style={lbl}>{t("settings.language")}</label>
                   <select
                     value={params.langue}
                     onChange={e => setParams(p => ({ ...p, langue: e.target.value }))}
@@ -762,38 +771,38 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 </div>
                 {/* Devise */}
                 <div>
-                  <label style={lbl}>💰 Devise par défaut</label>
+                  <label style={lbl}>{t("settings.currency")}</label>
                   <select
                     value={params.devise}
                     onChange={e => setParams(p => ({ ...p, devise: e.target.value }))}
                     style={{ ...inp, cursor: "pointer" }}
                   >
                     <option value="€">€ — Euro</option>
-                    <option value="CHF">CHF — Franc suisse</option>
-                    <option value="$">$ — Dollar</option>
-                    <option value="£">£ — Livre sterling</option>
+                    <option value="CHF">CHF — {lang === "en" ? "Swiss Franc" : "Franc suisse"}</option>
+                    <option value="$">$ — {lang === "en" ? "US Dollar" : "Dollar"}</option>
+                    <option value="£">£ — {lang === "en" ? "British Pound" : "Livre sterling"}</option>
                   </select>
                 </div>
               </div>
 
               {/* Signature email */}
               <div>
-                <label style={lbl}>✍️ Signature par défaut des emails</label>
+                <label style={lbl}>{t("settings.emailSignature")}</label>
                 <textarea
                   value={params.signature_email}
                   onChange={e => setParams(p => ({ ...p, signature_email: e.target.value }))}
                   rows={3}
-                  placeholder={"Cordialement,\nJohn Nette — Artisan+\nTél. 06 00 00 00 00"}
+                  placeholder={lang === "en" ? "Best regards,\nJohn Smith — Artisan+\nTel. +44 000 000 000" : "Cordialement,\nJohn Nette — Artisan+\nTél. 06 00 00 00 00"}
                   style={{ ...inp, resize: "vertical", fontFamily: "inherit", lineHeight: "1.55" }}
                 />
                 <div style={{ color: "#555", fontSize: "11px", marginTop: "5px" }}>
-                  Ajoutée automatiquement lors de l'envoi d'un devis par email.
+                  {t("settings.emailSignatureHelp")}
                 </div>
               </div>
             </div>
 
             {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
-            <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder les préférences" />
+            <SaveBtn onClick={sauvegarderParams} saving={savingParams} label={t("settings.savePreferences")} />
           </SCard>
         </div>
       )}
@@ -2711,7 +2720,7 @@ ALTER TABLE profils
       {isDesktop && (
         <div style={{ width: "210px", flexShrink: 0, position: "sticky", top: "80px" }}>
           <h2 style={{ color: "white", margin: "0 0 20px", fontSize: "17px", fontWeight: "800" }}>
-            ⚙️ Paramètres
+            ⚙️ {t("nav.settings") || "Paramètres"}
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
             {SECTIONS.map(s => (
@@ -2728,7 +2737,7 @@ ALTER TABLE profils
                   cursor: "pointer", transition: "all 0.15s",
                 }}
               >
-                {s.emoji} {s.label}
+                {s.emoji} {t("settings." + s.id) || s.label}
               </button>
             ))}
           </div>
@@ -2743,8 +2752,8 @@ ALTER TABLE profils
               background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)",
               color: "white", borderRadius: "8px", padding: "8px 16px",
               cursor: "pointer", fontSize: "14px", fontWeight: "600",
-            }}>← Retour</button>
-            <h2 style={{ color: "white", margin: 0, fontSize: "20px", fontWeight: "800" }}>⚙️ Paramètres</h2>
+            }}>{t("settings.back") || "← Retour"}</button>
+            <h2 style={{ color: "white", margin: 0, fontSize: "20px", fontWeight: "800" }}>⚙️ {t("nav.settings") || "Paramètres"}</h2>
           </div>
 
           <div style={{
@@ -2763,7 +2772,7 @@ ALTER TABLE profils
                 borderRadius: "10px", padding: "8px 14px", fontSize: "12px", fontWeight: "700",
                 cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0,
               }}>
-                {s.emoji} {s.label}
+                {s.emoji} {t("settings." + s.id) || s.label}
               </button>
             ))}
           </div>

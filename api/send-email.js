@@ -105,11 +105,96 @@ async function handleSupport(apiKey, body, res) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Traductions emails
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EMAIL_LABELS = {
+  fr: {
+    invoice: {
+      yourInvoice: "Votre facture",
+      invoiceSent: "Facture envoyée !",
+      greeting: "Bonjour",
+      clientBody1: "Veuillez trouver ci-joint votre facture",
+      clientBody2: "établie le",
+      clientBody3: "par",
+      reference: "Référence",
+      craftsman: "Artisan",
+      amountTTC: "Montant TTC",
+      date: "Date",
+      sentOn: "Envoyée le",
+      number: "Numéro",
+      client: "Client",
+      pdfAttached: "La facture est jointe à cet email en PDF. Pour toute question, contactez directement votre artisan.",
+      pdfArchive: "La facture PDF est jointe à cet email pour vos archives.",
+      sentTo: "a été envoyée à",
+      on: "le",
+    },
+    quote: {
+      signed: "Devis signé !",
+      quoteConfirmation: "Confirmation de votre accord",
+      greeting: "Bonjour",
+      artisanBody1: "Votre client",
+      artisanBody2: "a signé et accepté le devis",
+      artisanBody3: "le",
+      clientBody1: "Nous confirmons la bonne réception de votre signature pour le devis",
+      clientBody2: "en date du",
+      reference: "Numéro",
+      craftsman: "Artisan",
+      amountTTC: "Montant TTC",
+      signedOn: "Signé le",
+      quoteSignedAttached: "Le devis signé est joint à cet email. Retrouvez-le également dans votre espace Artisan+.",
+      clientConfirmation: "Le devis signé est joint à cet email. L'artisan vous contactera prochainement pour organiser les travaux.",
+    },
+  },
+  en: {
+    invoice: {
+      yourInvoice: "Your invoice",
+      invoiceSent: "Invoice sent!",
+      greeting: "Hello",
+      clientBody1: "Please find attached your invoice",
+      clientBody2: "dated",
+      clientBody3: "by",
+      reference: "Reference",
+      craftsman: "Craftsman",
+      amountTTC: "Total amount",
+      date: "Date",
+      sentOn: "Sent on",
+      number: "Number",
+      client: "Client",
+      pdfAttached: "The invoice is attached to this email as a PDF. For any questions, contact your craftsman directly.",
+      pdfArchive: "The PDF invoice is attached to this email for your records.",
+      sentTo: "has been sent to",
+      on: "on",
+    },
+    quote: {
+      signed: "Quote signed!",
+      quoteConfirmation: "Confirmation of your agreement",
+      greeting: "Hello",
+      artisanBody1: "Your client",
+      artisanBody2: "has signed and accepted quote",
+      artisanBody3: "on",
+      clientBody1: "We confirm receipt of your signature for quote",
+      clientBody2: "dated",
+      reference: "Reference",
+      craftsman: "Craftsman",
+      amountTTC: "Total amount",
+      signedOn: "Signed on",
+      quoteSignedAttached: "The signed quote is attached to this email. You can also find it in your Artisan+ account.",
+      clientConfirmation: "The signed quote is attached to this email. The craftsman will contact you shortly to schedule the work.",
+    },
+  },
+};
+
+function getEmailLabels(lang) {
+  return EMAIL_LABELS[lang === "en" ? "en" : "fr"];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Envoi facture
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function handleFacture(apiKey, body, res) {
-  const { emailClient, emailArtisan, nomArtisan, nomClient, numeroFacture, montantTTC, pdfBase64 } = body;
+  const { emailClient, emailArtisan, nomArtisan, nomClient, numeroFacture, montantTTC, pdfBase64, lang } = body;
   if (!numeroFacture) return res.status(400).json({ error: "Paramètre manquant : numeroFacture" });
 
   const montantFormate = montantTTC != null
@@ -120,6 +205,7 @@ async function handleFacture(apiKey, body, res) {
     ? [{ filename: `${numeroFacture}.pdf`, content: pdfBase64 }]
     : [];
 
+  const lbl = getEmailLabels(lang);
   const resultats = { clientEnvoye: false, artisanEnvoye: false, erreurs: [] };
 
   if (emailClient) {
@@ -127,8 +213,8 @@ async function handleFacture(apiKey, body, res) {
       await appelResend(apiKey, {
         from: FROM,
         to: [emailClient],
-        subject: `Votre facture ${numeroFacture} — ${montantFormate} €`,
-        html: htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormate }),
+        subject: `${lbl.invoice.yourInvoice} ${numeroFacture} — ${montantFormate} €`,
+        html: htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormate, lbl: lbl.invoice }),
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.clientEnvoye = true;
@@ -142,8 +228,8 @@ async function handleFacture(apiKey, body, res) {
       await appelResend(apiKey, {
         from: FROM,
         to: [emailArtisan],
-        subject: `✅ Facture ${numeroFacture} envoyée — ${nomClient || "client"}`,
-        html: htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantFormate }),
+        subject: `✅ ${lbl.invoice.yourInvoice} ${numeroFacture} ${lbl.invoice.sentTo} ${nomClient || "client"}`,
+        html: htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantFormate, lbl: lbl.invoice }),
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.artisanEnvoye = true;
@@ -162,7 +248,7 @@ async function handleFacture(apiKey, body, res) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function handleDevis(apiKey, body, res) {
-  const { emailArtisan, emailClient, nomClient, nomArtisan, numeroDevis, montantTTC, pdfBase64 } = body;
+  const { emailArtisan, emailClient, nomClient, nomArtisan, numeroDevis, montantTTC, pdfBase64, lang } = body;
 
   if (!numeroDevis) {
     console.error("[send-email] Champ manquant : numeroDevis. Body reçu :", JSON.stringify(body));
@@ -182,6 +268,7 @@ async function handleDevis(apiKey, body, res) {
     console.log(`[send-email] PDF signé inclus en pièce jointe (${Math.round(pdfBase64.length * 0.75 / 1024)} Ko)`);
   }
 
+  const lbl = getEmailLabels(lang);
   const resultats = { artisanEnvoye: false, clientEnvoye: false, erreurs: [] };
 
   if (emailArtisan) {
@@ -189,8 +276,8 @@ async function handleDevis(apiKey, body, res) {
       await appelResend(apiKey, {
         from: FROM,
         to: [emailArtisan],
-        subject: `✅ Devis ${numeroDevis} signé — ${nomClient || "votre client"}`,
-        html: htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }),
+        subject: `✅ ${lbl.quote.signed.replace("!", "")} ${numeroDevis} — ${nomClient || (lang === "en" ? "your client" : "votre client")}`,
+        html: htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate, lbl: lbl.quote }),
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.artisanEnvoye = true;
@@ -206,8 +293,8 @@ async function handleDevis(apiKey, body, res) {
       await appelResend(apiKey, {
         from: FROM,
         to: [emailClient],
-        subject: `Confirmation — Devis ${numeroDevis} signé`,
-        html: htmlDevisClient({ nomArtisan, nomClient, numeroDevis, montantFormate }),
+        subject: `${lbl.quote.quoteConfirmation} — ${lang === "en" ? "Quote" : "Devis"} ${numeroDevis}`,
+        html: htmlDevisClient({ nomArtisan, nomClient, numeroDevis, montantFormate, lbl: lbl.quote }),
         ...(attachments.length > 0 ? { attachments } : {}),
       });
       resultats.clientEnvoye = true;
@@ -250,10 +337,13 @@ async function appelResend(apiKey, payload) {
 // Templates HTML — Facture
 // ─────────────────────────────────────────────────────────────────────────────
 
-function htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormate }) {
-  const date = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+function htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormate, lbl }) {
+  const isEn = lbl && lbl.greeting === "Hello";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const t = lbl || EMAIL_LABELS.fr.invoice;
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${isEn ? "en" : "fr"}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
@@ -262,22 +352,22 @@ function htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormat
     </div>
     <div style="background:#FF8C00;padding:22px 36px;text-align:center;">
       <div style="font-size:36px;margin-bottom:8px;">🧾</div>
-      <div style="color:#fff;font-size:20px;font-weight:700;">Votre facture</div>
+      <div style="color:#fff;font-size:20px;font-weight:700;">${t.yourInvoice}</div>
     </div>
     <div style="padding:36px;">
-      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">Bonjour <strong>${nomClient || "Client"}</strong>,</p>
+      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${t.greeting} <strong>${nomClient || (isEn ? "Client" : "Client")}</strong>,</p>
       <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-        Veuillez trouver ci-joint votre facture <strong>${numeroFacture}</strong> établie le <strong>${date}</strong> par <strong>${nomArtisan || "votre artisan"}</strong>.
+        ${t.clientBody1} <strong>${numeroFacture}</strong> ${t.clientBody2} <strong>${date}</strong> ${t.clientBody3} <strong>${nomArtisan || (isEn ? "your craftsman" : "votre artisan")}</strong>.
       </p>
       <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Référence</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroFacture}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Artisan</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomArtisan || "—"}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Montant TTC</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.reference}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroFacture}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.craftsman}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomArtisan || "—"}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.amountTTC}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.date}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">La facture est jointe à cet email en PDF. Pour toute question, contactez directement votre artisan.</p>
+      <p style="margin:0;color:#777;font-size:13px;">${t.pdfAttached}</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span>
@@ -287,10 +377,13 @@ function htmlFactureClient({ nomArtisan, nomClient, numeroFacture, montantFormat
 </html>`;
 }
 
-function htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantFormate }) {
-  const date = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+function htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantFormate, lbl }) {
+  const isEn = lbl && lbl.greeting === "Hello";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const t = lbl || EMAIL_LABELS.fr.invoice;
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${isEn ? "en" : "fr"}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
@@ -299,22 +392,23 @@ function htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantForma
     </div>
     <div style="background:#FF8C00;padding:22px 36px;text-align:center;">
       <div style="font-size:36px;margin-bottom:8px;">✅</div>
-      <div style="color:#fff;font-size:20px;font-weight:700;">Facture envoyée !</div>
+      <div style="color:#fff;font-size:20px;font-weight:700;">${t.invoiceSent}</div>
     </div>
     <div style="padding:36px;">
-      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">Bonjour <strong>${nomArtisan || "Artisan"}</strong>,</p>
+      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${t.greeting} <strong>${nomArtisan || (isEn ? "Craftsman" : "Artisan")}</strong>,</p>
       <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-        La facture <strong>${numeroFacture}</strong> a été envoyée à <strong>${nomClient || "votre client"}</strong> le <strong>${date}</strong>.
+        ${isEn ? `Invoice <strong>${numeroFacture}</strong> ${t.sentTo} <strong>${nomClient || "your client"}</strong> ${t.on} <strong>${date}</strong>.`
+                : `La facture <strong>${numeroFacture}</strong> a été envoyée à <strong>${nomClient || "votre client"}</strong> le <strong>${date}</strong>.`}
       </p>
       <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Numéro</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroFacture}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Client</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomClient || "—"}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Montant TTC</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Envoyée le</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.number}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroFacture}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.client}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomClient || "—"}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.amountTTC}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.sentOn}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">La facture PDF est jointe à cet email pour vos archives.</p>
+      <p style="margin:0;color:#777;font-size:13px;">${t.pdfArchive}</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span>
@@ -328,12 +422,13 @@ function htmlFactureArtisan({ nomArtisan, nomClient, numeroFacture, montantForma
 // Templates HTML — Devis (inchangés)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }) {
-  const date = new Date().toLocaleDateString("fr-FR", {
-    day: "numeric", month: "long", year: "numeric",
-  });
+function htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate, lbl }) {
+  const isEn = lbl && lbl.greeting === "Hello";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const t = lbl || EMAIL_LABELS.fr.quote;
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${isEn ? "en" : "fr"}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
@@ -342,22 +437,22 @@ function htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }
     </div>
     <div style="background:#FF8C00;padding:22px 36px;text-align:center;">
       <div style="font-size:36px;margin-bottom:8px;">✅</div>
-      <div style="color:#fff;font-size:20px;font-weight:700;">Devis signé !</div>
+      <div style="color:#fff;font-size:20px;font-weight:700;">${t.signed}</div>
     </div>
     <div style="padding:36px;">
-      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">Bonjour <strong>${nomArtisan || "Artisan"}</strong>,</p>
+      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${t.greeting} <strong>${nomArtisan || (isEn ? "Craftsman" : "Artisan")}</strong>,</p>
       <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-        Votre client <strong>${nomClient || "votre client"}</strong> a signé et accepté le devis <strong>${numeroDevis}</strong> le <strong>${date}</strong>.
+        ${t.artisanBody1} <strong>${nomClient || (isEn ? "your client" : "votre client")}</strong> ${t.artisanBody2} <strong>${numeroDevis}</strong> ${t.artisanBody3} <strong>${date}</strong>.
       </p>
       <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Numéro</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroDevis}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Client</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomClient || "—"}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Montant TTC</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Signé le</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.reference}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroDevis}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.craftsman}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomArtisan || "—"}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.amountTTC}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.signedOn}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">Le devis signé est joint à cet email. Retrouvez-le également dans votre espace Artisan+.</p>
+      <p style="margin:0;color:#777;font-size:13px;">${t.quoteSignedAttached}</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span>
@@ -367,12 +462,13 @@ function htmlDevisArtisan({ nomArtisan, nomClient, numeroDevis, montantFormate }
 </html>`;
 }
 
-function htmlDevisClient({ nomArtisan, nomClient, numeroDevis, montantFormate }) {
-  const date = new Date().toLocaleDateString("fr-FR", {
-    day: "numeric", month: "long", year: "numeric",
-  });
+function htmlDevisClient({ nomArtisan, nomClient, numeroDevis, montantFormate, lbl }) {
+  const isEn = lbl && lbl.greeting === "Hello";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const t = lbl || EMAIL_LABELS.fr.quote;
   return `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${isEn ? "en" : "fr"}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
@@ -381,22 +477,22 @@ function htmlDevisClient({ nomArtisan, nomClient, numeroDevis, montantFormate })
     </div>
     <div style="background:#FF8C00;padding:22px 36px;text-align:center;">
       <div style="font-size:36px;margin-bottom:8px;">📋</div>
-      <div style="color:#fff;font-size:20px;font-weight:700;">Confirmation de votre accord</div>
+      <div style="color:#fff;font-size:20px;font-weight:700;">${t.quoteConfirmation}</div>
     </div>
     <div style="padding:36px;">
-      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">Bonjour <strong>${nomClient || "Client"}</strong>,</p>
+      <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${t.greeting} <strong>${nomClient || "Client"}</strong>,</p>
       <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">
-        Nous confirmons la bonne réception de votre signature pour le devis <strong>${numeroDevis}</strong> en date du <strong>${date}</strong>.
+        ${t.clientBody1} <strong>${numeroDevis}</strong> ${t.clientBody2} <strong>${date}</strong>.
       </p>
       <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Référence</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroDevis}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Artisan</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomArtisan || "—"}</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Montant TTC</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
-          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">Date de signature</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.reference}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${numeroDevis}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.craftsman}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${nomArtisan || "—"}</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.amountTTC}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+          <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${t.signedOn}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${date}</td></tr>
         </table>
       </div>
-      <p style="margin:0;color:#777;font-size:13px;">Le devis signé est joint à cet email. L'artisan vous contactera prochainement pour organiser les travaux.</p>
+      <p style="margin:0;color:#777;font-size:13px;">${t.clientConfirmation}</p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">
       <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span>
