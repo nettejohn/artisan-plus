@@ -1,17 +1,18 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "./supabase";
 import CookieBanner from "./CookieBanner";
-import Dashboard from "./Dashboard";
-import SignatureDevis from "./SignatureDevis";
-import SuiviChantier from "./SuiviChantier";
-import MiniSite from "./MiniSite";
-import OuvrierChantier from "./OuvrierChantier";
 import { usePWA } from "./usePWA";
 import { useLanguage, useLocale } from "./i18n";
 
-// Lazy-load les pages marketing (non critiques au premier paint de l'app)
-const Vitrine = lazy(() => import("./Vitrine"));
-const Blog    = lazy(() => import("./Blog"));
+// Lazy-load tout : vitrine, app, pages publiques spéciales
+// → réduit le bundle initial chargé sur la vitrine marketing
+const Vitrine        = lazy(() => import("./Vitrine"));
+const Blog           = lazy(() => import("./Blog"));
+const Dashboard      = lazy(() => import("./Dashboard"));
+const SignatureDevis = lazy(() => import("./SignatureDevis"));
+const SuiviChantier  = lazy(() => import("./SuiviChantier"));
+const MiniSite       = lazy(() => import("./MiniSite"));
+const OuvrierChantier = lazy(() => import("./OuvrierChantier"));
 
 // Fallback minimaliste pendant le chargement des pages publiques
 function PublicFallback() {
@@ -118,7 +119,7 @@ export default function App() {
 
   // ── Logo transparent : supprime le fond #0a1628 via canvas ────
   // Traitement pixel par pixel au montage → dataURL sans fond
-  const [logoSrc, setLogoSrc] = useState("/logo.png");
+  const [logoSrc, setLogoSrc] = useState("/logo.webp");
   useEffect(() => {
     const img = new Image();
     img.onload = () => {
@@ -449,6 +450,10 @@ export default function App() {
       <img
         src={logoSrc}
         alt="Artisan+"
+        width="286"
+        height="88"
+        loading="eager"
+        decoding="async"
         style={{
           width: "clamp(195px, 46vw, 286px)",
           height: "auto",
@@ -491,34 +496,34 @@ export default function App() {
   );
 
   // Page de signature — pas de splash
-  if (signatureToken) return <SignatureDevis token={signatureToken} />;
+  if (signatureToken) return <Suspense fallback={<PublicFallback />}><SignatureDevis token={signatureToken} /></Suspense>;
 
   // ── Sous-domaine automatique — [slug].artisan-plus.fr ────────────────────
   const hostname = window.location.hostname;
   const subMatch = hostname.match(/^([a-z0-9-]+)\.artisan-plus\.fr$/);
-  if (subMatch && subMatch[1] !== "www") return <MiniSite slug={subMatch[1]} />;
+  if (subMatch && subMatch[1] !== "www") return <Suspense fallback={<PublicFallback />}><MiniSite slug={subMatch[1]} /></Suspense>;
 
   // Page de suivi chantier — publique, pas d'auth
   const suiviPath = window.location.pathname;
   if (suiviPath.startsWith("/suivi/")) {
     const suiviToken = suiviPath.replace("/suivi/", "").split("?")[0];
-    if (suiviToken) return <SuiviChantier token={suiviToken} />;
+    if (suiviToken) return <Suspense fallback={<PublicFallback />}><SuiviChantier token={suiviToken} /></Suspense>;
   }
 
   // Mini-site artisan public — /site/:slug (primary) ou /artisan/:slug (legacy)
   if (suiviPath.startsWith("/site/")) {
     const artisanSlug = suiviPath.replace("/site/", "").split("?")[0];
-    if (artisanSlug) return <MiniSite slug={artisanSlug} />;
+    if (artisanSlug) return <Suspense fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></Suspense>;
   }
   if (suiviPath.startsWith("/artisan/")) {
     const artisanSlug = suiviPath.replace("/artisan/", "").split("?")[0];
-    if (artisanSlug) return <MiniSite slug={artisanSlug} />;
+    if (artisanSlug) return <Suspense fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></Suspense>;
   }
 
   // Accès ouvrier — /ouvrier/:token
   if (suiviPath.startsWith("/ouvrier/")) {
     const ouvrierToken = suiviPath.replace("/ouvrier/", "").split("?")[0];
-    if (ouvrierToken) return <OuvrierChantier token={ouvrierToken} />;
+    if (ouvrierToken) return <Suspense fallback={<PublicFallback />}><OuvrierChantier token={ouvrierToken} /></Suspense>;
   }
 
   // Détection compte invité : email déterministe généré par handleGuestLogin
@@ -540,30 +545,32 @@ export default function App() {
   }
 
   if (user) return (
-    <>
-      {splashEl}
-      <Dashboard
-        user={user}
-        isGuest={isGuest}
-        teamInfo={teamInfo}
-        onLogout={() => setUser(null)}
-        isOnline={isOnline}
-        canInstall={canInstall}
-        handleInstall={handleInstall}
-        showSyncToast={showSyncToast}
-        updateAvailable={updateAvailable}
-        handleUpdate={handleUpdate}
-        notifPermission={notifPermission}
-        requestNotifPermission={requestNotifPermission}
-        checkAndNotify={checkAndNotify}
-        subscriptionStatus={subscriptionStatus}
-        onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
-        stripeConnectStatus={stripeConnectStatus}
-        onStripeConnectStatusCleared={() => setStripeConnectStatus(null)}
-        paymentStatus={paymentStatus}
-        onPaymentStatusCleared={() => setPaymentStatus(null)}
-      />
-    </>
+    <Suspense fallback={<PublicFallback />}>
+      <>
+        {splashEl}
+        <Dashboard
+          user={user}
+          isGuest={isGuest}
+          teamInfo={teamInfo}
+          onLogout={() => setUser(null)}
+          isOnline={isOnline}
+          canInstall={canInstall}
+          handleInstall={handleInstall}
+          showSyncToast={showSyncToast}
+          updateAvailable={updateAvailable}
+          handleUpdate={handleUpdate}
+          notifPermission={notifPermission}
+          requestNotifPermission={requestNotifPermission}
+          checkAndNotify={checkAndNotify}
+          subscriptionStatus={subscriptionStatus}
+          onSubscriptionStatusCleared={() => setSubscriptionStatus(null)}
+          stripeConnectStatus={stripeConnectStatus}
+          onStripeConnectStatusCleared={() => setStripeConnectStatus(null)}
+          paymentStatus={paymentStatus}
+          onPaymentStatusCleared={() => setPaymentStatus(null)}
+        />
+      </>
+    </Suspense>
   );
 
   return (

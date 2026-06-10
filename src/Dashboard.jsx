@@ -2839,6 +2839,8 @@ export default function Dashboard({
                                     <div key={i} style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: "8px", overflow: "hidden", background: "#0a1628" }}>
                                       <img
                                         src={url} alt={`chantier ${i + 1}`}
+                                        loading="lazy" decoding="async"
+                                        width="200" height="200"
                                         style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                                       />
                                       <button
@@ -3542,8 +3544,10 @@ export default function Dashboard({
           animation: "splashFadeUp 0.4s ease both",
         }}>
           <img
-            src="/logo.png"
+            src="/logo.webp"
             alt="Artisan+"
+            width="140" height="140"
+            loading="eager" decoding="async"
             style={{
               width: "clamp(100px, 25vw, 140px)",
               height: "clamp(100px, 25vw, 140px)",

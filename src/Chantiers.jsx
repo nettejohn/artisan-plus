@@ -1568,7 +1568,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(88px, 1fr))", gap: "8px" }}>
                   {catPhotos.map((p, i) => (
                     <div key={i} style={{ position: "relative", aspectRatio: "1 / 1", borderRadius: "10px", overflow: "hidden", background: DARK }}>
-                      <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={p.url} alt="" loading="lazy" decoding="async" width="200" height="200" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       <button onClick={() => supprimerPhoto(p.url)} style={{
                         position: "absolute", top: "4px", right: "4px",
                         background: "rgba(0,0,0,0.7)", border: "none", color: "white",
@@ -1828,7 +1828,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                   return (
                     <div key={i} onClick={() => setCrPhotosSelec(prev => sel ? prev.filter(u => u !== p.url) : [...prev, p.url])}
                       style={{ cursor: "pointer", borderRadius: "8px", overflow: "hidden", aspectRatio: "1", position: "relative", border: sel ? `2.5px solid ${PRIMARY}` : "2.5px solid transparent", boxSizing: "border-box" }}>
-                      <img src={p.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={p.url} alt="" loading="lazy" decoding="async" width="200" height="200" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       {sel && <div style={{ position: "absolute", top: "4px", right: "4px", background: PRIMARY, borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "white", fontWeight: "900" }}>✓</div>}
                     </div>
                   );
@@ -2273,7 +2273,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
                 {ch.photos?.length > 0 && (
                   <div style={{ display: "flex", gap: "4px", marginTop: "8px" }}>
                     {ch.photos.slice(0, 6).map((p, i) => (
-                      <img key={i} src={p.url} alt="" style={{ width: "34px", height: "34px", objectFit: "cover", borderRadius: "5px" }} />
+                      <img key={i} src={p.url} alt="" loading="lazy" decoding="async" width="34" height="34" style={{ width: "34px", height: "34px", objectFit: "cover", borderRadius: "5px" }} />
                     ))}
                     {ch.photos.length > 6 && (
                       <div style={{ width: "34px", height: "34px", background: DARK, borderRadius: "5px", display: "flex", alignItems: "center", justifyContent: "center", color: "#8899aa", fontSize: "10px", fontWeight: "700" }}>
