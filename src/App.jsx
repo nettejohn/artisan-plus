@@ -1,6 +1,13 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { supabase } from "./supabase";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import CookieBanner from "./CookieBanner";
+
+// Singleton lazy : Supabase est chargé uniquement après le premier rendu,
+// pas dans le bundle initial → ne bloque pas le LCP de la vitrine
+let _sbPromise = null;
+function getSupa() {
+  if (!_sbPromise) _sbPromise = import('./supabase').then(m => m.supabase);
+  return _sbPromise;
+}
 import { usePWA } from "./usePWA";
 import { useLanguage, useLocale } from "./i18n";
 
@@ -28,14 +35,19 @@ const VITRINE_PREFIXES = [
   "/devis-facture-", "/artisan-", "/alternative-",
   "/cgu", "/politique-confidentialite", "/fonctionnalites", "/tarifs",
   "/blog",
-  // Facturation électronique
   "/facturation-electronique-", "/facture-electronique-",
   "/logiciel-facturation-electronique-",
-  // Génériques mots-clés
   "/facture-en-ligne-", "/devis-en-ligne-", "/application-devis-facture-",
   "/logiciel-devis-facture-", "/faire-une-facture-", "/faire-un-devis-",
   "/application-facturation-", "/facture-auto-entrepreneur-",
 ];
+
+// Retourne true si le chemin est une page publique connue (vitrine, CGU, etc.)
+// → permet d'initialiser sessionLoading=false pour ces routes et d'éviter
+//   le remplacement du HTML pré-rendu par PublicFallback
+function isVitrineRoute(path) {
+  return path === "/" || VITRINE_PREFIXES.some(pfx => path.startsWith(pfx));
+}
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -80,8 +92,14 @@ export default function App() {
 
   // ── Routing réactif : écoute les navigations internes de la vitrine ─────────
   const [routePath, setRoutePath] = useState(window.location.pathname);
-  // ── Session loading : évite le flash de la vitrine pour les users connectés ─
-  const [sessionLoading, setSessionLoading] = useState(true);
+  // ── Session loading : false dès le départ pour les routes vitrine connues.
+  // → le HTML pré-rendu est préservé (pas de flash PublicFallback).
+  // Pour les autres routes, on attend la vérification Supabase avant de router.
+  const [sessionLoading, setSessionLoading] = useState(
+    () => !isVitrineRoute(window.location.pathname)
+  );
+  // Ref pour désabonner l'auth listener au démontage du composant
+  const authSubRef = useRef(null);
 
   // ── Splash screen ─────────────────────────────────────────────
   // Pas de splash sur les pages publiques (vitrine, signature, suivi, mini-sites)
@@ -109,11 +127,13 @@ export default function App() {
     try {
       const { userId, code } = JSON.parse(raw);
       if (userId !== user.id || !code) return;
-      supabase.from("profils")
-        .upsert({ user_id: userId, referred_by: code }, { onConflict: "user_id" })
-        .then(({ error }) => {
-          if (!error) localStorage.removeItem("artisan_pending_referral");
-        });
+      getSupa().then(supa =>
+        supa.from("profils")
+          .upsert({ user_id: userId, referred_by: code }, { onConflict: "user_id" })
+          .then(({ error }) => {
+            if (!error) localStorage.removeItem("artisan_pending_referral");
+          })
+      );
     } catch { localStorage.removeItem("artisan_pending_referral"); }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -215,24 +235,31 @@ export default function App() {
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) chargerEquipe(u.id);
-      setSessionLoading(false); // ← session vérifiée, on peut router correctement
-    });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) chargerEquipe(u.id);
+    getSupa().then(supa => {
+      supa.auth.getSession().then(({ data: { session } }) => {
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) chargerEquipe(u.id);
+        setSessionLoading(false);
+      });
+      const { data: authData } = supa.auth.onAuthStateChange((_event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) chargerEquipe(u.id);
+      });
+      authSubRef.current = authData?.subscription;
     });
 
-    return () => window.removeEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      authSubRef.current?.unsubscribe();
+    };
   }, []);
 
   // Vérifier si l'utilisateur est membre d'une équipe
   const chargerEquipe = async (userId) => {
-    const { data } = await supabase
+    const supa = await getSupa();
+    const { data } = await supa
       .from("equipe_membres")
       .select("role, patron_id")
       .eq("membre_id", userId)
@@ -249,8 +276,10 @@ export default function App() {
     const code = inviteCode.trim().toUpperCase();
     if (!code) { setJoinMsg(t("auth.inviteRequired")); setLoading(false); return; }
 
+    const supa = await getSupa();
+
     // 1. Vérifier le code
-    const { data: invite, error } = await supabase
+    const { data: invite, error } = await supa
       .from("equipe_membres")
       .select("id, email_invite, statut")
       .eq("code_invitation", code)
@@ -260,10 +289,9 @@ export default function App() {
     if (invite.statut === "actif") { setJoinMsg(t("auth.usedInvite")); setLoading(false); return; }
 
     // 2. Connexion / inscription
-    const { error: loginErr } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: loginErr } = await supa.auth.signInWithPassword({ email, password });
     if (loginErr) {
-      // Essai inscription
-      const { data: signData, error: signErr } = await supabase.auth.signUp({
+      const { data: signData, error: signErr } = await supa.auth.signUp({
         email, password,
         options: { data: { full_name: nom || email.split("@")[0] } }
       });
@@ -276,10 +304,10 @@ export default function App() {
     }
 
     // 3. Récupérer l'utilisateur connecté et lier
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supa.auth.getSession();
     if (!session) { setJoinMsg(t("auth.loginFailed")); setLoading(false); return; }
 
-    await supabase.from("equipe_membres")
+    await supa.from("equipe_membres")
       .update({ membre_id: session.user.id, statut: "actif" })
       .eq("code_invitation", code);
 
@@ -290,7 +318,8 @@ export default function App() {
   const handleLogin = async () => {
     setLoading(true);
     setMessage("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const supa = await getSupa();
+    const { error } = await supa.auth.signInWithPassword({ email, password });
     if (error) setMessage("❌ " + error.message);
     setLoading(false);
   };
@@ -299,10 +328,11 @@ export default function App() {
     setLoading(true);
     setMessage("");
     const trimmedCode = referralInput.trim().toUpperCase();
+    const supa = await getSupa();
 
     // ── 1. Valider le code de parrainage avant de créer le compte ──
     if (trimmedCode) {
-      const { data: parrain, error: errCheck } = await supabase
+      const { data: parrain, error: errCheck } = await supa
         .from("profils")
         .select("user_id, referral_used")
         .eq("referral_code", trimmedCode)
@@ -337,7 +367,7 @@ export default function App() {
     }
 
     // ── 2. Créer le compte ─────────────────────────────────────────
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supa.auth.signUp({
       email, password,
       options: {
         data: {
@@ -349,12 +379,10 @@ export default function App() {
     if (error) { setMessage("❌ " + error.message); setLoading(false); return; }
 
     // ── 3. Écrire referred_by dans profils immédiatement ──────────
-    //   • Si session disponible (email confirmation désactivée) → upsert direct
-    //   • Sinon → localStorage, appliqué au prochain login via useEffect
     const userId = data.user?.id;
     if (userId && trimmedCode) {
       if (data.session) {
-        await supabase.from("profils").upsert(
+        await supa.from("profils").upsert(
           { user_id: userId, referred_by: trimmedCode },
           { onConflict: "user_id" }
         );
@@ -393,9 +421,10 @@ export default function App() {
     const fp         = getDeviceFingerprint();
     const guestEmail = `guest_${fp}@artisan-plus.app`;
     const guestPass  = `Ap_${fp}_G!`;
+    const supa = await getSupa();
 
     // 1) L'appareil a déjà un compte invité → connexion directe
-    const { error: loginErr } = await supabase.auth.signInWithPassword({
+    const { error: loginErr } = await supa.auth.signInWithPassword({
       email: guestEmail, password: guestPass,
     });
     if (!loginErr) {
@@ -405,7 +434,7 @@ export default function App() {
     }
 
     // 2) Premier accès → création du compte invité
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpErr } = await supa.auth.signUp({
       email: guestEmail, password: guestPass,
       options: { data: { full_name: "Invité", is_guest: true } },
     });
@@ -415,15 +444,13 @@ export default function App() {
       return;
     }
 
-    // Si email confirmation désactivée, Supabase renvoie une session directement
     if (signUpData?.session) {
       localStorage.setItem("artisan_guest_fp", fp);
       setLoading(false);
       return;
     }
 
-    // Sinon on tente la connexion (confirmation auto activée côté Supabase)
-    const { error: login2Err } = await supabase.auth.signInWithPassword({
+    const { error: login2Err } = await supa.auth.signInWithPassword({
       email: guestEmail, password: guestPass,
     });
     if (login2Err) {
