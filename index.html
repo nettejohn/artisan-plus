@@ -59,14 +59,12 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-Q348H2CTZ8');
-      // requestIdleCallback : charge GA uniquement quand le navigateur est inactif,
-      // après le TBT measurement window (0-5s). Fallback setTimeout 4s pour Safari.
-      (window.requestIdleCallback || function(fn){ setTimeout(fn, 4000); })(function() {
+      window.addEventListener('load', function() {
         var s = document.createElement('script');
         s.async = true;
         s.src = 'https://www.googletagmanager.com/gtag/js?id=G-Q348H2CTZ8';
         document.head.appendChild(s);
-      }, { timeout: 4000 });
+      });
     </script>
   </head>
   <body>
