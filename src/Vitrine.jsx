@@ -1248,7 +1248,7 @@ function PageHome() {
       </section>
 
       {/* ── Fonctionnalités ─────────────────────────────────────── */}
-      <section id="fonctionnalites" style={{ padding: "clamp(60px,8vw,100px) 20px", scrollMarginTop: "80px" }}>
+      <section id="fonctionnalites" style={{ padding: "clamp(60px,8vw,100px) 20px", scrollMarginTop: "80px", contentVisibility: "auto", containIntrinsicSize: "auto 900px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "72px" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "20px" }}>
@@ -1295,7 +1295,7 @@ function PageHome() {
       </section>
 
       {/* ── Comparatif ──────────────────────────────────────────── */}
-      <section id="comparatif" style={{ padding: "clamp(60px,8vw,100px) 20px", background: `linear-gradient(180deg, rgba(255,140,0,0.03) 0%, transparent 100%)`, scrollMarginTop: "80px" }}>
+      <section id="comparatif" style={{ padding: "clamp(60px,8vw,100px) 20px", background: `linear-gradient(180deg, rgba(255,140,0,0.03) 0%, transparent 100%)`, scrollMarginTop: "80px", contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
             <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 16px" }}>
@@ -1310,7 +1310,7 @@ function PageHome() {
       </section>
 
       {/* ── Témoignages ─────────────────────────────────────────── */}
-      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", contentVisibility: "auto", containIntrinsicSize: "auto 600px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
             <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 12px" }}>
@@ -1345,7 +1345,7 @@ function PageHome() {
       </section>
 
       {/* ── Métiers ─────────────────────────────────────────────── */}
-      <section id="metiers" style={{ padding: "clamp(60px,8vw,100px) 20px", background: C, scrollMarginTop: "80px" }}>
+      <section id="metiers" style={{ padding: "clamp(60px,8vw,100px) 20px", background: C, scrollMarginTop: "80px", contentVisibility: "auto", containIntrinsicSize: "auto 500px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
             <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 12px" }}>
@@ -1372,7 +1372,7 @@ function PageHome() {
       </section>
 
       {/* ── FAQ ─────────────────────────────────────────────────── */}
-      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: C }}>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: C, contentVisibility: "auto", containIntrinsicSize: "auto 700px" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "48px" }}>
             <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,36px)", fontWeight: "900", margin: "0 0 12px" }}>
@@ -1385,7 +1385,7 @@ function PageHome() {
       </section>
 
       {/* ── CTA final ───────────────────────────────────────────── */}
-      <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", contentVisibility: "auto", containIntrinsicSize: "auto 400px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <CTASection />
         </div>
