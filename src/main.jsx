@@ -1,5 +1,5 @@
 import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { hydrateRoot, createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { LanguageProvider } from './i18n.jsx'
@@ -41,10 +41,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-createRoot(document.getElementById('root')).render(
+const rootEl = document.getElementById('root');
+const app = (
   <StrictMode>
     <LanguageProvider>
       <App />
     </LanguageProvider>
-  </StrictMode>,
-)
+  </StrictMode>
+);
+
+// Si le root contient du HTML pré-rendu (SSG), on hydrate sans remplacer le DOM.
+// → le navigateur peut peindre le HTML statique immédiatement (LCP rapide).
+// Pour les routes sans SSG (dashboard, connexion...), createRoot est utilisé.
+if (rootEl.hasChildNodes()) {
+  hydrateRoot(rootEl, app);
+} else {
+  createRoot(rootEl).render(app);
+}
