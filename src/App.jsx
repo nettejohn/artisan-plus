@@ -11,9 +11,12 @@ function getSupa() {
 import { usePWA } from "./usePWA";
 import { useLanguage, useLocale } from "./i18n";
 
-// Lazy-load tout : vitrine, app, pages publiques spéciales
-// → réduit le bundle initial chargé sur la vitrine marketing
-const Vitrine        = lazy(() => import("./Vitrine"));
+// Vitrine : import statique → Vite injecte un <link rel="modulepreload"> automatique.
+// Le navigateur télécharge le chunk Vitrine en parallèle du JS principal,
+// éliminant le flash Suspense qui cachait le HTML pré-rendu (SSG) et bloquait le LCP.
+import Vitrine from "./Vitrine";
+
+// Blog : lazy car uniquement visité depuis la vitrine, pas critique pour LCP
 const Blog           = lazy(() => import("./Blog"));
 const Dashboard      = lazy(() => import("./Dashboard"));
 const SignatureDevis = lazy(() => import("./SignatureDevis"));
@@ -567,7 +570,7 @@ export default function App() {
     const isLoginPath = routePath === "/login" || routePath === "/connexion" || routePath === "/inscription";
     if (!isLoginPath) {
       if (routePath === "/blog" || routePath.startsWith("/blog/")) return <><Suspense fallback={<PublicFallback />}><Blog /></Suspense><CookieBanner /></>;
-      return <><Suspense fallback={<PublicFallback />}><Vitrine /></Suspense><CookieBanner /></>;
+      return <><Vitrine /><CookieBanner /></>;
     }
   }
 

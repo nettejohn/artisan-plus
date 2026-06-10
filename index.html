@@ -51,13 +51,20 @@
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q348H2CTZ8"></script>
+    <!-- Google Analytics : dataLayer initialisé immédiatement (pas de perte d'événements),
+         mais le script lourd (~250kB) est chargé après l'event 'load' pour ne pas
+         bloquer le thread principal pendant le LCP. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-Q348H2CTZ8');
+      window.addEventListener('load', function() {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-Q348H2CTZ8';
+        document.head.appendChild(s);
+      });
     </script>
   </head>
   <body>
