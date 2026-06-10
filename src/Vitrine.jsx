@@ -2676,6 +2676,8 @@ function PageGenerique({ slug }) {
 }
 
 // ── Routeur principal ─────────────────────────────────────────────────────────
+export { METIERS, VILLES, CONCURRENTS };
+
 export default function Vitrine() {
   const { lang, setLang, t } = useLanguage();
   const [path, setPath] = useState(window.location.pathname);

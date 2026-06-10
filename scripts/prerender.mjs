@@ -188,10 +188,142 @@ const GENERIC_SLUGS = [
 
 // ── 3. IMPORT REACT + COMPOSANTS ─────────────────────────────────────────────
 
-const { default: React }       = await import('react');
-const { renderToStaticMarkup } = await import('react-dom/server');
-const { LanguageProvider }     = await import('../src/i18n.jsx');
-const { default: Vitrine }     = await import('../src/Vitrine.jsx');
+const { default: React }                          = await import('react');
+const { renderToStaticMarkup }                    = await import('react-dom/server');
+const { LanguageProvider }                        = await import('../src/i18n.jsx');
+const { default: Vitrine, METIERS, VILLES, CONCURRENTS } = await import('../src/Vitrine.jsx');
+
+// Index de lookup slug → objet
+const METIERS_BY_SLUG = Object.fromEntries(METIERS.map(m => [m.slug, m]));
+const VILLES_BY_SLUG  = Object.fromEntries(VILLES.map(v => [v.slug, v]));
+const CONCURRENTS_BY_SLUG = Object.fromEntries(CONCURRENTS.map(c => [c.slug, c]));
+
+// Générer le title + meta description unique pour chaque route
+function getPageMeta(path) {
+  // Page d'accueil
+  if (path === '/') return {
+    title: 'Artisan+ | App Devis Factures Artisan - 7,99€/mois',
+    description: 'Logiciel devis et factures pour artisans à 7,99€/mois. Moins cher que Tolteck, Obat et ArtisanFacture. Suivi chantier, mini-site, paiement en ligne inclus.',
+  };
+
+  // /devis-facture-{slug}
+  if (path.startsWith('/devis-facture-')) {
+    const slug = path.replace('/devis-facture-', '');
+    const m = METIERS_BY_SLUG[slug];
+    if (m) return {
+      title: `Logiciel devis facture ${m.label} | Artisan+ à 7,99€/mois`,
+      description: `Créez vos devis et factures de ${m.desc} en 2 minutes. Logiciel ${m.kw} Artisan+ à 7,99€/mois. Suivi chantier, mini-site, paiement en ligne inclus.`,
+    };
+  }
+
+  // /artisan-{slug}
+  if (path.startsWith('/artisan-')) {
+    const slug = path.replace('/artisan-', '');
+    const v = VILLES_BY_SLUG[slug];
+    if (v) return {
+      title: `Artisan+ ${v.label} | Logiciel devis facture artisan ${v.label}`,
+      description: `Logiciel de devis et factures pour artisans à ${v.label} (${v.dept}). Gérez votre activité en ${v.region} à 7,99€/mois. Essai gratuit.`,
+    };
+  }
+
+  // /alternative-{slug}
+  if (path.startsWith('/alternative-')) {
+    const slug = path.replace('/alternative-', '');
+    const c = CONCURRENTS_BY_SLUG[slug];
+    if (c) return {
+      title: `Alternative à ${c.label} | Artisan+ moins cher à 7,99€/mois`,
+      description: `Vous cherchez une alternative à ${c.label} (${c.prix}) ? Artisan+ offre plus de fonctionnalités à 7,99€/mois. Comparatif complet.`,
+    };
+  }
+
+  // Combos /{metier-slug}-{ville-slug} : cherche le meilleur split métier+ville
+  const pathSlug = path.slice(1); // retire le /
+  for (const mSlug of Object.keys(METIERS_BY_SLUG)) {
+    if (pathSlug.startsWith(mSlug + '-')) {
+      const vSlug = pathSlug.slice(mSlug.length + 1);
+      const m = METIERS_BY_SLUG[mSlug];
+      const v = VILLES_BY_SLUG[vSlug];
+      if (m && v) return {
+        title: `${m.label} à ${v.label} | Devis et factures — Artisan+`,
+        description: `Vous êtes ${m.kw} à ${v.label} (${v.dept}) ? Artisan+ vous permet de créer vos devis de ${m.desc} en 2 minutes. Logiciel ${m.kw} à 7,99€/mois. Essai gratuit.`,
+      };
+    }
+  }
+
+  // Pages facturation électronique
+  const FACT_ELEC_META = {
+    '/facturation-electronique-artisan': {
+      title: 'Facturation électronique artisan 2026 | Artisan+ conforme Factur-X',
+      description: 'Artisan+ est prêt pour la facturation électronique obligatoire 2026. Format Factur-X (EN 16931) pour artisans. Gratuit et simple.',
+    },
+    '/facture-electronique-tpe-pme': {
+      title: 'Facture électronique TPE PME | Artisan+ obligation 2026',
+      description: 'Préparez votre TPE ou PME artisanale à la facture électronique obligatoire dès 2026. Artisan+ génère des factures Factur-X conformes automatiquement.',
+    },
+    '/logiciel-facturation-electronique-gratuit': {
+      title: 'Logiciel facturation électronique gratuit artisan | Artisan+',
+      description: 'Logiciel de facturation électronique gratuit pour artisans. Format Factur-X, conformité 2026, devis et factures professionnelles à 7,99€/mois.',
+    },
+    '/facture-electronique-obligatoire-2027': {
+      title: 'Facture électronique obligatoire 2026-2027 | Guide artisan Artisan+',
+      description: 'Tout comprendre sur la facture électronique obligatoire pour les artisans en 2026 et 2027. Artisan+ vous accompagne avec le format Factur-X.',
+    },
+  };
+  if (FACT_ELEC_META[path]) return FACT_ELEC_META[path];
+
+  // Pages génériques SEO
+  const GENERIC_META = {
+    '/facture-en-ligne-gratuit': {
+      title: 'Facture en ligne gratuit artisan | Artisan+ 7,99€/mois',
+      description: 'Créez vos factures en ligne gratuitement avec Artisan+. Factures professionnelles conformes, envoi par email, paiement en ligne. Essai gratuit.',
+    },
+    '/facture-en-ligne-artisan': {
+      title: 'Facture en ligne artisan | Artisan+ logiciel facturation',
+      description: 'Logiciel de facture en ligne pour artisans. Créez et envoyez vos factures professionnelles en 2 minutes depuis votre smartphone. À 7,99€/mois.',
+    },
+    '/devis-en-ligne-gratuit': {
+      title: 'Devis en ligne gratuit artisan | Artisan+ logiciel devis',
+      description: 'Créez vos devis en ligne gratuitement avec Artisan+. Devis professionnels personnalisés, envoi par email et signature électronique. Essai gratuit.',
+    },
+    '/application-devis-facture-gratuite': {
+      title: 'Application devis facture gratuite artisan | Artisan+',
+      description: 'Application devis et facture gratuite pour artisans. Créez des devis et factures professionnels sur smartphone en 2 minutes. Artisan+ à 7,99€/mois.',
+    },
+    '/logiciel-devis-facture-artisan': {
+      title: 'Logiciel devis facture artisan | Artisan+ 7,99€/mois',
+      description: 'Logiciel de devis et factures pour artisans du bâtiment. Moins cher que Tolteck et Obat. Suivi chantier, mini-site et paiement en ligne inclus.',
+    },
+    '/application-facturation-gratuite': {
+      title: 'Application facturation gratuite artisan | Artisan+',
+      description: "Application de facturation gratuite pour artisans. Factures conformes, TVA automatique, export PDF. Artisan+ à 7,99€/mois. Pas d'engagement.",
+    },
+    '/facture-auto-entrepreneur-gratuit': {
+      title: 'Facture auto-entrepreneur gratuit | Artisan+ micro-entreprise',
+      description: "Créez vos factures d'auto-entrepreneur gratuitement avec Artisan+. Mentions légales auto-entrepreneur, franchise TVA, export PDF. Essai gratuit.",
+    },
+  };
+  if (GENERIC_META[path]) return GENERIC_META[path];
+
+  // Pages statiques
+  if (path === '/cgu') return {
+    title: "Conditions Générales d'Utilisation | Artisan+",
+    description: "Conditions générales d'utilisation de l'application Artisan+ — logiciel de devis et facturation pour artisans.",
+  };
+  if (path === '/politique-confidentialite') return {
+    title: 'Politique de confidentialité | Artisan+',
+    description: 'Politique de confidentialité et traitement des données personnelles de l\'application Artisan+.',
+  };
+  if (path === '/facturation-electronique-obligatoire-2026') return {
+    title: 'Facturation électronique obligatoire 2026 | Artisan+ prêt',
+    description: 'La facturation électronique devient obligatoire en 2026 pour les artisans. Artisan+ est déjà conforme Factur-X. Découvrez comment être prêt.',
+  };
+
+  // Fallback
+  return {
+    title: 'Artisan+ | App Devis Factures Artisan - 7,99€/mois',
+    description: 'Logiciel devis et factures pour artisans à 7,99€/mois. Suivi chantier, mini-site, paiement en ligne inclus.',
+  };
+}
 
 // ── 4. CONSTRUCTION DE LA LISTE DES ROUTES ───────────────────────────────────
 
@@ -242,13 +374,21 @@ for (const path of GENERIC_SLUGS) {
 
 const template = readFileSync(join(DIST, 'index.html'), 'utf-8');
 
+function escHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function renderPath(routePath) {
   _mockPathname = routePath;
   try {
     const html = renderToStaticMarkup(
       React.createElement(LanguageProvider, null, React.createElement(Vitrine))
     );
-    return template.replace('<div id="root"></div>', `<div id="root">${html}</div>`);
+    const { title, description } = getPageMeta(routePath);
+    return template
+      .replace('<div id="root"></div>', `<div id="root">${html}</div>`)
+      .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
+      .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`);
   } catch (err) {
     console.warn(`  ⚠️  ${routePath}: ${err.message}`);
     return null;
