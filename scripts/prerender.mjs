@@ -378,6 +378,73 @@ function escHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+function serializeSchema(obj) {
+  return JSON.stringify(obj)
+    .replace(/<\/script>/gi, '<\\/script>')
+    .replace(/<!--/g, '<\\!--');
+}
+
+function getPageSchema(path) {
+  const url = `${BASE}${path}`;
+
+  // /artisan-{ville} → LocalBusiness ciblant la ville
+  if (path.startsWith('/artisan-')) {
+    const slug = path.replace('/artisan-', '');
+    const v = VILLES_BY_SLUG[slug];
+    if (!v) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      'name': `Artisan+ ${v.label}`,
+      'description': `Logiciel de devis et factures pour artisans à ${v.label} (${v.dept}). Gérez votre activité en ${v.region} à 7,99€/mois.`,
+      'url': url,
+      'areaServed': { '@type': 'City', 'name': v.label },
+      'priceRange': '€',
+      'offers': { '@type': 'Offer', 'price': '7.99', 'priceCurrency': 'EUR', 'name': 'Abonnement Artisan+' },
+    };
+  }
+
+  // /devis-facture-{metier} → LocalBusiness par corps de métier
+  if (path.startsWith('/devis-facture-')) {
+    const slug = path.replace('/devis-facture-', '');
+    const m = METIERS_BY_SLUG[slug];
+    if (!m) return null;
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      'name': `Artisan+ — Logiciel ${m.label}`,
+      'description': `Créez vos devis et factures de ${m.desc} en 2 minutes. Logiciel ${m.kw} à 7,99€/mois.`,
+      'url': url,
+      'serviceType': m.label,
+      'priceRange': '€',
+      'offers': { '@type': 'Offer', 'price': '7.99', 'priceCurrency': 'EUR', 'name': `Logiciel ${m.label}` },
+    };
+  }
+
+  // /{metier}-{ville} → LocalBusiness combinant métier + ville
+  const pathSlug = path.slice(1);
+  for (const mSlug of Object.keys(METIERS_BY_SLUG)) {
+    if (pathSlug.startsWith(mSlug + '-')) {
+      const vSlug = pathSlug.slice(mSlug.length + 1);
+      const m = METIERS_BY_SLUG[mSlug];
+      const v = VILLES_BY_SLUG[vSlug];
+      if (m && v) return {
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        'name': `${m.label} à ${v.label} — Artisan+`,
+        'description': `Logiciel de devis et factures pour ${m.kw} à ${v.label} (${v.dept}). Créez vos devis de ${m.desc} en 2 minutes.`,
+        'url': url,
+        'serviceType': m.label,
+        'areaServed': { '@type': 'City', 'name': v.label },
+        'priceRange': '€',
+        'offers': { '@type': 'Offer', 'price': '7.99', 'priceCurrency': 'EUR', 'name': `Logiciel ${m.label}` },
+      };
+    }
+  }
+
+  return null;
+}
+
 function renderPath(routePath) {
   _mockPathname = routePath;
   try {
@@ -385,10 +452,15 @@ function renderPath(routePath) {
       React.createElement(LanguageProvider, null, React.createElement(Vitrine))
     );
     const { title, description } = getPageMeta(routePath);
+    const schema = getPageSchema(routePath);
+    const schemaTag = schema
+      ? `\n  <script type="application/ld+json">${serializeSchema(schema)}</script>`
+      : '';
     return template
       .replace('<div id="root"></div>', `<div id="root">${html}</div>`)
       .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
-      .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`);
+      .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`)
+      .replace('</head>', `${schemaTag}\n</head>`);
   } catch (err) {
     console.warn(`  ⚠️  ${routePath}: ${err.message}`);
     return null;
