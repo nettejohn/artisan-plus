@@ -105,14 +105,16 @@ export default function App() {
   const authSubRef = useRef(null);
 
   // ── Splash screen ─────────────────────────────────────────────
-  // Pas de splash sur les pages publiques (vitrine, signature, suivi, mini-sites)
+  // Pas de splash sur les pages publiques (vitrine, signature, suivi, mini-sites).
+  // isVitrineRoute couvre "/" et tous les préfixes SEO → supprimer le splash
+  // sur la homepage évite que l'overlay couvre l'H1 SSG et retarde le LCP.
   const _initPath = window.location.pathname;
-  const isSplashPage = !_initPath.startsWith("/signer/") &&
+  const isSplashPage = !isVitrineRoute(_initPath) &&
+    !_initPath.startsWith("/signer/") &&
     !_initPath.startsWith("/suivi/") &&
     !_initPath.startsWith("/artisan/") &&
     !_initPath.startsWith("/site/") &&
     !_initPath.startsWith("/ouvrier/") &&
-    !VITRINE_PREFIXES.some(pfx => _initPath.startsWith(pfx)) &&
     _initPath !== "/connexion" && _initPath !== "/inscription";
   const [showSplash, setShowSplash] = useState(isSplashPage);
   const [splashOut,  setSplashOut]  = useState(false);
