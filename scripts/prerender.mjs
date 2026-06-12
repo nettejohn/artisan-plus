@@ -456,10 +456,13 @@ function renderPath(routePath) {
     const schemaTag = schema
       ? `\n  <script type="application/ld+json">${serializeSchema(schema)}</script>`
       : '';
+    const canonicalUrl = `${BASE}${routePath === '/' ? '' : routePath}`;
     return template
       .replace('<div id="root"></div>', `<div id="root">${html}</div>`)
       .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
       .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`)
+      .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonicalUrl}" />`)
+      .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${canonicalUrl}"`)
       .replace('</head>', `${schemaTag}\n</head>`);
   } catch (err) {
     console.warn(`  ⚠️  ${routePath}: ${err.message}`);
