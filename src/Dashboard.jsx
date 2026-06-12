@@ -3323,7 +3323,7 @@ export default function Dashboard({
           {/* Overlay fond */}
           <div
             style={{
-              position: "fixed", inset: 0, zIndex: 998,
+              position: "fixed", inset: 0, zIndex: 1001,
               background: "rgba(0,0,0,0.55)",
               backdropFilter: "blur(3px)",
             }}
@@ -3332,7 +3332,7 @@ export default function Dashboard({
 
           {/* Panneau */}
           <div style={{
-            position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 999,
+            position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 1002,
             width: "min(300px, 88vw)",
             background: CARD,
             borderLeft: "1px solid rgba(255,140,0,0.2)",
