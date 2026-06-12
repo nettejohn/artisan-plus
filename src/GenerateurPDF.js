@@ -91,14 +91,22 @@ function hexToRgb(hex) {
 export async function chargerLogoBase64(url) {
   if (!url) return null;
   try {
-    const resp = await fetch(url, { cache: "force-cache" });
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      const timer = setTimeout(() => resolve(null), 8000);
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          const c = document.createElement("canvas");
+          c.width = img.naturalWidth || 128;
+          c.height = img.naturalHeight || 128;
+          c.getContext("2d").drawImage(img, 0, 0);
+          resolve(c.toDataURL("image/png"));
+        } catch { resolve(null); }
+      };
+      img.onerror = () => { clearTimeout(timer); resolve(null); };
+      img.src = url;
     });
   } catch { return null; }
 }

@@ -1241,7 +1241,7 @@ export default function Dashboard({
             user={user}
             isDesktop={isDesktop}
             initialSection={parametresSection}
-            onBack={() => { setPage("dashboard"); chargerProfil(); setParametresSection("profil"); }}
+            onBack={() => { setPage("dashboard"); chargerProfil(); chargerModeSimple(); setParametresSection("profil"); }}
             onModeSimpleChange={(val) => setModeSimple(val)}
             isPro={isPro}
             onUpgrade={() => { setPage("parametres"); setParametresSection("abonnement"); }}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
-import { genererFacturePDF, genererPDFBase64 } from "./GenerateurPDF";
+import { genererFacturePDF, genererPDFBase64, chargerLogoBase64 } from "./GenerateurPDF";
 
 const PRIMARY = "#FF8C00";
 const DARK = "#0a1628";
@@ -23,6 +23,8 @@ export default function SignatureDevis({ token }) {
   const [dessin, setDessin] = useState(false);
   const [aDessiné, setADessiné] = useState(false);
   const [voirDetailDevis, setVoirDetailDevis] = useState(false);
+  const [logoBase64, setLogoBase64] = useState(null);
+  const [couleurPdf, setCouleurPdf] = useState(null);
 
   useEffect(() => {
     chargerDevis();
@@ -80,6 +82,18 @@ export default function SignatureDevis({ token }) {
       setDevis(devisData);
       setLignes(lignesData || []);
       setArtisan(artisanData);
+
+      // Charger le logo et la couleur PDF de l'artisan
+      if (artisanData?.logo_url) {
+        chargerLogoBase64(artisanData.logo_url).then(setLogoBase64);
+      }
+      supabase
+        .from("parametres")
+        .select("couleur_pdf")
+        .eq("user_id", devisData.user_id)
+        .single()
+        .then(({ data }) => { if (data?.couleur_pdf) setCouleurPdf(data.couleur_pdf); });
+
       setLoading(false);
 
     } catch (e) {
@@ -147,7 +161,7 @@ export default function SignatureDevis({ token }) {
   const telechargerDevis = () => {
     if (!devis || !artisan) return;
     try {
-      genererFacturePDF(devis, devis.clients, lignes, artisan, true);
+      genererFacturePDF(devis, devis.clients, lignes, artisan, true, { logoBase64, couleurPdf });
     } catch (e) {
       console.error("Erreur téléchargement PDF :", e);
     }
@@ -159,6 +173,8 @@ export default function SignatureDevis({ token }) {
       ouvrirPDF(genererPDFBase64(devis, devis.clients, lignes, artisan, true, {
         signatureImage: signatureDataRef.current,
         nomSignataire: nom,
+        logoBase64,
+        couleurPdf,
       }));
     } catch (e) {
       console.error("Erreur génération PDF signé :", e);
@@ -171,6 +187,8 @@ export default function SignatureDevis({ token }) {
       genererFacturePDF(devis, devis.clients, lignes, artisan, true, {
         signatureImage: signatureDataRef.current,
         nomSignataire: nom,
+        logoBase64,
+        couleurPdf,
       });
     } catch (e) {
       console.error("Erreur téléchargement PDF signé :", e);
@@ -213,6 +231,8 @@ export default function SignatureDevis({ token }) {
       const dataUri = genererPDFBase64(devis, devis.clients, lignes, artisan, true, {
         signatureImage: signatureData,
         nomSignataire: nom,
+        logoBase64,
+        couleurPdf,
       });
       pdfBase64 = dataUri.split(",")[1]; // strip "data:application/pdf;base64,"
     } catch (pdfErr) {
