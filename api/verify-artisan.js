@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 function cleanKey(k) { return (k || "").trim().replace(/[\r\n\s]/g, ""); }

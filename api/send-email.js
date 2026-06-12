@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const RESEND_API = "https://api.resend.com/emails";
 const FROM = "Artisan+ <contact@artisan-plus.fr>";
