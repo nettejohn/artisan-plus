@@ -3339,7 +3339,9 @@ export default function Dashboard({
             display: "flex", flexDirection: "column",
             animation: "slideInRight 0.22s ease",
             boxShadow: "-8px 0 48px rgba(0,0,0,0.5)",
-            overflow: "hidden",
+            overflowY: "auto",
+            overflowX: "hidden",
+            WebkitOverflowScrolling: "touch",
           }}>
 
             {/* En-tête utilisateur */}
@@ -3393,7 +3395,7 @@ export default function Dashboard({
             </div>
 
             {/* Navigation groupée en sections */}
-            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
+            <div style={{ flex: 1 }}>
               {[
                 {
                   section: "🔧 Outils",
@@ -3479,8 +3481,14 @@ export default function Dashboard({
               ))}
             </div>
 
-            {/* Aide + Déconnexion */}
-            <div style={{ padding: "14px 20px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 }}>
+            {/* Aide + Déconnexion — sticky pour toujours être visible */}
+            <div style={{
+              position: "sticky", bottom: 0,
+              padding: "14px 20px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              background: CARD,
+              display: "flex", flexDirection: "column", gap: "8px",
+            }}>
               <button
                 onClick={() => { setParametresSection("aide"); setPage("parametres"); setHamburgerOpen(false); }}
                 style={{
