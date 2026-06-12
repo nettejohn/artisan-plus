@@ -64,7 +64,7 @@ async function handleSupport(apiKey, body, res) {
   const { sujet, message, emailUtilisateur, nomUtilisateur } = body;
   if (!message?.trim()) return res.status(400).json({ error: "Message vide" });
 
-  const SUPPORT_EMAIL = "cassou101514@gmail.com";
+  const SUPPORT_EMAIL = "contact@artisan-plus.fr";
   const date = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
 
   try {
