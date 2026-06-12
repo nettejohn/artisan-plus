@@ -2138,8 +2138,8 @@ export default function Dashboard({
                   titre: "Comptabilité & Finances",
                   couleur: "#4CAF50",
                   items: [
-                    { icon: "🧮", label: "Assistant comptable", desc: "TVA à reverser, URSSAF estimé, seuil auto-entrepreneur, trésorerie prévisionnelle", action: () => { if (!isPro) { ouvrirUpgrade("comptable"); } else setShowComptable(true); } },
-                    { icon: "📊", label: "Récap mensuel IA", desc: "Bilan complet de votre mois avec analyse IA, conseils personnalisés et export PDF", action: () => { if (!isPro) { ouvrirUpgrade("recap"); } else setShowRecap(true); } },
+                    { icon: "🧮", label: "Assistant comptable", desc: "TVA à reverser, URSSAF estimé, seuil auto-entrepreneur, trésorerie prévisionnelle", action: () => { if (!isPro) { setProGateModal("comptable"); } else setShowComptable(true); } },
+                    { icon: "📊", label: "Récap mensuel IA", desc: "Bilan complet de votre mois avec analyse IA, conseils personnalisés et export PDF", action: () => { if (!isPro) { setProGateModal("recap"); } else setShowRecap(true); } },
                     { icon: "💳", label: "Paiement en ligne", desc: "Vos clients paient vos factures directement par carte bancaire via un lien sécurisé", action: () => { setParametresSection("paiements"); setPage("parametres"); } },
                     { icon: "💰", label: "Calculateur rentabilité", desc: "Calculez votre seuil de rentabilité, vos marges et votre bénéfice net mensuel", action: () => {} },
                   ],
@@ -2532,7 +2532,7 @@ export default function Dashboard({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "12px", flexWrap: "wrap" }}>
               <h2 style={{ color: "white", fontSize: "22px", margin: 0 }}>📦 Catalogue de prestations</h2>
               <button
-                onClick={() => setShowCatalogueModal(true)}
+                onClick={() => { if (!isPro) { setProGateModal("catalogue"); return; } setShowCatalogueModal(true); }}
                 style={{
                   background: PRIMARY, color: "white", border: "none",
                   borderRadius: "10px", padding: "11px 18px",
@@ -2553,7 +2553,7 @@ export default function Dashboard({
                 Insérez-les ensuite en 1 clic dans vos devis et factures.
               </div>
               <button
-                onClick={() => setShowCatalogueModal(true)}
+                onClick={() => { if (!isPro) { setProGateModal("catalogue"); return; } setShowCatalogueModal(true); }}
                 style={{
                   background: "rgba(255,140,0,0.12)", color: PRIMARY,
                   border: "1.5px solid rgba(255,140,0,0.35)",

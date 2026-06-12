@@ -627,7 +627,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
           <h3 style={{ color: "white", marginTop: 0 }}>🎨 Thème du devis</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
             {THEMES.map(t => (
-              <button key={t.id} onClick={() => setStyle(t.id)} style={{
+              <button key={t.id} onClick={() => { if (!isPro && t.id !== "classique") { setProGateModal("theme_pdf"); return; } setStyle(t.id); }} style={{
                 padding: "16px 12px",
                 border: `2px solid ${style === t.id ? t.color : "rgba(255,255,255,0.1)"}`,
                 borderRadius: "12px",

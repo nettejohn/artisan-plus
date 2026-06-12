@@ -79,6 +79,7 @@ const CAT_COLORS = {
 
 export default function Outils({ user, profil, isPro = true, onUpgrade }) {
   const [tool, setTool] = useState(null);
+  const [proGateToolModal, setProGateToolModal] = useState(false);
 
   // Calculatrice
   const [calcDisplay, setCalcDisplay]   = useState("0");
@@ -687,20 +688,6 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
     if (v <= 10) return { label: "Très élevé",color: "#ff6b6b", conseil: "Protection maximale !" };
     return               { label: "Extrême",  color: "#ff2222", conseil: "Évitez l'exposition directe" };
   };
-
-  // ═══════════════════════════════════════════════════════════════
-  // GATE PRO
-  // ═══════════════════════════════════════════════════════════════
-  if (!isPro) {
-    return (
-      <ProGate
-        featureKey="outils"
-        mode="page"
-        onUpgrade={onUpgrade}
-        onDismiss={null}
-      />
-    );
-  }
 
   // ═══════════════════════════════════════════════════════════════
   // RENDER
@@ -1596,6 +1583,7 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
       { id: "comm",   label: "💬 Communication" },
     ];
     return (
+      <>
       <div style={{ paddingBottom: "24px" }}>
         <h2 style={{ color: "white", fontSize: "22px", margin: "0 0 4px" }}>🔧 Boîte à outils</h2>
         <div style={{ color: "#8899aa", fontSize: "13px", marginBottom: "24px" }}>20 outils pour l'artisan du bâtiment</div>
@@ -1610,6 +1598,7 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" }}>
                 {ocat.map(o => (
                   <button key={o.id} onClick={() => {
+                    if (!isPro) { setProGateToolModal(true); return; }
                     setTool(o.id);
                     if (o.id === "loupe") setTimeout(startLoupe, 100);
                     if (o.id === "decibel") setTimeout(startDecibel, 100);
@@ -1634,6 +1623,15 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
           );
         })}
       </div>
+      {proGateToolModal && (
+        <ProGate
+          featureKey="outils"
+          mode="modal"
+          onUpgrade={() => { setProGateToolModal(false); onUpgrade?.(); }}
+          onDismiss={() => setProGateToolModal(false)}
+        />
+      )}
+      </>
     );
   }
 
