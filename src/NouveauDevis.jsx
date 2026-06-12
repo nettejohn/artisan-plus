@@ -67,6 +67,16 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
   // ── ProGate modal ─────────────────────────────────────────────────────────
   const [proGateModal, setProGateModal] = useState(null);
 
+  // ── Chargement du thème PDF par défaut ────────────────────────────────────
+  useEffect(() => {
+    supabase
+      .from("parametres")
+      .select("theme_pdf")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => { if (data?.theme_pdf) setStyle(data.theme_pdf); });
+  }, [user.id]);
+
   // ── Chargement des clients ─────────────────────────────────────────────────
   useEffect(() => {
     supabase
@@ -226,7 +236,7 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
 
     const { data: devisData, error: devisError } = await supabase
       .from("devis")
-      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style: "classique" })
+      .insert({ user_id: user.id, client_id: clientId, numero, total_ht: totalHT, tva: appliquerTva ? tva : 0, total_ttc: totalTTC, notes: "", style })
       .select()
       .single();
     if (devisError) { setMessage("❌ Erreur devis : " + devisError.message); setLoading(false); return; }

@@ -52,8 +52,56 @@ const THEMES = {
     textColor: [10, 40, 80],
     grayColor: [80, 100, 140],
     metier: "TRAITEMENT & NETTOYAGE TOITURE"
+  },
+  elegant: {
+    headerBg: [20, 20, 30],
+    headerText: [255, 255, 255],
+    accent: [160, 120, 50],
+    tableBg: [250, 248, 243],
+    textColor: [20, 20, 30],
+    grayColor: [100, 95, 85],
+    metier: ""
+  },
+  minimaliste: {
+    headerBg: [60, 60, 60],
+    headerText: [255, 255, 255],
+    accent: [90, 90, 90],
+    tableBg: [248, 248, 248],
+    textColor: [40, 40, 40],
+    grayColor: [130, 130, 130],
+    metier: ""
+  },
+  pro: {
+    headerBg: [10, 22, 40],
+    headerText: [255, 255, 255],
+    accent: [255, 140, 0],
+    tableBg: [238, 244, 252],
+    textColor: [10, 22, 40],
+    grayColor: [80, 100, 130],
+    metier: ""
   }
 };
+
+function hexToRgb(hex) {
+  const h = (hex || "").replace("#", "");
+  if (h.length !== 6) return null;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+export async function chargerLogoBase64(url) {
+  if (!url) return null;
+  try {
+    const resp = await fetch(url, { cache: "force-cache" });
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch { return null; }
+}
 
 function dessinerDecoration(doc, style) {
   if (style === "couvreur") {
@@ -97,13 +145,15 @@ function dessinerDecoration(doc, style) {
  * @param {string} options.nomSignataire   – nom du signataire (optionnel)
  */
 function construireDoc(document, client, lignes, artisan, estDevis = false, options = {}) {
-  const { signatureImage = null, nomSignataire = "", lang = "fr" } = options;
+  const { signatureImage = null, nomSignataire = "", lang = "fr", logoBase64 = null, couleurPdf = null } = options;
   const lbl = getPDFLabels(lang);
   const locale = lang === "en" ? "en-GB" : "fr-FR";
 
   const doc = new jsPDF();
   const style = document.style || "classique";
-  const theme = THEMES[style] || THEMES.classique;
+  const base = THEMES[style] || THEMES.classique;
+  const couleurRgb = couleurPdf ? hexToRgb(couleurPdf) : null;
+  const theme = couleurRgb ? { ...base, headerBg: couleurRgb, accent: couleurRgb } : base;
   const appliquerTva = document.tva > 0;
   const typeDoc = estDevis ? "DEVIS" : "FACTURE";
 
@@ -122,12 +172,20 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   // Décoration métier
   dessinerDecoration(doc, style);
 
+  // Logo artisan
+  if (logoBase64) {
+    try {
+      const fmt = logoBase64.startsWith("data:image/png") ? "PNG" : "JPEG";
+      doc.addImage(logoBase64, fmt, 10, 8, 32, 32);
+    } catch (_) { /* ignore si l'image est invalide */ }
+  }
+
   // Métier (centré verticalement dans le header de 50px)
   if (theme.metier) {
     doc.setTextColor(...theme.headerText);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(theme.metier, 15, 28);
+    doc.text(theme.metier, logoBase64 ? 47 : 15, 28);
   }
 
   // Numéro + type document

@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { useLanguage, useLocale } from "./i18n";
 import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
-import { genererFacturePDF, telechargerFactureXML } from "./GenerateurPDF";
+import { genererFacturePDF, telechargerFactureXML, chargerLogoBase64 } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
@@ -91,6 +91,9 @@ export default function Dashboard({
   // Onboarding
   const [onboardingPhase, setOnboardingPhase] = useState(null); // 'welcome' | 'tour' | null
   const [tourStep, setTourStep] = useState(0);
+
+  // Paramètres PDF (thème, couleur, logo)
+  const [paramsPdf, setParamsPdf] = useState({ couleur_pdf: null });
 
   // Mode simplifié
   const [modeSimple,      setModeSimple]      = useState(false);
@@ -380,6 +383,8 @@ export default function Dashboard({
           if (cached) setSimplifieConfig(prev => ({ ...prev, ...JSON.parse(cached) }));
         } catch {}
       }
+      // Paramètres PDF
+      if (data.couleur_pdf) setParamsPdf(prev => ({ ...prev, couleur_pdf: data.couleur_pdf }));
     }
   };
 
@@ -610,7 +615,8 @@ export default function Dashboard({
       .select("*")
       .eq("facture_id", facture.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
-    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang });
+    const logoBase64 = await chargerLogoBase64(artisan.logo_url);
+    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf });
   };
 
   // ── Factur-X XML (facturation électronique structurée, conforme EN 16931) ────
@@ -629,7 +635,8 @@ export default function Dashboard({
       .select("*")
       .eq("devis_id", d.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
-    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang });
+    const logoBase64 = await chargerLogoBase64(artisan.logo_url);
+    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf });
   };
 
   const supprimerFacture = async (id) => {
