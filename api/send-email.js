@@ -129,6 +129,28 @@ async function handleVerification(apiKey, body, res) {
   const urlApprove = `${BASE_URL}/api/verify-artisan?userId=${encodeURIComponent(userId)}&action=approve&token=${tokenApprove}`;
   const urlReject  = `${BASE_URL}/api/verify-artisan?userId=${encodeURIComponent(userId)}&action=reject&token=${tokenReject}`;
 
+  // ── Télécharge le justificatif pour le joindre en pièce jointe ─────────────
+  let attachments = [];
+  if (docUrl) {
+    try {
+      const resp = await fetch(docUrl);
+      if (resp.ok) {
+        const buffer = await resp.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString("base64");
+        const rawUrl  = docUrl.split("?")[0];
+        const ext     = rawUrl.split(".").pop().toLowerCase() || "pdf";
+        const safeSiret = (siret || "kbis").replace(/\s/g, "");
+        attachments = [{ filename: `justificatif-${safeSiret}.${ext}`, content: base64 }];
+      } else {
+        console.warn("[verification] Document inaccessible :", resp.status, docUrl);
+      }
+    } catch (e) {
+      console.warn("[verification] Impossible de télécharger le justificatif :", e.message);
+    }
+  }
+
+  const hasAttachment = attachments.length > 0;
+
   const html = `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -150,25 +172,35 @@ async function handleVerification(apiKey, body, res) {
         <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">ID</td><td style="color:#8899aa;font-size:11px;font-family:monospace;">${userId}</td></tr>
       </table>
 
-      ${docUrl ? `
-      <div style="margin-bottom:28px;background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
+      ${hasAttachment
+        ? `<div style="margin-bottom:28px;background:#f0fdf4;border-radius:10px;padding:14px 20px;border-left:4px solid #4CAF50;">
+        <div style="color:#2e7d32;font-size:13px;font-weight:700;">📎 Justificatif joint à cet email</div>
+        <div style="color:#555;font-size:12px;margin-top:4px;">Le document est en pièce jointe de cet email.</div>
+      </div>`
+        : docUrl
+          ? `<div style="margin-bottom:28px;background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
         <div style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Justificatif (Kbis / carte pro / URSSAF)</div>
-        <a href="${docUrl}" target="_blank" style="display:inline-block;background:#FF8C00;color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;text-decoration:none;">
-          📄 Voir le document →
-        </a>
-      </div>` : ""}
+        <a href="${docUrl}" target="_blank" style="display:inline-block;background:#FF8C00;color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;text-decoration:none;">📄 Voir le document →</a>
+      </div>`
+          : ""}
 
       <div style="font-size:13px;color:#666;margin-bottom:20px;font-weight:600;">Action à effectuer :</div>
-      <div style="display:flex;gap:12px;">
-        <a href="${urlApprove}" target="_blank" style="display:inline-block;flex:1;background:#4CAF50;color:#fff;font-weight:800;font-size:15px;padding:16px 24px;border-radius:12px;text-decoration:none;text-align:center;">
-          ✅ Approuver le badge
-        </a>
-        <a href="${urlReject}" target="_blank" style="display:inline-block;flex:1;background:#ff6b6b;color:#fff;font-weight:800;font-size:15px;padding:16px 24px;border-radius:12px;text-decoration:none;text-align:center;">
-          ❌ Refuser
-        </a>
-      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding-right:8px;">
+            <a href="${urlApprove}" target="_blank" style="display:block;background:#4CAF50;color:#fff;font-weight:800;font-size:15px;padding:16px 12px;border-radius:12px;text-decoration:none;text-align:center;">
+              ✅ Approuver le badge
+            </a>
+          </td>
+          <td style="padding-left:8px;">
+            <a href="${urlReject}" target="_blank" style="display:block;background:#ff6b6b;color:#fff;font-weight:800;font-size:15px;padding:16px 12px;border-radius:12px;text-decoration:none;text-align:center;">
+              ❌ Refuser
+            </a>
+          </td>
+        </tr>
+      </table>
       <div style="margin-top:16px;color:#999;font-size:11px;text-align:center;">
-        Ces liens sont sécurisés — un seul clic suffit, l'action est immédiate.
+        Ces liens sont sécurisés par HMAC — un seul clic suffit, l'action est immédiate et irréversible.
       </div>
     </div>
     <div style="background:#0a1628;padding:16px 32px;text-align:center;">
@@ -185,6 +217,7 @@ async function handleVerification(apiKey, body, res) {
       reply_to: emailArtisan || undefined,
       subject: `[Badge Vérifié] Nouvelle demande — ${nomArtisan || "Artisan"} (SIRET : ${siret || "—"})`,
       html,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
     return res.status(200).json({ ok: true });
   } catch (err) {
