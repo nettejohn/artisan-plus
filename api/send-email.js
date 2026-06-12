@@ -133,19 +133,24 @@ async function handleVerification(apiKey, body, res) {
   let attachments = [];
   if (docUrl) {
     try {
-      const resp = await fetch(docUrl);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const resp = await fetch(docUrl, { signal: ctrl.signal });
+      clearTimeout(timer);
       if (resp.ok) {
         const buffer = await resp.arrayBuffer();
         const base64 = Buffer.from(buffer).toString("base64");
-        const rawUrl  = docUrl.split("?")[0];
-        const ext     = rawUrl.split(".").pop().toLowerCase() || "pdf";
+        // Extraire l'extension depuis l'URL (avant le ?)
+        const rawUrl    = docUrl.split("?")[0];
+        const ext       = rawUrl.split(".").pop().toLowerCase() || "pdf";
         const safeSiret = (siret || "kbis").replace(/\s/g, "");
         attachments = [{ filename: `justificatif-${safeSiret}.${ext}`, content: base64 }];
+        console.log(`[verification] Pièce jointe OK : justificatif-${safeSiret}.${ext} (${buffer.byteLength} octets)`);
       } else {
-        console.warn("[verification] Document inaccessible :", resp.status, docUrl);
+        console.warn("[verification] Document inaccessible :", resp.status, resp.statusText);
       }
     } catch (e) {
-      console.warn("[verification] Impossible de télécharger le justificatif :", e.message);
+      console.warn("[verification] Fetch justificatif échoué :", e.message);
     }
   }
 

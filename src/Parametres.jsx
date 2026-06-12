@@ -413,32 +413,60 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   const soumettreDossier = async () => {
     if (!profil.siret)  { setVerifMsg({ text: "❌ Ajoutez votre SIRET dans Mon profil", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
     if (!verifDocUrl)   { setVerifMsg({ text: "❌ Ajoutez un justificatif", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
+
     const { error } = await supabase.from("profils").upsert({
       user_id:                    user.id,
       verification_statut:        "en_attente",
       verification_document_url:  verifDocUrl,
       verification_soumis_at:     new Date().toISOString(),
     }, { onConflict: "user_id" });
+
     if (error) {
       setVerifMsg({ text: "❌ " + error.message, ok: false });
-    } else {
-      setVerificationStatut("en_attente");
-      setVerifMsg({ text: "✅ Dossier envoyé ! Notre équipe examine votre demande sous 24–48h.", ok: true });
-      // Notification email admin — fire-and-forget (n'impacte pas l'UX si ça échoue)
-      fetch("/api/send-email", {
-        method: "POST",
+      setTimeout(() => setVerifMsg({ text: "" }), 6000);
+      return;
+    }
+
+    setVerificationStatut("en_attente");
+    setVerifMsg({ text: "⏳ Dossier enregistré, envoi de la notification…", ok: true });
+
+    // Génère une URL signée (7 jours) pour que le serveur puisse télécharger le fichier
+    let docSignedUrl = verifDocUrl;
+    try {
+      const rawPath = verifDocUrl.split("?")[0];
+      const match   = rawPath.match(/\/verifications\/(.+)$/);
+      if (match) {
+        const { data } = await supabase.storage
+          .from("verifications")
+          .createSignedUrl(match[1], 60 * 60 * 24 * 7);
+        if (data?.signedUrl) docSignedUrl = data.signedUrl;
+      }
+    } catch (_) {}
+
+    try {
+      const resp = await fetch("/api/send-email", {
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type:          "verification",
-          userId:        user.id,
-          nomArtisan:    profil.nom   || "",
-          emailArtisan:  user.email   || "",
-          siret:         profil.siret || "",
-          docUrl:        verifDocUrl,
+          type:         "verification",
+          userId:       user.id,
+          nomArtisan:   profil.nom   || "",
+          emailArtisan: user.email   || "",
+          siret:        profil.siret || "",
+          docUrl:       docSignedUrl,
         }),
-      }).catch(() => {});
+      });
+      if (resp.ok) {
+        setVerifMsg({ text: "✅ Dossier envoyé ! Notre équipe examine votre demande sous 24–48h.", ok: true });
+      } else {
+        const body = await resp.json().catch(() => ({}));
+        setVerifMsg({ text: `⚠️ Dossier enregistré mais notification échouée : ${body.error || resp.status}`, ok: false });
+      }
+    } catch (e) {
+      setVerifMsg({ text: `⚠️ Dossier enregistré mais notification échouée : ${e.message}`, ok: false });
     }
-    setTimeout(() => setVerifMsg({ text: "" }), 6000);
+
+    setTimeout(() => setVerifMsg({ text: "" }), 8000);
   };
 
   // ── Changer mot de passe ─────────────────────────────
