@@ -729,8 +729,7 @@ function Header() {
       borderBottom: scrolled ? "1px solid rgba(255,140,0,0.15)" : "1px solid transparent",
       backdropFilter: "blur(12px)",
       transition: "all 0.3s",
-      // Nécessaire pour positionner le menu mobile (dropdown absolu)
-      position: "sticky",
+      paddingTop: "env(safe-area-inset-top, 0px)",
     }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", height: "64px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {/* Logo */}
