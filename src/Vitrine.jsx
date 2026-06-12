@@ -764,7 +764,7 @@ function Header() {
               onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
               onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              {lang === "en" ? "Free trial →" : "Essai gratuit →"}
+              {lang === "en" ? "Create free account →" : "Créer un compte gratuit →"}
             </a>
           </nav>
         )}
@@ -779,7 +779,7 @@ function Header() {
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontSize: "13px", fontWeight: "700", textDecoration: "none", padding: "9px 16px", borderRadius: "10px" }}
             >
-              {lang === "en" ? "Free trial" : "Essai gratuit"}
+              {lang === "en" ? "Sign up free" : "Créer un compte gratuit"}
             </a>
             <button
               onClick={() => setMenuOpen(o => !o)}
@@ -813,7 +813,7 @@ function Header() {
           </a>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); setMenuOpen(false); }}
             style={{ display: "block", textAlign: "center", background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "14px", borderRadius: "12px", textDecoration: "none", marginTop: "10px" }}>
-            🚀 Essayer gratuitement
+            🚀 Créer un compte gratuit
           </a>
         </div>
       )}
@@ -1025,7 +1025,7 @@ function CTASection({ titre, sous }) {
         {titre || <>Commencez <span style={{ color: P }}>gratuitement</span> aujourd'hui</>}
       </div>
       <p style={{ color: G, fontSize: "16px", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
-        {sous || "Aucune carte bancaire requise. Essai gratuit sans engagement. 7,99€/mois ensuite pour passer Pro."}
+        {sous || "Aucune carte bancaire requise. Commencez gratuitement — passez Pro à 7,99€/mois quand vous êtes prêt."}
       </p>
       <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
         <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
@@ -1033,7 +1033,7 @@ function CTASection({ titre, sous }) {
           onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
           onMouseLeave={e => e.currentTarget.style.opacity = "1"}
         >
-          🚀 Essayer gratuitement
+          🚀 Créer un compte gratuit
         </a>
         <a href="/#tarifs" onClick={e => { e.preventDefault(); navigate("/#tarifs"); }}
           style={{ background: "rgba(255,255,255,0.07)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 32px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
@@ -1192,7 +1192,7 @@ function PageHome() {
             <h1 style={{ color: "white", fontSize: "clamp(32px,5vw,56px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
               Vos devis et factures<br />
               <span style={{ color: P }}>en 2 minutes</span><br />
-              à 7,99€/mois
+              Gratuit pour commencer
             </h1>
 
             <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "520px" }}>
@@ -1205,7 +1205,7 @@ function PageHome() {
                 onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; e.currentTarget.style.transform = "translateY(-1px)"; }}
                 onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
               >
-                🚀 Essayer gratuitement
+                🚀 Créer un compte gratuit
               </a>
               <a href="#comparatif" onClick={e => { e.preventDefault(); document.getElementById("comparatif")?.scrollIntoView({ behavior: "smooth" }); }}
                 style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
@@ -1236,7 +1236,7 @@ function PageHome() {
           {[
             { val: "500+",    label: "Artisans actifs" },
             { val: "10 000+", label: "Devis générés" },
-            { val: "7,99€",   label: "Par mois seulement" },
+            { val: "Gratuit", label: "Pour commencer" },
             { val: "4.9/5",   label: "Note moyenne" },
           ].map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
@@ -1425,11 +1425,11 @@ function PageMetier({ metier }) {
             {metier.label} ? Gérez vos devis<br />et factures en <span style={{ color: P }}>2 minutes</span>
           </h1>
           <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "640px", margin: "0 auto 36px" }}>
-            Artisan+ est l'outil de gestion conçu pour {art(metier.art)}{metier.label.toLowerCase()}. Créez des devis professionnels de {metier.desc}, envoyez-les par email, obtenez la signature électronique et encaissez en ligne — le tout à <strong style={{ color: P }}>7,99€/mois</strong>.
+            Artisan+ est l'outil de gestion conçu pour {art(metier.art)}{metier.label.toLowerCase()}. Créez des devis professionnels de {metier.desc}, envoyez-les par email, obtenez la signature électronique et encaissez en ligne — <strong style={{ color: P }}>gratuit pour commencer</strong>.
           </p>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
             style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
-            🚀 Essayer gratuitement — {metier.label}
+            🚀 Créer un compte gratuit — {metier.label}
           </a>
         </div>
       </section>
@@ -1911,7 +1911,7 @@ function PageMetierVille({ metier, ville }) {
           </p>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
             style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
-            🚀 Essayer gratuitement — {metier.label} {ville.label}
+            🚀 Créer un compte gratuit — {metier.label} {ville.label}
           </a>
         </div>
       </section>
@@ -2028,7 +2028,7 @@ function PageFacturationElectronique() {
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
-              🚀 Essayer gratuitement — déjà conforme
+              🚀 Créer un compte gratuit — déjà conforme
             </a>
             <a href="#calendrier" onClick={e => { e.preventDefault(); document.getElementById("calendrier")?.scrollIntoView({ behavior: "smooth" }); }}
               style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
@@ -2404,7 +2404,7 @@ const GENERIC_VARIANTS = {
       { q: "Comment Artisan+ se différencie-t-il de Tolteck ?", a: "Artisan+ propose plus de fonctionnalités (suivi chantier, mini-site, paiement en ligne, outils terrain, Factur-X) pour un prix 2,4× inférieur (7,99€ vs 19€). Tolteck est simple mais limité aux devis et factures basiques." },
       { q: "Y a-t-il un engagement de durée ?", a: "Non. Artisan+ est sans engagement. Vous pouvez annuler à tout moment depuis votre compte, sans frais de résiliation. L'essai gratuit vous permet de tester toutes les fonctionnalités sans risque." },
     ],
-    ctaTitre: <>Le logiciel qu'il vous faut<br /><span style={{ color: P }}>à 7,99€/mois — essai gratuit</span></>,
+    ctaTitre: <>Le logiciel qu'il vous faut<br /><span style={{ color: P }}>gratuit pour commencer</span></>,
     ctaSous: "Devis, factures, suivi chantier, paiement en ligne, Factur-X 2026. Tout inclus. Sans engagement. Annulable à tout moment.",
   },
   "/faire-une-facture-gratuitement": {
@@ -2539,7 +2539,7 @@ function PageFactElecVariante({ slug }) {
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
-              🚀 Essayer gratuitement — déjà conforme
+              🚀 Créer un compte gratuit — déjà conforme
             </a>
             <a href="/facturation-electronique-obligatoire-2026" onClick={e => { e.preventDefault(); navigate("/facturation-electronique-obligatoire-2026"); }}
               style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
@@ -2624,7 +2624,7 @@ function PageGenerique({ slug }) {
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
-              🚀 Essayer gratuitement
+              🚀 Créer un compte gratuit
             </a>
             <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }}
               style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
