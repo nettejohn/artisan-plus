@@ -687,6 +687,7 @@ export default function Dashboard({
   };
 
   const envoyerPourSignature = async (d) => {
+    if (!isPro) { setProGateModal("signature"); return; }
     const { data: existing } = await supabase
       .from("signatures")
       .select("token")

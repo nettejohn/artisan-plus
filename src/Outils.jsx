@@ -79,7 +79,7 @@ const CAT_COLORS = {
 
 export default function Outils({ user, profil, isPro = true, onUpgrade }) {
   const [tool, setTool] = useState(null);
-  const [proGateToolModal, setProGateToolModal] = useState(false);
+  // proGateToolModal supprimé — ProGate page-level maintenant
 
   // Calculatrice
   const [calcDisplay, setCalcDisplay]   = useState("0");
@@ -1572,6 +1572,14 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
   // GRID VIEW
   // ═══════════════════════════════════════════════════════════════
 
+  if (!isPro) return (
+    <ProGate
+      featureKey="outils"
+      mode="page"
+      onUpgrade={onUpgrade}
+    />
+  );
+
   if (!tool) {
     const categories = [
       { id: "ia",     label: "🤖 Intelligence artificielle" },
@@ -1598,7 +1606,6 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" }}>
                 {ocat.map(o => (
                   <button key={o.id} onClick={() => {
-                    if (!isPro) { setProGateToolModal(true); return; }
                     setTool(o.id);
                     if (o.id === "loupe") setTimeout(startLoupe, 100);
                     if (o.id === "decibel") setTimeout(startDecibel, 100);
@@ -1623,14 +1630,6 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
           );
         })}
       </div>
-      {proGateToolModal && (
-        <ProGate
-          featureKey="outils"
-          mode="modal"
-          onUpgrade={() => { setProGateToolModal(false); onUpgrade?.(); }}
-          onDismiss={() => setProGateToolModal(false)}
-        />
-      )}
       </>
     );
   }

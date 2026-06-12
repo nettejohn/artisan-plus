@@ -1641,7 +1641,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
               </div>
 
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
-                <button onClick={() => analyserPlan(planImage.file)} disabled={planLoading}
+                <button onClick={() => { if (!isPro) { setProGateModal("plan_chantier"); return; } analyserPlan(planImage.file); }} disabled={planLoading}
                   style={{ background: PRIMARY, border: "none", color: "white", borderRadius: "8px", padding: "9px 16px", fontSize: "13px", fontWeight: "700", cursor: planLoading ? "default" : "pointer", opacity: planLoading ? 0.7 : 1 }}>
                   {planLoading ? "⏳ Analyse en cours…" : "🤖 Analyser avec l'IA"}
                 </button>

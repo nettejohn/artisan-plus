@@ -219,6 +219,28 @@ export const PRO_CONFIGS = {
       { icon: "🏆", text: "+40% de taux d'acceptation avec un devis soigné" },
     ],
   },
+  plan_chantier: {
+    icon: "🗺️", gradient: "linear-gradient(135deg,#2c3e50,#3d566e)",
+    title: "Analyse IA de plan de chantier",
+    subtitle: "L'IA lit votre plan et extrait les éléments clés",
+    benefits: [
+      { icon: "🤖", text: "Détection des pièces, surfaces et matériaux" },
+      { icon: "📐", text: "Estimation automatique des surfaces par pièce" },
+      { icon: "📋", text: "Génération d'un récapitulatif des travaux à prévoir" },
+      { icon: "⚡", text: "Pré-remplissage du devis depuis le plan" },
+    ],
+  },
+  signature: {
+    icon: "🔗", gradient: "linear-gradient(135deg,#6366f1,#4f46e5)",
+    title: "Signature électronique illimitée",
+    subtitle: "Vos clients signent directement depuis leur téléphone",
+    benefits: [
+      { icon: "📱", text: "Lien de signature envoyé par SMS ou WhatsApp" },
+      { icon: "✍️", text: "Signature légale horodatée en quelques secondes" },
+      { icon: "📱", text: "QR Code pour signer en face à face immédiatement" },
+      { icon: "♾️", text: "Signatures illimitées incluses dans le plan Pro" },
+    ],
+  },
 };
 
 // ── Composant ProGate ────────────────────────────────────────────────────────

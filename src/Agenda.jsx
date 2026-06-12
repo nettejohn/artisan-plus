@@ -76,7 +76,7 @@ export default function Agenda({ user, profil, clients = [], chantiers = [], isP
   const [suggs,     setSuggs]     = useState([]);
   const [loadIA,    setLoadIA]    = useState(false);
   const [meteo,     setMeteo]     = useState({});
-  const [proGateModal, setProGateModal] = useState(false);
+  // proGateModal supprimé — ProGate page-level maintenant
 
   const feries = calculerFeries(dateRef.getFullYear());
   const feriesNext = calculerFeries(dateRef.getFullYear()+1);
@@ -240,7 +240,6 @@ export default function Agenda({ user, profil, clients = [], chantiers = [], isP
 
   /* ──── CRUD événements ─────────────────────────────────────────── */
   const ouvrirModal = (dateDefaut = null, evtExistant = null) => {
-    if (!isPro) { setProGateModal(true); return; }
     if (evtExistant && evtExistant._virtuel) return; // pas éditer les virtuels
     if (evtExistant) {
       const d = isoToLocal(evtExistant.date_debut);
@@ -592,6 +591,14 @@ export default function Agenda({ user, profil, clients = [], chantiers = [], isP
   };
 
   /* ──── RENDER ──────────────────────────────────────────────────── */
+  if (!isPro) return (
+    <ProGate
+      featureKey="agenda"
+      mode="page"
+      onUpgrade={onUpgrade}
+    />
+  );
+
   return (
     <div style={{ color:"white", fontFamily:"system-ui,sans-serif" }}>
 
@@ -880,15 +887,6 @@ export default function Agenda({ user, profil, clients = [], chantiers = [], isP
         </>
       )}
 
-      {/* ── PRO GATE MODAL ────────────────────────────────────────── */}
-      {proGateModal && (
-        <ProGate
-          featureKey="agenda"
-          mode="modal"
-          onUpgrade={() => { setProGateModal(false); onUpgrade?.(); }}
-          onDismiss={() => setProGateModal(false)}
-        />
-      )}
     </div>
   );
 }
