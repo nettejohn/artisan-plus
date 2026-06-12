@@ -115,7 +115,7 @@ export default function App() {
     !_initPath.startsWith("/artisan/") &&
     !_initPath.startsWith("/site/") &&
     !_initPath.startsWith("/ouvrier/") &&
-    _initPath !== "/connexion" && _initPath !== "/inscription";
+    _initPath !== "/connexion" && _initPath !== "/inscription" && _initPath !== "/login";
   const [showSplash, setShowSplash] = useState(isSplashPage);
   const [splashOut,  setSplashOut]  = useState(false);
   const splashPhrases = locale?.splash?.phrases ?? SPLASH_PHRASES_FR;
@@ -243,14 +243,15 @@ export default function App() {
     getSupa().then(supa => {
       supa.auth.getSession().then(({ data: { session } }) => {
         const u = session?.user ?? null;
+        if (u) { import("./Dashboard.jsx").catch(() => {}); chargerEquipe(u.id); }
         setUser(u);
-        if (u) chargerEquipe(u.id);
         setSessionLoading(false);
       });
       const { data: authData } = supa.auth.onAuthStateChange((_event, session) => {
         const u = session?.user ?? null;
+        if (u) { import("./Dashboard.jsx").catch(() => {}); chargerEquipe(u.id); }
         setUser(u);
-        if (u) chargerEquipe(u.id);
+        setSessionLoading(false);
       });
       authSubRef.current = authData?.subscription;
     });
@@ -394,9 +395,9 @@ export default function App() {
       }
       // Backup localStorage (couvre le cas confirmation email)
       localStorage.setItem("artisan_pending_referral", JSON.stringify({ userId, code: trimmedCode }));
-      setMessage(t("auth.accountCreatedReferral"));
+      setMessage(data.session ? "✅ Bienvenue ! Connexion en cours..." : t("auth.accountCreatedReferral"));
     } else {
-      setMessage(t("auth.accountCreated"));
+      setMessage(data.session ? "✅ Bienvenue ! Connexion en cours..." : t("auth.accountCreated"));
     }
     setLoading(false);
   };

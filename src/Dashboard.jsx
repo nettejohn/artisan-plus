@@ -352,6 +352,9 @@ export default function Dashboard({
 
     if (data) {
       setProfil({ ...data, ...patch });
+    } else if (Object.keys(patch).length > 0) {
+      // Nouveau compte : profil créé par l'upsert, on initialise l'état local
+      setProfil({ user_id: user.id, plan: "free", ...patch });
     }
   };
 
@@ -948,15 +951,16 @@ export default function Dashboard({
           position: "fixed", top: "16px", left: "50%",
           transform: "translateX(-50%)", zIndex: 600,
           background: "#1a6f3c", color: "white",
-          borderRadius: "12px", padding: "14px 24px",
-          fontSize: "14px", fontWeight: "700",
+          borderRadius: "12px", padding: "12px 16px",
+          fontSize: "13px", fontWeight: "700",
           display: "flex", alignItems: "center", gap: "10px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+          animation: "fadeInDown 0.3s ease",
+          maxWidth: "calc(100vw - 32px)", width: "max-content",
         }}>
           <span>💎</span>
           <span>Bienvenue dans le plan Pro ! Toutes les limites sont levées.</span>
-          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
       )}
       {subscriptionStatus === "canceled" && (
@@ -964,15 +968,16 @@ export default function Dashboard({
           position: "fixed", top: "16px", left: "50%",
           transform: "translateX(-50%)", zIndex: 600,
           background: "#8899aa", color: "white",
-          borderRadius: "12px", padding: "14px 24px",
-          fontSize: "14px", fontWeight: "700",
+          borderRadius: "12px", padding: "12px 16px",
+          fontSize: "13px", fontWeight: "700",
           display: "flex", alignItems: "center", gap: "10px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+          animation: "fadeInDown 0.3s ease",
+          maxWidth: "calc(100vw - 32px)", width: "max-content",
         }}>
           <span>ℹ️</span>
           <span>Paiement annulé — vous restez sur le plan gratuit.</span>
-          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+          <button onClick={onSubscriptionStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
       )}
 
@@ -982,15 +987,16 @@ export default function Dashboard({
           position: "fixed", top: "16px", left: "50%",
           transform: "translateX(-50%)", zIndex: 600,
           background: "linear-gradient(135deg, #1a6f3c 0%, #155e34 100%)", color: "white",
-          borderRadius: "12px", padding: "14px 24px",
-          fontSize: "14px", fontWeight: "700",
+          borderRadius: "12px", padding: "12px 16px",
+          fontSize: "13px", fontWeight: "700",
           display: "flex", alignItems: "center", gap: "10px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+          animation: "fadeInDown 0.3s ease",
+          maxWidth: "calc(100vw - 32px)", width: "max-content",
         }}>
           <span>💳</span>
           <span>Paiement reçu ! La facture est maintenant marquée Payée.</span>
-          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
       )}
       {paymentStatus?.status === "canceled" && (
@@ -998,15 +1004,16 @@ export default function Dashboard({
           position: "fixed", top: "16px", left: "50%",
           transform: "translateX(-50%)", zIndex: 600,
           background: "#555", color: "white",
-          borderRadius: "12px", padding: "14px 24px",
-          fontSize: "14px", fontWeight: "700",
+          borderRadius: "12px", padding: "12px 16px",
+          fontSize: "13px", fontWeight: "700",
           display: "flex", alignItems: "center", gap: "10px",
           boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-          animation: "fadeInDown 0.3s ease", whiteSpace: "nowrap",
+          animation: "fadeInDown 0.3s ease",
+          maxWidth: "calc(100vw - 32px)", width: "max-content",
         }}>
           <span>ℹ️</span>
           <span>Paiement annulé par le client.</span>
-          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1 }}>✕</button>
+          <button onClick={onPaymentStatusCleared} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: "18px", padding: 0, lineHeight: 1, flexShrink: 0 }}>✕</button>
         </div>
       )}
 
@@ -1019,7 +1026,7 @@ export default function Dashboard({
           background: "#4CAF50",
           color: "white",
           borderRadius: "12px",
-          padding: "12px 20px",
+          padding: "11px 16px",
           fontSize: "13px",
           fontWeight: "700",
           display: "flex",
@@ -1027,7 +1034,7 @@ export default function Dashboard({
           gap: "8px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
           animation: "fadeInDown 0.3s ease",
-          whiteSpace: "nowrap",
+          maxWidth: "calc(100vw - 32px)", width: "max-content",
         }}>
           <span>✅</span>
           <span>Connexion rétablie — synchronisation en cours...</span>
@@ -3331,7 +3338,7 @@ export default function Dashboard({
             display: "flex", flexDirection: "column",
             animation: "slideInRight 0.22s ease",
             boxShadow: "-8px 0 48px rgba(0,0,0,0.5)",
-            overflowY: "auto",
+            overflow: "hidden",
           }}>
 
             {/* En-tête utilisateur */}
@@ -3385,7 +3392,7 @@ export default function Dashboard({
             </div>
 
             {/* Navigation groupée en sections */}
-            <div style={{ flex: 1, overflowY: "auto" }}>
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
               {[
                 {
                   section: "🔧 Outils",
@@ -3472,7 +3479,7 @@ export default function Dashboard({
             </div>
 
             {/* Aide + Déconnexion */}
-            <div style={{ padding: "14px 20px 20px", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ padding: "14px 20px", paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))", borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 }}>
               <button
                 onClick={() => { setParametresSection("aide"); setPage("parametres"); setHamburgerOpen(false); }}
                 style={{
