@@ -424,6 +424,19 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     } else {
       setVerificationStatut("en_attente");
       setVerifMsg({ text: "✅ Dossier envoyé ! Notre équipe examine votre demande sous 24–48h.", ok: true });
+      // Notification email admin — fire-and-forget (n'impacte pas l'UX si ça échoue)
+      fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type:          "verification",
+          userId:        user.id,
+          nomArtisan:    profil.nom   || "",
+          emailArtisan:  user.email   || "",
+          siret:         profil.siret || "",
+          docUrl:        verifDocUrl,
+        }),
+      }).catch(() => {});
     }
     setTimeout(() => setVerifMsg({ text: "" }), 6000);
   };

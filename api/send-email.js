@@ -1,5 +1,9 @@
+import crypto from "crypto";
+
 const RESEND_API = "https://api.resend.com/emails";
 const FROM = "Artisan+ <contact@artisan-plus.fr>";
+const ADMIN_EMAIL = "contact@artisan-plus.fr";
+const BASE_URL = "https://www.artisan-plus.fr";
 
 export default async function handler(req, res) {
   // CORS
@@ -42,6 +46,9 @@ export default async function handler(req, res) {
   // ── Routage ─────────────────────────────────────────────────────────────────
   if (body.type === "support") {
     return handleSupport(apiKey, body, res);
+  }
+  if (body.type === "verification") {
+    return handleVerification(apiKey, body, res);
   }
   if (body.numeroFacture) {
     return handleFacture(apiKey, body, res);
@@ -100,6 +107,88 @@ async function handleSupport(apiKey, body, res) {
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("[send-email/support] Erreur :", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Notification badge vérifié — email admin avec boutons Approuver / Refuser
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handleVerification(apiKey, body, res) {
+  const { userId, nomArtisan, emailArtisan, siret, docUrl } = body;
+  if (!userId) return res.status(400).json({ error: "userId manquant" });
+
+  const date = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
+
+  // Génère les tokens HMAC pour les liens approve/reject
+  const secret = (process.env.VERIFY_SECRET || "").trim() || apiKey;
+  const tokenApprove = crypto.createHmac("sha256", secret).update(`${userId}:approve`).digest("hex");
+  const tokenReject  = crypto.createHmac("sha256", secret).update(`${userId}:reject`).digest("hex");
+
+  const urlApprove = `${BASE_URL}/api/verify-artisan?userId=${encodeURIComponent(userId)}&action=approve&token=${tokenApprove}`;
+  const urlReject  = `${BASE_URL}/api/verify-artisan?userId=${encodeURIComponent(userId)}&action=reject&token=${tokenReject}`;
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+    <div style="background:#0a1628;padding:24px 32px;text-align:center;">
+      <span style="font-size:26px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span>
+      <div style="color:#8899aa;font-size:12px;margin-top:4px;">Nouvelle demande de badge Artisan Vérifié</div>
+    </div>
+    <div style="background:#FF8C00;padding:16px 32px;">
+      <div style="color:#fff;font-size:16px;font-weight:700;">🏅 Dossier de vérification à traiter</div>
+    </div>
+    <div style="padding:32px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;width:130px;">Artisan</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;">${(nomArtisan || "—").replace(/</g,"&lt;")}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${emailArtisan || ""}" style="color:#FF8C00;">${(emailArtisan || "—").replace(/</g,"&lt;")}</a></td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">SIRET</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${(siret || "—").replace(/</g,"&lt;")}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${date}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">ID</td><td style="color:#8899aa;font-size:11px;font-family:monospace;">${userId}</td></tr>
+      </table>
+
+      ${docUrl ? `
+      <div style="margin-bottom:28px;background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
+        <div style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Justificatif (Kbis / carte pro / URSSAF)</div>
+        <a href="${docUrl}" target="_blank" style="display:inline-block;background:#FF8C00;color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;text-decoration:none;">
+          📄 Voir le document →
+        </a>
+      </div>` : ""}
+
+      <div style="font-size:13px;color:#666;margin-bottom:20px;font-weight:600;">Action à effectuer :</div>
+      <div style="display:flex;gap:12px;">
+        <a href="${urlApprove}" target="_blank" style="display:inline-block;flex:1;background:#4CAF50;color:#fff;font-weight:800;font-size:15px;padding:16px 24px;border-radius:12px;text-decoration:none;text-align:center;">
+          ✅ Approuver le badge
+        </a>
+        <a href="${urlReject}" target="_blank" style="display:inline-block;flex:1;background:#ff6b6b;color:#fff;font-weight:800;font-size:15px;padding:16px 24px;border-radius:12px;text-decoration:none;text-align:center;">
+          ❌ Refuser
+        </a>
+      </div>
+      <div style="margin-top:16px;color:#999;font-size:11px;text-align:center;">
+        Ces liens sont sécurisés — un seul clic suffit, l'action est immédiate.
+      </div>
+    </div>
+    <div style="background:#0a1628;padding:16px 32px;text-align:center;">
+      <span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr · Administration</span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await appelResend(apiKey, {
+      from: FROM,
+      to: [ADMIN_EMAIL],
+      reply_to: emailArtisan || undefined,
+      subject: `[Badge Vérifié] Nouvelle demande — ${nomArtisan || "Artisan"} (SIRET : ${siret || "—"})`,
+      html,
+    });
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("[send-email/verification] Erreur :", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
