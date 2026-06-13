@@ -54,6 +54,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   const [logoBase64, setLogoBase64] = useState(null);
   const [couleurPdf, setCouleurPdf] = useState(null);
   const [couleursPdf, setCouleursPdf] = useState(null);
+  const [afficherBadgePdf, setAfficherBadgePdf] = useState(true);
   const [sendLoading, setSendLoading] = useState(false);
   const [emailEnvoi,  setEmailEnvoi]  = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -70,7 +71,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     // Charger les paramètres TVA + thème PDF
     supabase
       .from("parametres")
-      .select("tva_sur_debits, tva_defaut, theme_pdf, couleur_pdf, couleurs_pdf")
+      .select("tva_sur_debits, tva_defaut, theme_pdf, couleur_pdf, couleurs_pdf, afficher_badge_verifie")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
@@ -85,11 +86,19 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
             if (cached) setCouleursPdf(JSON.parse(cached));
           } catch {}
         }
+        if (data?.afficher_badge_verifie !== null && data?.afficher_badge_verifie !== undefined) {
+          setAfficherBadgePdf(data.afficher_badge_verifie);
+        } else {
+          try {
+            const cached = localStorage.getItem(`afficher_badge_pdf_${user.id}`);
+            if (cached !== null) setAfficherBadgePdf(JSON.parse(cached));
+          } catch {}
+        }
       });
     // Charger le profil artisan pour la génération PDF
     supabase
       .from("profils")
-      .select("nom, adresse, telephone, siret, email, iban, logo_url")
+      .select("nom, adresse, telephone, siret, email, iban, logo_url, verification_statut")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
@@ -179,12 +188,18 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     const lignesData = lignes.map(l => ({
       facture_id: factureData.id,
       description: l.description,
-      quantite: parseFloat(l.quantite),
-      prix_unitaire: parseFloat(l.prix_unitaire),
-      total: parseFloat(l.quantite) * parseFloat(l.prix_unitaire)
+      quantite: parseFloat(l.quantite) || 0,
+      prix_unitaire: parseFloat(l.prix_unitaire) || 0,
+      total: (parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0),
     }));
     const { error: lignesError } = await supabase.from("lignes_facture").insert(lignesData);
-    if (lignesError) { setMessage("❌ Erreur lignes : " + lignesError.message); setLoading(false); return; }
+    if (lignesError) {
+      // C5 — Rollback : supprimer la facture créée sans lignes pour éviter les orphelins
+      await supabase.from("factures").delete().eq("id", factureData.id);
+      setMessage("❌ Erreur lignes : " + lignesError.message);
+      setLoading(false);
+      return;
+    }
 
     setMessage("✅ Facture créée avec succès !");
     setLoading(false);
@@ -260,7 +275,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     try {
       const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf });
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf, artisanVerifie: profil?.verification_statut === "verifie", afficherBadgeVerifie: afficherBadgePdf });
       const b64 = pdfBase64.split(",")[1] || pdfBase64;
       const resp = await fetch("/api/send-email", {
         method: "POST",
@@ -292,7 +307,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     try {
       const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf });
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf, artisanVerifie: profil?.verification_statut === "verifie", afficherBadgeVerifie: afficherBadgePdf });
       const b64 = pdfBase64.split(",")[1] || pdfBase64;
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });

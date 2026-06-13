@@ -291,12 +291,18 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
     const lignesData = lignes.map(l => ({
       devis_id: devisData.id,
       description: l.description,
-      quantite: parseFloat(l.quantite),
-      prix_unitaire: parseFloat(l.prix_unitaire),
-      total: parseFloat(l.quantite) * parseFloat(l.prix_unitaire)
+      quantite: parseFloat(l.quantite) || 0,
+      prix_unitaire: parseFloat(l.prix_unitaire) || 0,
+      total: (parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0),
     }));
     const { error: lignesError } = await supabase.from("lignes_devis").insert(lignesData);
-    if (lignesError) { setMessage("❌ Erreur lignes : " + lignesError.message); setLoading(false); return; }
+    if (lignesError) {
+      // C5 — Rollback : supprimer le devis créé sans lignes pour éviter les orphelins
+      await supabase.from("devis").delete().eq("id", devisData.id);
+      setMessage("❌ Erreur lignes : " + lignesError.message);
+      setLoading(false);
+      return;
+    }
 
     setMessage("✅ Devis créé avec succès !");
     setLoading(false);
