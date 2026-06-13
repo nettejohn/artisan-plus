@@ -135,8 +135,9 @@ async function handleVerification(apiKey, body, res) {
 
   const date = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
 
-  // Génère les tokens HMAC pour les liens approve/reject
-  const secret = (process.env.VERIFY_SECRET || "").trim() || apiKey;
+  // Génère les tokens HMAC pour les liens approve/reject — C3 : VERIFY_SECRET obligatoire
+  const secret = (process.env.VERIFY_SECRET || "").trim();
+  if (!secret) return res.status(500).json({ error: "VERIFY_SECRET non configuré" });
   const tokenApprove = crypto.createHmac("sha256", secret).update(`${userId}:approve`).digest("hex");
   const tokenReject  = crypto.createHmac("sha256", secret).update(`${userId}:reject`).digest("hex");
 

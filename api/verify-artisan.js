@@ -20,7 +20,8 @@ export default async function handler(req, res) {
     return res.status(400).send(page("❌ Action invalide", "L'action doit être 'approve' ou 'reject'.", "#ff6b6b"));
 
   // ── Validation du token HMAC ─────────────────────────────────────────────
-  const secret = cleanKey(process.env.VERIFY_SECRET) || cleanKey(process.env.RESEND_API_KEY);
+  // C3 : ne jamais utiliser RESEND_API_KEY comme secret de fallback
+  const secret = cleanKey(process.env.VERIFY_SECRET);
   if (!secret)
     return res.status(500).send(page("❌ Configuration", "VERIFY_SECRET non configuré.", "#ff6b6b"));
 
