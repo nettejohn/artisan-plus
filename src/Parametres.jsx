@@ -104,6 +104,9 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     nom: "", adresse: "", siret: "", telephone: "", iban: "", logo_url: ""
   });
 
+  // ── Badge Artisan Vérifié sur les PDFs ──────────────
+  const [afficherBadgePdf, setAfficherBadgePdf] = useState(true);
+
   // ── Couleurs PDF personnalisées (6 couleurs) ─────────
   const [couleursPdf, setCouleursPdf] = useState({
     principale:  null, // headerBg (header, footer, têtes tableau)
@@ -306,6 +309,15 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           if (cached) setCouleursPdf(prev => ({ ...prev, ...JSON.parse(cached) }));
         } catch {}
       }
+      // Affichage badge Artisan Vérifié dans les PDFs
+      if (pm.afficher_badge_verifie !== null && pm.afficher_badge_verifie !== undefined) {
+        setAfficherBadgePdf(pm.afficher_badge_verifie);
+      } else {
+        try {
+          const cached = localStorage.getItem(`afficher_badge_pdf_${user.id}`);
+          if (cached !== null) setAfficherBadgePdf(JSON.parse(cached));
+        } catch {}
+      }
     }
     setLoading(false);
   };
@@ -399,6 +411,14 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         { onConflict: "user_id" }
       );
       if (cpErr) console.warn("[couleurs_pdf] Colonne absente en DB — localStorage utilisé");
+    } catch (_) {}
+    // Sauvegarde afficher_badge_verifie (colonne BOOLEAN optionnelle + localStorage)
+    try {
+      localStorage.setItem(`afficher_badge_pdf_${user.id}`, JSON.stringify(afficherBadgePdf));
+      await supabase.from("parametres").upsert(
+        { user_id: user.id, afficher_badge_verifie: afficherBadgePdf },
+        { onConflict: "user_id" }
+      );
     } catch (_) {}
 
     setSavingParams(false);
@@ -1017,17 +1037,23 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               if (miniSite.actif && !miniSite.slug.trim()) {
                 setMiniSiteMsg({ text: "❌ Entrez un lien personnalisé", ok: false }); setMiniSiteSaving(false); return;
               }
-              const { error } = await supabase.from("profils").upsert({
-                user_id:              user.id,
-                mini_site_actif:      miniSite.actif,
-                mini_site_slug:       miniSite.slug.trim() || null,
-                metier:               miniSite.metier.trim() || null,
-                zone_intervention:    miniSite.zone.trim() || null,
-                description_mini_site: miniSite.description.trim() || null,
-              }, { onConflict: "user_id" });
-              if (error) setMiniSiteMsg({ text: "❌ " + (error.code === "23505" ? "Ce lien est déjà pris, choisissez-en un autre" : error.message), ok: false });
-              else setMiniSiteMsg({ text: "✅ Mini site sauvegardé !", ok: true });
-              setMiniSiteSaving(false);
+              // C10 — try/finally garantit que miniSiteSaving est toujours remis à false
+              try {
+                const { error } = await supabase.from("profils").upsert({
+                  user_id:              user.id,
+                  mini_site_actif:      miniSite.actif,
+                  mini_site_slug:       miniSite.slug.trim() || null,
+                  metier:               miniSite.metier.trim() || null,
+                  zone_intervention:    miniSite.zone.trim() || null,
+                  description_mini_site: miniSite.description.trim() || null,
+                }, { onConflict: "user_id" });
+                if (error) setMiniSiteMsg({ text: "❌ " + (error.code === "23505" ? "Ce lien est déjà pris, choisissez-en un autre" : error.message), ok: false });
+                else setMiniSiteMsg({ text: "✅ Mini site sauvegardé !", ok: true });
+              } catch (e) {
+                setMiniSiteMsg({ text: "❌ Erreur réseau, réessayez", ok: false });
+              } finally {
+                setMiniSiteSaving(false);
+              }
             }} saving={miniSiteSaving} label="Sauvegarder le mini site" />
           </SCard>
           )}
@@ -1228,13 +1254,15 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                       ? "Votre dossier a été refusé. Vérifiez vos informations et soumettez à nouveau un justificatif valide."
                       : "Soumettez votre SIRET et un justificatif pour obtenir le badge ✓ Artisan Vérifié."}
               </div>
-              {verificationStatut === "rejete" && !modeRenvoi && (
+              {(verificationStatut === "rejete" || verificationStatut === "en_attente") && !modeRenvoi && (
                 <button
                   onClick={() => setModeRenvoi(true)}
                   style={{
                     marginTop: "12px",
-                    background: "rgba(255,107,107,0.12)", border: "1.5px solid rgba(255,107,107,0.4)",
-                    color: "#ff6b6b", borderRadius: "10px", padding: "9px 18px",
+                    background: verificationStatut === "rejete" ? "rgba(255,107,107,0.12)" : "rgba(255,140,0,0.12)",
+                    border: `1.5px solid ${verificationStatut === "rejete" ? "rgba(255,107,107,0.4)" : "rgba(255,140,0,0.4)"}`,
+                    color: verificationStatut === "rejete" ? "#ff6b6b" : "#FF8C00",
+                    borderRadius: "10px", padding: "9px 18px",
                     fontSize: "13px", fontWeight: "700", cursor: "pointer",
                     display: "inline-flex", alignItems: "center", gap: "6px",
                   }}
@@ -1247,17 +1275,76 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
           {/* ── Badge affiché si vérifié ──────────────── */}
           {verificationStatut === "verifie" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+
+              {/* Badge premium */}
               <div style={{
-                display: "inline-flex", alignItems: "center", gap: "8px",
-                background: "linear-gradient(135deg, rgba(255,140,0,0.18) 0%, rgba(255,180,50,0.08) 100%)",
-                border: "1.5px solid rgba(255,140,0,0.5)",
-                borderRadius: "30px", padding: "10px 24px",
-                color: PRIMARY, fontWeight: "800", fontSize: "15px",
-                boxShadow: "0 4px 20px rgba(255,140,0,0.18)",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: "8px",
+                background: "linear-gradient(135deg, rgba(255,140,0,0.14) 0%, rgba(255,200,50,0.06) 100%)",
+                border: "1.5px solid rgba(255,160,0,0.55)",
+                borderRadius: "20px", padding: "20px 36px",
+                boxShadow: "0 6px 32px rgba(255,140,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)",
+                position: "relative", overflow: "hidden",
               }}>
-                ✓ Artisan Vérifié
+                <div style={{ fontSize: "32px", lineHeight: 1 }}>🏅</div>
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: "7px",
+                  color: "#FFB830", fontWeight: "900", fontSize: "17px", letterSpacing: "0.3px",
+                }}>
+                  <span style={{ fontSize: "14px" }}>✓</span>
+                  Artisan Vérifié
+                </div>
+                <div style={{ color: "#8899aa", fontSize: "12px", textAlign: "center", lineHeight: "1.4" }}>
+                  Badge affiché sur votre profil, vos devis et vos factures
+                </div>
               </div>
+
+              {/* Toggle badge dans les PDFs */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "rgba(255,140,0,0.06)", border: "1px solid rgba(255,140,0,0.15)",
+                borderRadius: "12px", padding: "12px 18px", width: "100%", boxSizing: "border-box",
+              }}>
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "13px" }}>
+                    Afficher le badge sur les PDFs
+                  </div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>
+                    Badge «&nbsp;✓ Artisan Vérifié&nbsp;» discret dans le pied de page
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAfficherBadgePdf(v => !v)}
+                  style={{
+                    position: "relative", width: "44px", height: "24px",
+                    background: afficherBadgePdf ? "#FF8C00" : "#2a3450",
+                    border: "none", borderRadius: "12px", cursor: "pointer",
+                    transition: "background 0.2s", flexShrink: 0,
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: "3px",
+                    left: afficherBadgePdf ? "23px" : "3px",
+                    width: "18px", height: "18px", background: "white",
+                    borderRadius: "50%", transition: "left 0.2s",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                    display: "block",
+                  }} />
+                </button>
+              </div>
+
+              {/* Sauvegarder + annuler renvoi */}
+              {afficherBadgePdf !== undefined && (
+                <button onClick={sauvegarderParams} disabled={savingParams} style={{
+                  background: savingParams ? "#555" : PRIMARY, color: "white",
+                  border: "none", borderRadius: "10px", padding: "9px 20px",
+                  fontSize: "13px", fontWeight: "700", cursor: savingParams ? "not-allowed" : "pointer",
+                  alignSelf: "flex-end",
+                }}>
+                  {savingParams ? "⏳ Sauvegarde…" : "💾 Sauvegarder"}
+                </button>
+              )}
+
               {!modeRenvoi && (
                 <button
                   onClick={() => setModeRenvoi(true)}
@@ -1374,16 +1461,16 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button
                     onClick={soumettreDossier}
-                    disabled={!profil.siret || !verifDocUrl || verificationStatut === "en_attente"}
+                    disabled={!profil.siret || !verifDocUrl || (verificationStatut === "en_attente" && !modeRenvoi)}
                     style={{
                       flex: 1,
-                      background: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#2a3450" : PRIMARY,
-                      color: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#555" : "white",
+                      background: (!profil.siret || !verifDocUrl || (verificationStatut === "en_attente" && !modeRenvoi)) ? "#2a3450" : PRIMARY,
+                      color: (!profil.siret || !verifDocUrl || (verificationStatut === "en_attente" && !modeRenvoi)) ? "#555" : "white",
                       border: "none", borderRadius: "12px",
                       padding: "14px 24px", fontSize: "14px", fontWeight: "800",
-                      cursor: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "not-allowed" : "pointer",
+                      cursor: (!profil.siret || !verifDocUrl || (verificationStatut === "en_attente" && !modeRenvoi)) ? "not-allowed" : "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
-                      boxShadow: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "none" : "0 4px 20px rgba(255,140,0,0.3)",
+                      boxShadow: (!profil.siret || !verifDocUrl || (verificationStatut === "en_attente" && !modeRenvoi)) ? "none" : "0 4px 20px rgba(255,140,0,0.3)",
                       transition: "all 0.2s",
                     }}
                   >

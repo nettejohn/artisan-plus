@@ -526,7 +526,7 @@ export default function SignatureDevis({ token }) {
           <canvas
             ref={canvasRef}
             width={560}
-            height={150}
+            height={180}
             onMouseDown={startDraw}
             onMouseMove={draw}
             onMouseUp={stopDraw}
@@ -539,9 +539,11 @@ export default function SignatureDevis({ token }) {
               border: `2px solid ${aDessiné ? PRIMARY : "rgba(255,140,0,0.2)"}`,
               borderRadius: "10px",
               width: "100%",
-              height: "150px",
+              /* C9 — hauteur responsive : min 140px, 30vw sur tablette/desktop */
+              height: "clamp(140px, 30vw, 200px)",
               touchAction: "none",
-              cursor: "crosshair"
+              cursor: "crosshair",
+              display: "block",
             }}
           />
         </div>
