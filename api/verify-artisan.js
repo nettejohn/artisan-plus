@@ -195,7 +195,7 @@ function htmlRejete(nom) {
         </div>
       </div>
       <p style="margin:0;color:#777;font-size:13px;">
-        Des questions ? Répondez à cet email ou contactez-nous sur <a href="https://www.artisan-plus.fr" style="color:#FF8C00;">artisan-plus.fr</a>.
+        Des questions ? Répondez à cet email ou contactez-nous sur <a href="https://artisan-plus.fr" style="color:#FF8C00;">artisan-plus.fr</a>.
       </p>
     </div>
     <div style="background:#0a1628;padding:18px 36px;text-align:center;">

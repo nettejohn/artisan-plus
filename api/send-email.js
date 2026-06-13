@@ -2,9 +2,12 @@ import crypto from "node:crypto";
 
 const RESEND_API = "https://api.resend.com/emails";
 const FROM       = "Artisan+ <contact@artisan-plus.fr>";
-const FROM_NOTIF = "Artisan+ Notifications <noreply@artisan-plus.fr>";
-const ADMIN_EMAIL = "contact@artisan-plus.fr";
-const BASE_URL = "https://www.artisan-plus.fr";
+const FROM_NOTIF = "Artisan+ <notifications@artisan-plus.fr>";
+// Destinataire des notifications internes (badge, support).
+// Configurer ADMIN_NOTIFICATION_EMAIL dans Vercel pour recevoir directement
+// sur Gmail et contourner le filtre anti-boucle OVH (même domaine FROM/TO).
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "contact@artisan-plus.fr";
+const BASE_URL = "https://artisan-plus.fr";
 
 export default async function handler(req, res) {
   // CORS
@@ -65,7 +68,7 @@ async function handleSupport(apiKey, body, res) {
   const { sujet, message, emailUtilisateur, nomUtilisateur } = body;
   if (!message?.trim()) return res.status(400).json({ error: "Message vide" });
 
-  const SUPPORT_EMAIL = "contact@artisan-plus.fr";
+  const SUPPORT_EMAIL = ADMIN_EMAIL;
   const date = new Date().toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" });
 
   try {
