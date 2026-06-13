@@ -1,5 +1,15 @@
 import crypto from "node:crypto";
 
+// C2 — Sanitization HTML complète (5 entités HTML)
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const RESEND_API = "https://api.resend.com/emails";
 const FROM       = "Artisan+ <contact@artisan-plus.fr>";
 const FROM_NOTIF = "Artisan+ <notifications@artisan-plus.fr>";
@@ -76,7 +86,7 @@ async function handleSupport(apiKey, body, res) {
       from: FROM_NOTIF,
       to: [SUPPORT_EMAIL],
       reply_to: emailUtilisateur || undefined,
-      subject: `[Artisan+ Support] ${sujet || "Message de l'app"}`,
+      subject: `[Artisan+ Support] ${esc(sujet) || "Message de l'app"}`,
       html: `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="utf-8"></head>
@@ -87,18 +97,18 @@ async function handleSupport(apiKey, body, res) {
       <div style="color:#8899aa;font-size:12px;margin-top:4px;">Centre d'aide — nouveau message</div>
     </div>
     <div style="background:#FF8C00;padding:16px 32px;">
-      <div style="color:#fff;font-size:16px;font-weight:700;">📬 ${sujet || "Message support"}</div>
+      <div style="color:#fff;font-size:16px;font-weight:700;">📬 ${esc(sujet) || "Message support"}</div>
     </div>
     <div style="padding:32px;">
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
-        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;width:120px;">De</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${nomUtilisateur || "Utilisateur"}</td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${emailUtilisateur}" style="color:#FF8C00;">${emailUtilisateur || "—"}</a></td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Sujet</td><td style="color:#1a1a2e;font-size:14px;">${sujet || "—"}</td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${date}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;width:120px;">De</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${esc(nomUtilisateur) || "Utilisateur"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${esc(emailUtilisateur)}" style="color:#FF8C00;">${esc(emailUtilisateur) || "—"}</a></td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Sujet</td><td style="color:#1a1a2e;font-size:14px;">${esc(sujet) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:6px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${esc(date)}</td></tr>
       </table>
       <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;border-left:4px solid #FF8C00;">
         <div style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Message</div>
-        <div style="color:#1a1a2e;font-size:14px;line-height:1.8;white-space:pre-wrap;">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+        <div style="color:#1a1a2e;font-size:14px;line-height:1.8;white-space:pre-wrap;">${esc(message)}</div>
       </div>
     </div>
     <div style="background:#0a1628;padding:16px 32px;text-align:center;">
@@ -174,11 +184,11 @@ async function handleVerification(apiKey, body, res) {
     </div>
     <div style="padding:32px;">
       <table style="width:100%;border-collapse:collapse;margin-bottom:28px;">
-        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;width:130px;">Artisan</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;">${(nomArtisan || "—").replace(/</g,"&lt;")}</td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${emailArtisan || ""}" style="color:#FF8C00;">${(emailArtisan || "—").replace(/</g,"&lt;")}</a></td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">SIRET</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${(siret || "—").replace(/</g,"&lt;")}</td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${date}</td></tr>
-        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">ID</td><td style="color:#8899aa;font-size:11px;font-family:monospace;">${userId}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;width:130px;">Artisan</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;">${esc(nomArtisan) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Email</td><td style="color:#1a1a2e;font-size:14px;"><a href="mailto:${esc(emailArtisan)}" style="color:#FF8C00;">${esc(emailArtisan) || "—"}</a></td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">SIRET</td><td style="color:#1a1a2e;font-size:14px;font-weight:600;">${esc(siret) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">Date</td><td style="color:#1a1a2e;font-size:14px;">${esc(date)}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:7px 0;text-transform:uppercase;letter-spacing:0.8px;">ID</td><td style="color:#8899aa;font-size:11px;font-family:monospace;">${esc(userId)}</td></tr>
       </table>
 
       ${hasAttachment
