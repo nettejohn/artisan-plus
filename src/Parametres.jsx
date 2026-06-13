@@ -186,6 +186,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   // ── Vérification artisan ──────────────────────────
   const [verificationStatut, setVerificationStatut] = useState("non_soumis"); // non_soumis | en_attente | verifie | rejete
+  const [modeRenvoi, setModeRenvoi] = useState(false);
   const [verifDocUrl,        setVerifDocUrl]        = useState("");
   const [verifUploading,     setVerifUploading]     = useState(false);
   const [verifMsg,           setVerifMsg]           = useState({ text: "", ok: true });
@@ -428,6 +429,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     }
 
     setVerificationStatut("en_attente");
+    setModeRenvoi(false);
     setVerifMsg({ text: "⏳ Dossier enregistré, envoi de la notification…", ok: true });
 
     // Génère une URL signée (7 jours) pour que le serveur puisse télécharger le fichier
@@ -1188,12 +1190,26 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                       ? "Votre dossier a été refusé. Vérifiez vos informations et soumettez à nouveau un justificatif valide."
                       : "Soumettez votre SIRET et un justificatif pour obtenir le badge ✓ Artisan Vérifié."}
               </div>
+              {verificationStatut === "rejete" && !modeRenvoi && (
+                <button
+                  onClick={() => setModeRenvoi(true)}
+                  style={{
+                    marginTop: "12px",
+                    background: "rgba(255,107,107,0.12)", border: "1.5px solid rgba(255,107,107,0.4)",
+                    color: "#ff6b6b", borderRadius: "10px", padding: "9px 18px",
+                    fontSize: "13px", fontWeight: "700", cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                  }}
+                >
+                  🔄 Renvoyer ma demande
+                </button>
+              )}
             </div>
           </div>
 
           {/* ── Badge affiché si vérifié ──────────────── */}
           {verificationStatut === "verifie" && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: "8px",
                 background: "linear-gradient(135deg, rgba(255,140,0,0.18) 0%, rgba(255,180,50,0.08) 100%)",
@@ -1204,12 +1220,24 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               }}>
                 ✓ Artisan Vérifié
               </div>
+              {!modeRenvoi && (
+                <button
+                  onClick={() => setModeRenvoi(true)}
+                  style={{
+                    background: "none", border: "none",
+                    color: "#8899aa", fontSize: "12px", cursor: "pointer",
+                    textDecoration: "underline", padding: "2px 0",
+                  }}
+                >
+                  Mettre à jour mon justificatif
+                </button>
+              )}
             </div>
           )}
 
           {/* ── Formulaire de soumission ──────────────── */}
-          {verificationStatut !== "verifie" && (
-            <SCard titre="📋 Soumettre votre dossier">
+          {(verificationStatut === "non_soumis" || verificationStatut === "en_attente" || modeRenvoi) && (
+            <SCard titre={modeRenvoi ? "🔄 Renvoyer votre dossier" : "📋 Soumettre votre dossier"}>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
                 {/* SIRET (readonly depuis profil) */}
@@ -1289,30 +1317,58 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                   </div>
                 </div>
 
+                {modeRenvoi && verificationStatut === "verifie" && (
+                  <div style={{
+                    background: "rgba(76,175,80,0.08)", border: "1px solid rgba(76,175,80,0.2)",
+                    borderRadius: "10px", padding: "10px 14px",
+                    color: "#4CAF50", fontSize: "12px", lineHeight: "1.5",
+                  }}>
+                    ℹ️ Votre badge <strong>✓ Artisan Vérifié</strong> reste actif pendant l'examen du nouveau document.
+                  </div>
+                )}
+
                 {verifMsg.text && (
                   <div style={{ fontSize: "13px", fontWeight: "600", color: verifMsg.ok ? "#4CAF50" : "#ff6b6b", lineHeight: "1.5" }}>
                     {verifMsg.text}
                   </div>
                 )}
 
-                <button
-                  onClick={soumettreDossier}
-                  disabled={!profil.siret || !verifDocUrl || verificationStatut === "en_attente"}
-                  style={{
-                    background: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#2a3450" : PRIMARY,
-                    color: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#555" : "white",
-                    border: "none", borderRadius: "12px",
-                    padding: "14px 24px", fontSize: "14px", fontWeight: "800",
-                    cursor: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", gap: "8px",
-                    boxShadow: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "none" : "0 4px 20px rgba(255,140,0,0.3)",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {verificationStatut === "en_attente"
-                    ? "⏳ Dossier en cours d'examen…"
-                    : "🚀 Soumettre pour vérification"}
-                </button>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <button
+                    onClick={soumettreDossier}
+                    disabled={!profil.siret || !verifDocUrl || verificationStatut === "en_attente"}
+                    style={{
+                      flex: 1,
+                      background: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#2a3450" : PRIMARY,
+                      color: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "#555" : "white",
+                      border: "none", borderRadius: "12px",
+                      padding: "14px 24px", fontSize: "14px", fontWeight: "800",
+                      cursor: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
+                      boxShadow: (!profil.siret || !verifDocUrl || verificationStatut === "en_attente") ? "none" : "0 4px 20px rgba(255,140,0,0.3)",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {verificationStatut === "en_attente"
+                      ? "⏳ Dossier en cours d'examen…"
+                      : modeRenvoi
+                        ? "🔄 Envoyer ma nouvelle demande"
+                        : "🚀 Soumettre pour vérification"}
+                  </button>
+                  {modeRenvoi && (
+                    <button
+                      onClick={() => setModeRenvoi(false)}
+                      style={{
+                        background: "rgba(136,153,170,0.08)", border: "1px solid rgba(136,153,170,0.2)",
+                        color: "#8899aa", borderRadius: "12px", padding: "14px 18px",
+                        fontSize: "13px", fontWeight: "600", cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  )}
+                </div>
               </div>
             </SCard>
           )}
