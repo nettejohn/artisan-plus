@@ -93,7 +93,7 @@ export default function Dashboard({
   const [tourStep, setTourStep] = useState(0);
 
   // Paramètres PDF (thème, couleur, logo)
-  const [paramsPdf, setParamsPdf] = useState({ couleur_pdf: null });
+  const [paramsPdf, setParamsPdf] = useState({ couleur_pdf: null, couleurs_pdf: null });
 
   // Mode simplifié
   const [modeSimple,      setModeSimple]      = useState(false);
@@ -385,6 +385,14 @@ export default function Dashboard({
       }
       // Paramètres PDF
       if (data.couleur_pdf) setParamsPdf(prev => ({ ...prev, couleur_pdf: data.couleur_pdf }));
+      if (data.couleurs_pdf) {
+        setParamsPdf(prev => ({ ...prev, couleurs_pdf: data.couleurs_pdf }));
+      } else {
+        try {
+          const cached = localStorage.getItem(`couleurs_pdf_${user.id}`);
+          if (cached) setParamsPdf(prev => ({ ...prev, couleurs_pdf: JSON.parse(cached) }));
+        } catch {}
+      }
     }
   };
 
@@ -616,7 +624,7 @@ export default function Dashboard({
       .eq("facture_id", facture.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     const logoBase64 = await chargerLogoBase64(artisan.logo_url);
-    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf });
+    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf });
   };
 
   // ── Factur-X XML (facturation électronique structurée, conforme EN 16931) ────
@@ -636,7 +644,7 @@ export default function Dashboard({
       .eq("devis_id", d.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     const logoBase64 = await chargerLogoBase64(artisan.logo_url);
-    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf });
+    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf });
   };
 
   const supprimerFacture = async (id) => {

@@ -52,10 +52,10 @@ export default async function handler(req, res) {
     .eq("user_id", devis.user_id)
     .single();
 
-  // 5. Trouver la couleur PDF depuis les paramètres
+  // 5. Trouver les paramètres de couleur PDF
   const { data: params } = await supa
     .from("parametres")
-    .select("couleur_pdf")
+    .select("couleur_pdf, couleurs_pdf")
     .eq("user_id", devis.user_id)
     .single();
 
@@ -65,5 +65,6 @@ export default async function handler(req, res) {
     lignes: lignes || [],
     artisan: artisan || null,
     couleur_pdf: params?.couleur_pdf || null,
+    couleurs_pdf: params?.couleurs_pdf || null,
   });
 }

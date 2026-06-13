@@ -153,15 +153,33 @@ function dessinerDecoration(doc, style) {
  * @param {string} options.nomSignataire   – nom du signataire (optionnel)
  */
 function construireDoc(document, client, lignes, artisan, estDevis = false, options = {}) {
-  const { signatureImage = null, nomSignataire = "", lang = "fr", logoBase64 = null, couleurPdf = null } = options;
+  const { signatureImage = null, nomSignataire = "", lang = "fr", logoBase64 = null, couleurPdf = null, couleursPdf = null } = options;
   const lbl = getPDFLabels(lang);
   const locale = lang === "en" ? "en-GB" : "fr-FR";
 
   const doc = new jsPDF();
   const style = document.style || "classique";
-  const base = THEMES[style] || THEMES.classique;
-  const couleurRgb = couleurPdf ? hexToRgb(couleurPdf) : null;
-  const theme = couleurRgb ? { ...base, headerBg: couleurRgb, accent: couleurRgb } : base;
+  let theme = { ...(THEMES[style] || THEMES.classique) };
+
+  // Backward compat : couleur unique legacy
+  if (couleurPdf && !couleursPdf) {
+    const rgb = hexToRgb(couleurPdf);
+    if (rgb) { theme.headerBg = rgb; theme.accent = rgb; }
+  }
+
+  // Palette complète (prioritaire sur couleurPdf)
+  if (couleursPdf) {
+    const applyHex = (hex, key) => { if (hex) { const rgb = hexToRgb(hex); if (rgb) theme[key] = rgb; } };
+    applyHex(couleursPdf.principale,  "headerBg");
+    applyHex(couleursPdf.fondEntetes, "tableBg");
+    applyHex(couleursPdf.texte,       "textColor");
+    applyHex(couleursPdf.titres,      "grayColor");
+    applyHex(couleursPdf.accent,      "accent");
+    applyHex(couleursPdf.bordures,    "borderColor");
+  }
+
+  // borderColor séparé de accent (fallback sur accent)
+  if (!theme.borderColor) theme.borderColor = theme.accent;
   const appliquerTva = document.tva > 0;
   const typeDoc = estDevis ? "DEVIS" : "FACTURE";
 
@@ -251,7 +269,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   if (client?.telephone) { doc.text(lbl.tel + client.telephone, 120, yClient); }
 
   // LIGNE SÉPARATRICE
-  doc.setDrawColor(...theme.accent);
+  doc.setDrawColor(...theme.borderColor);
   doc.setLineWidth(1);
   doc.line(15, 102, 195, 102);
 
@@ -306,7 +324,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.text(`${lbl.vatLabel} (${document.tva}%) :`, 125, finalY + 14);
     doc.setTextColor(...theme.textColor);
     doc.text(montantTVA.toFixed(2) + " €", 192, finalY + 14, { align: "right" });
-    doc.setDrawColor(...theme.accent);
+    doc.setDrawColor(...theme.borderColor);
     doc.setLineWidth(0.5);
     doc.line(125, finalY + 18, 192, finalY + 18);
     doc.setTextColor(...theme.accent);
@@ -315,7 +333,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.text(lbl.totalTTC, 125, finalY + 27);
     doc.text(totalFinal.toFixed(2) + " €", 192, finalY + 27, { align: "right" });
   } else {
-    doc.setDrawColor(...theme.accent);
+    doc.setDrawColor(...theme.borderColor);
     doc.setLineWidth(0.5);
     doc.line(125, finalY + 9, 192, finalY + 9);
     doc.setTextColor(...theme.accent);
@@ -349,7 +367,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   // ZONE SIGNATURE pour devis
   if (estDevis) {
     const sigY = finalY + (appliquerTva ? 50 : 35);
-    doc.setDrawColor(...theme.accent);
+    doc.setDrawColor(...theme.borderColor);
     doc.setLineWidth(0.5);
     doc.roundedRect(15, sigY, 85, 38, 3, 3, "S");
     doc.setTextColor(...theme.grayColor);

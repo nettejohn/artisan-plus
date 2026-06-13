@@ -16,6 +16,15 @@ const THEMES_PDF = [
   { id: "pro",         label: "Pro",         emoji: "🟣", desc: "Violet & blanc, look corporate"        },
 ];
 
+// Couleurs par défaut de chaque thème (miroir de GenerateurPDF.js)
+const THEMES_COULEURS = {
+  moderne:     { principale: "#FF8C00", fondEntetes: "#FFF5E6", texte: "#1E1E1E", titres: "#787878", bordures: "#FF8C00", accent: "#FF8C00" },
+  classique:   { principale: "#1E1E1E", fondEntetes: "#F5F5F5", texte: "#1E1E1E", titres: "#646464", bordures: "#1E1E1E", accent: "#1E1E1E" },
+  elegant:     { principale: "#14141E", fondEntetes: "#FAF8F3", texte: "#14141E", titres: "#645F55", bordures: "#A07832", accent: "#A07832" },
+  minimaliste: { principale: "#3C3C3C", fondEntetes: "#F8F8F8", texte: "#282828", titres: "#828282", bordures: "#5A5A5A", accent: "#5A5A5A" },
+  pro:         { principale: "#0A1628", fondEntetes: "#EEF4FC", texte: "#0A1628", titres: "#506482", bordures: "#FF8C00", accent: "#FF8C00" },
+};
+
 const SECTIONS = [
   { id: "profil",        label: "Mon profil",       emoji: "👤" },
   { id: "minisite",      label: "Mini site web",    emoji: "🌐" },
@@ -93,6 +102,16 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
   // ── Profil ──────────────────────────────────────────
   const [profil, setProfil] = useState({
     nom: "", adresse: "", siret: "", telephone: "", iban: "", logo_url: ""
+  });
+
+  // ── Couleurs PDF personnalisées (6 couleurs) ─────────
+  const [couleursPdf, setCouleursPdf] = useState({
+    principale:  null, // headerBg (header, footer, têtes tableau)
+    fondEntetes: null, // tableBg (lignes alternées, boîtes)
+    texte:       null, // textColor (corps de texte)
+    titres:      null, // grayColor (labels secondaires)
+    bordures:    null, // borderColor (lignes séparatrices)
+    accent:      null, // accent (total TTC, bande déco)
   });
 
   // ── Paramètres ──────────────────────────────────────
@@ -278,6 +297,15 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
           if (cached) setSimplifieConfig(prev => ({ ...prev, ...JSON.parse(cached) }));
         } catch {}
       }
+      // Palette couleurs PDF (colonne JSONB optionnelle)
+      if (pm.couleurs_pdf) {
+        setCouleursPdf(prev => ({ ...prev, ...pm.couleurs_pdf }));
+      } else {
+        try {
+          const cached = localStorage.getItem(`couleurs_pdf_${user.id}`);
+          if (cached) setCouleursPdf(prev => ({ ...prev, ...JSON.parse(cached) }));
+        } catch {}
+      }
     }
     setLoading(false);
   };
@@ -362,11 +390,21 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       ...params,
       tva_defaut: parseFloat(params.tva_defaut) || 20,
     }, { onConflict: "user_id" });
+
+    // Sauvegarde palette couleurs (colonne JSONB optionnelle + localStorage)
+    try {
+      localStorage.setItem(`couleurs_pdf_${user.id}`, JSON.stringify(couleursPdf));
+      const { error: cpErr } = await supabase.from("parametres").upsert(
+        { user_id: user.id, couleurs_pdf: couleursPdf },
+        { onConflict: "user_id" }
+      );
+      if (cpErr) console.warn("[couleurs_pdf] Colonne absente en DB — localStorage utilisé");
+    } catch (_) {}
+
     setSavingParams(false);
     if (error) {
       setMsgParams("❌ " + error.message);
     } else {
-      // Synchronise la langue dans le contexte i18n global
       if (params.langue === "en" || params.langue === "fr") {
         setLang(params.langue);
       }
@@ -1412,16 +1450,41 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       {/* ══════════════════════════════════════════════════
           APPARENCE
       ══════════════════════════════════════════════════ */}
-      {activeSection === "apparence" && (
+      {activeSection === "apparence" && (() => {
+        // Couleurs effectives (custom ou défaut du thème)
+        const themeDefauts = THEMES_COULEURS[params.theme_pdf] || THEMES_COULEURS.moderne;
+        const eff = {
+          principale:  couleursPdf.principale  || themeDefauts.principale,
+          fondEntetes: couleursPdf.fondEntetes || themeDefauts.fondEntetes,
+          texte:       couleursPdf.texte       || themeDefauts.texte,
+          titres:      couleursPdf.titres      || themeDefauts.titres,
+          bordures:    couleursPdf.bordures    || themeDefauts.bordures,
+          accent:      couleursPdf.accent      || themeDefauts.accent,
+        };
+        const setCouleur = (key, val) => setCouleursPdf(prev => ({ ...prev, [key]: val || null }));
+        const resetCouleur = (key) => setCouleursPdf(prev => ({ ...prev, [key]: null }));
+        const resetAll = () => setCouleursPdf({ principale: null, fondEntetes: null, texte: null, titres: null, bordures: null, accent: null });
+        const hasCustom = Object.values(couleursPdf).some(v => v !== null);
+
+        const COULEURS_DEF = [
+          { key: "principale",  label: "En-tête & pied de page",    desc: "Fond du header, footer et têtes de colonnes du tableau" },
+          { key: "fondEntetes", label: "Fond des tableaux",          desc: "Lignes alternées, boîte client et boîte totaux" },
+          { key: "texte",       label: "Texte principal",            desc: "Corps de texte, montants, descriptions" },
+          { key: "titres",      label: "Étiquettes & labels",        desc: "\"De:\", \"À:\", dates, libellés secondaires" },
+          { key: "bordures",    label: "Bordures & séparateurs",     desc: "Lignes de séparation, encadré de signature" },
+          { key: "accent",      label: "Montant total & accent",     desc: "Texte Total TTC, bande décorative sous l'en-tête" },
+        ];
+
+        return (
         <SCard titre="🎨 Apparence des PDF">
           {!isPro ? (
             <ProGate featureKey="theme_pdf" mode="card" onUpgrade={() => setActiveSection("abonnement")} onDismiss={null} />
           ) : (<>
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
-            {/* Thème */}
+            {/* Thème de base */}
             <div>
-              <label style={{ ...lbl, marginBottom: "10px" }}>Thème PDF par défaut</label>
+              <label style={{ ...lbl, marginBottom: "10px" }}>Thème PDF de base</label>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {THEMES_PDF.map(t => (
                   <label key={t.id} style={{
@@ -1446,29 +1509,146 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               </div>
             </div>
 
-            {/* Couleur */}
+            {/* 6 color pickers */}
             <div>
-              <label style={lbl}>🎨 Couleur d'accentuation personnalisée</label>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <input type="color" value={params.couleur_pdf}
-                  onChange={e => setParams(prev => ({ ...prev, couleur_pdf: e.target.value }))}
-                  style={{ width: "52px", height: "52px", border: "2px solid rgba(255,140,0,0.2)", background: "none", cursor: "pointer", borderRadius: "10px", padding: "3px" }} />
-                <div>
-                  <input value={params.couleur_pdf}
-                    onChange={e => setParams(prev => ({ ...prev, couleur_pdf: e.target.value }))}
-                    style={{ ...inp, width: "140px" }} placeholder="#FF8C00" />
-                  <div style={{ color: "#555", fontSize: "11px", marginTop: "4px" }}>Appliquée sur titres et lignes des PDF</div>
-                </div>
-                <div style={{ width: "52px", height: "52px", borderRadius: "10px", background: params.couleur_pdf, border: "1px solid rgba(255,255,255,0.1)" }} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <label style={{ ...lbl, marginBottom: 0 }}>🎨 Couleurs personnalisées</label>
+                {hasCustom && (
+                  <button onClick={resetAll} style={{
+                    background: "none", border: "1px solid rgba(136,153,170,0.25)",
+                    color: "#8899aa", borderRadius: "8px", padding: "4px 10px",
+                    fontSize: "11px", cursor: "pointer", fontWeight: "600",
+                  }}>↺ Réinitialiser tout</button>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {COULEURS_DEF.map(({ key, label, desc }) => {
+                  const valEff = eff[key];
+                  const isCustom = couleursPdf[key] !== null;
+                  return (
+                    <div key={key} style={{
+                      background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)",
+                      borderRadius: "12px", padding: "12px 14px",
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        {/* Color picker */}
+                        <div style={{ position: "relative", flexShrink: 0 }}>
+                          <div style={{
+                            width: "44px", height: "44px", borderRadius: "10px",
+                            background: valEff, border: "2px solid rgba(255,255,255,0.15)",
+                            cursor: "pointer", overflow: "hidden",
+                          }}>
+                            <input
+                              type="color"
+                              value={valEff}
+                              onChange={e => setCouleur(key, e.target.value)}
+                              style={{ opacity: 0, position: "absolute", inset: 0, width: "100%", height: "100%", cursor: "pointer" }}
+                            />
+                          </div>
+                        </div>
+                        {/* Hex input */}
+                        <input
+                          value={couleursPdf[key] || ""}
+                          onChange={e => {
+                            const v = e.target.value;
+                            setCouleur(key, /^#[0-9A-Fa-f]{6}$/.test(v) ? v : (v === "" ? null : v));
+                          }}
+                          placeholder={themeDefauts[key]}
+                          style={{ ...inp, width: "120px", fontFamily: "monospace", fontSize: "13px" }}
+                        />
+                        {/* Labels */}
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                          <div style={{ color: "white", fontWeight: "700", fontSize: "13px" }}>{label}</div>
+                          <div style={{ color: "#667", fontSize: "11px", marginTop: "2px" }}>{desc}</div>
+                        </div>
+                        {/* Reset button */}
+                        {isCustom && (
+                          <button onClick={() => resetCouleur(key)} style={{
+                            background: "none", border: "1px solid rgba(136,153,170,0.2)",
+                            color: "#8899aa", borderRadius: "7px", padding: "4px 9px",
+                            fontSize: "11px", cursor: "pointer", flexShrink: 0,
+                          }}>↺</button>
+                        )}
+                        {/* Custom badge */}
+                        {isCustom && (
+                          <span style={{ background: "rgba(255,140,0,0.12)", color: PRIMARY, fontSize: "10px", fontWeight: "700", borderRadius: "5px", padding: "2px 7px", flexShrink: 0 }}>Modifié</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Mini-prévisualisation PDF */}
+            <div>
+              <label style={{ ...lbl, marginBottom: "10px" }}>👁️ Prévisualisation en temps réel</label>
+              <div style={{
+                borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)",
+                background: "white", maxWidth: "360px",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+              }}>
+                {/* Header */}
+                <div style={{ background: eff.principale, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ color: "white", fontWeight: "800", fontSize: "11px" }}>Mon Entreprise</div>
+                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "8px", marginTop: "1px" }}>123 rue des Artisans</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ color: "white", fontSize: "9px" }}>DEV-2024-001</div>
+                    <div style={{ color: "white", fontWeight: "800", fontSize: "11px" }}>DEVIS</div>
+                  </div>
+                </div>
+                {/* Bande accent */}
+                <div style={{ height: "3px", background: eff.accent }} />
+                {/* Infos client */}
+                <div style={{ padding: "8px 14px", background: "white", display: "flex", gap: "8px" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: eff.titres, fontSize: "7px", fontWeight: "700", marginBottom: "2px" }}>DE :</div>
+                    <div style={{ color: eff.texte, fontSize: "9px", fontWeight: "700" }}>Nom Artisan</div>
+                  </div>
+                  <div style={{ flex: 1, background: eff.fondEntetes, borderRadius: "4px", padding: "5px 7px" }}>
+                    <div style={{ color: eff.titres, fontSize: "7px", fontWeight: "700", marginBottom: "2px" }}>À :</div>
+                    <div style={{ color: eff.texte, fontSize: "9px", fontWeight: "700" }}>Client Exemple</div>
+                  </div>
+                </div>
+                {/* Ligne séparatrice */}
+                <div style={{ height: "1.5px", background: eff.bordures, margin: "0 14px" }} />
+                {/* Tableau */}
+                <div style={{ padding: "6px 14px 0" }}>
+                  <div style={{ display: "flex", background: eff.principale, borderRadius: "3px", padding: "4px 6px", marginBottom: "2px" }}>
+                    {["Description", "Qté", "PU HT", "Total"].map((h, i) => (
+                      <div key={i} style={{ flex: i === 0 ? 2 : 1, color: "white", fontSize: "7px", fontWeight: "700", textAlign: i > 0 ? "right" : "left" }}>{h}</div>
+                    ))}
+                  </div>
+                  {[["Prestation 1", "1", "250,00 €", "250,00 €"], ["Prestation 2", "2", "80,00 €", "160,00 €"]].map((row, ri) => (
+                    <div key={ri} style={{ display: "flex", padding: "3px 6px", background: ri % 2 === 1 ? eff.fondEntetes : "transparent", borderRadius: "2px" }}>
+                      {row.map((cell, ci) => (
+                        <div key={ci} style={{ flex: ci === 0 ? 2 : 1, color: eff.texte, fontSize: "7px", textAlign: ci > 0 ? "right" : "left" }}>{cell}</div>
+                      ))}
+                    </div>
+                  ))}
+                  {/* Séparateur total */}
+                  <div style={{ height: "1px", background: eff.bordures, margin: "4px 0 2px" }} />
+                  <div style={{ display: "flex", justifyContent: "flex-end", paddingBottom: "6px" }}>
+                    <div style={{ color: eff.accent, fontWeight: "800", fontSize: "10px" }}>TOTAL : 410,00 €</div>
+                  </div>
+                </div>
+                {/* Footer */}
+                <div style={{ background: eff.principale, padding: "5px 14px", textAlign: "center" }}>
+                  <div style={{ color: "rgba(200,200,200,0.8)", fontSize: "7px" }}>artisan-plus.fr</div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {msgParams && <div style={{ marginTop: "12px", fontSize: "13px", fontWeight: "600", color: msgParams.includes("✅") ? "#4CAF50" : "#ff6b6b" }}>{msgParams}</div>}
           <SaveBtn onClick={sauvegarderParams} saving={savingParams} label="Sauvegarder l'apparence" />
           </>)}
         </SCard>
-      )}
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════
           FACTURATION

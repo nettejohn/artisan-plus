@@ -53,6 +53,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   const [profil, setProfil] = useState(null);
   const [logoBase64, setLogoBase64] = useState(null);
   const [couleurPdf, setCouleurPdf] = useState(null);
+  const [couleursPdf, setCouleursPdf] = useState(null);
   const [sendLoading, setSendLoading] = useState(false);
   const [emailEnvoi,  setEmailEnvoi]  = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
@@ -69,7 +70,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     // Charger les paramètres TVA + thème PDF
     supabase
       .from("parametres")
-      .select("tva_sur_debits, tva_defaut, theme_pdf, couleur_pdf")
+      .select("tva_sur_debits, tva_defaut, theme_pdf, couleur_pdf, couleurs_pdf")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
@@ -77,6 +78,13 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
         if (data?.tva_defaut)     setTva(data.tva_defaut);
         if (data?.theme_pdf)      setStyle(data.theme_pdf);
         if (data?.couleur_pdf)    setCouleurPdf(data.couleur_pdf);
+        if (data?.couleurs_pdf)   setCouleursPdf(data.couleurs_pdf);
+        else {
+          try {
+            const cached = localStorage.getItem(`couleurs_pdf_${user.id}`);
+            if (cached) setCouleursPdf(JSON.parse(cached));
+          } catch {}
+        }
       });
     // Charger le profil artisan pour la génération PDF
     supabase
@@ -252,7 +260,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     try {
       const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf });
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf });
       const b64 = pdfBase64.split(",")[1] || pdfBase64;
       const resp = await fetch("/api/send-email", {
         method: "POST",
@@ -284,7 +292,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
     try {
       const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", factureCree.id);
       const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf });
+      const pdfBase64 = genererPDFBase64(factureCree, factureCree.clients || {}, lignes || [], artisan, false, { logoBase64, couleurPdf, couleursPdf });
       const b64 = pdfBase64.split(",")[1] || pdfBase64;
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: "application/pdf" });
