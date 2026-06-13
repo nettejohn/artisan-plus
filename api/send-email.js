@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 
 const RESEND_API = "https://api.resend.com/emails";
-const FROM = "Artisan+ <contact@artisan-plus.fr>";
+const FROM       = "Artisan+ <contact@artisan-plus.fr>";
+const FROM_NOTIF = "Artisan+ Notifications <noreply@artisan-plus.fr>";
 const ADMIN_EMAIL = "contact@artisan-plus.fr";
 const BASE_URL = "https://www.artisan-plus.fr";
 
@@ -69,7 +70,7 @@ async function handleSupport(apiKey, body, res) {
 
   try {
     await appelResend(apiKey, {
-      from: FROM,
+      from: FROM_NOTIF,
       to: [SUPPORT_EMAIL],
       reply_to: emailUtilisateur || undefined,
       subject: `[Artisan+ Support] ${sujet || "Message de l'app"}`,
@@ -217,7 +218,7 @@ async function handleVerification(apiKey, body, res) {
 
   try {
     await appelResend(apiKey, {
-      from: FROM,
+      from: FROM_NOTIF,
       to: [ADMIN_EMAIL],
       reply_to: emailArtisan || undefined,
       subject: `[Badge Vérifié] Nouvelle demande — ${nomArtisan || "Artisan"} (SIRET : ${siret || "—"})`,
