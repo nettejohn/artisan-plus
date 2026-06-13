@@ -84,7 +84,8 @@ const THEMES = {
 
 function hexToRgb(hex) {
   const h = (hex || "").replace("#", "");
-  if (h.length !== 6) return null;
+  // C8 — valider que tous les caractères sont hexadécimaux avant parseInt
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 
@@ -153,7 +154,7 @@ function dessinerDecoration(doc, style) {
  * @param {string} options.nomSignataire   – nom du signataire (optionnel)
  */
 function construireDoc(document, client, lignes, artisan, estDevis = false, options = {}) {
-  const { signatureImage = null, nomSignataire = "", lang = "fr", logoBase64 = null, couleurPdf = null, couleursPdf = null } = options;
+  const { signatureImage = null, nomSignataire = "", lang = "fr", logoBase64 = null, couleurPdf = null, couleursPdf = null, artisanVerifie = false, afficherBadgeVerifie = true } = options;
   const lbl = getPDFLabels(lang);
   const locale = lang === "en" ? "en-GB" : "fr-FR";
 
@@ -168,7 +169,8 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   }
 
   // Palette complète (prioritaire sur couleurPdf)
-  if (couleursPdf) {
+  // C7 — guard : vérifier que couleursPdf est un objet non-null avant d'accéder à ses propriétés
+  if (couleursPdf && typeof couleursPdf === "object" && !Array.isArray(couleursPdf)) {
     const applyHex = (hex, key) => { if (hex) { const rgb = hexToRgb(hex); if (rgb) theme[key] = rgb; } };
     applyHex(couleursPdf.principale,  "headerBg");
     applyHex(couleursPdf.fondEntetes, "tableBg");
@@ -434,6 +436,18 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.text("artisan-plus.fr", 105, 290, { align: "center" });
+
+  // Badge Artisan Vérifié (footer, côté droit)
+  if (artisanVerifie && afficherBadgeVerifie) {
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 200, 80);
+    doc.text("✓ Artisan Vérifié", 194, 287, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(5.5);
+    doc.setTextColor(200, 160, 60);
+    doc.text("artisan-plus.fr", 194, 292, { align: "right" });
+  }
 
   return doc;
 }
