@@ -32,18 +32,16 @@ export default function SignatureDevis({ token }) {
 
   const chargerDevis = async () => {
     try {
-      // 1. Trouver la signature par token
-      const { data: sigData, error: sigError } = await supabase
-        .from("signatures")
-        .select("*")
-        .eq("token", token)
-        .single();
+      const resp = await fetch(`/api/get-devis-public?token=${encodeURIComponent(token)}`);
+      const json = await resp.json();
 
-      if (sigError || !sigData) {
-        setErreur("Lien invalide ou expiré.");
+      if (!resp.ok) {
+        setErreur(json.error || "Lien invalide ou expiré.");
         setLoading(false);
         return;
       }
+
+      const { signature: sigData, devis: devisData, lignes: lignesData, artisan: artisanData, couleur_pdf } = json;
 
       if (sigData.signe_le) {
         setSigne(true);
@@ -52,47 +50,14 @@ export default function SignatureDevis({ token }) {
       }
 
       setSignatureId(sigData.id);
-
-      // 2. Trouver le devis
-      const { data: devisData, error: devisError } = await supabase
-        .from("devis")
-        .select("*, clients(*)")
-        .eq("id", sigData.devis_id)
-        .single();
-
-      if (devisError || !devisData) {
-        setErreur("Devis introuvable.");
-        setLoading(false);
-        return;
-      }
-
-      // 3. Trouver les lignes
-      const { data: lignesData } = await supabase
-        .from("lignes_devis")
-        .select("*")
-        .eq("devis_id", devisData.id);
-
-      // 4. Trouver le profil artisan
-      const { data: artisanData } = await supabase
-        .from("profils")
-        .select("*")
-        .eq("user_id", devisData.user_id)
-        .single();
-
       setDevis(devisData);
       setLignes(lignesData || []);
       setArtisan(artisanData);
+      if (couleur_pdf) setCouleurPdf(couleur_pdf);
 
-      // Charger le logo et la couleur PDF de l'artisan
       if (artisanData?.logo_url) {
         chargerLogoBase64(artisanData.logo_url).then(setLogoBase64);
       }
-      supabase
-        .from("parametres")
-        .select("couleur_pdf")
-        .eq("user_id", devisData.user_id)
-        .single()
-        .then(({ data }) => { if (data?.couleur_pdf) setCouleurPdf(data.couleur_pdf); });
 
       setLoading(false);
 
