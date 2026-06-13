@@ -186,7 +186,7 @@ async function handleVerification(apiKey, body, res) {
         : docUrl
           ? `<div style="margin-bottom:28px;background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
         <div style="color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Justificatif (Kbis / carte pro / URSSAF)</div>
-        <a href="${docUrl}" target="_blank" style="display:inline-block;background:#FF8C00;color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;text-decoration:none;">📄 Voir le document →</a>
+        <div style="color:#e65100;font-size:13px;font-weight:600;">⚠️ La pièce jointe n'a pas pu être attachée. Consultez le document dans l'interface Artisan+.</div>
       </div>`
           : ""}
 
