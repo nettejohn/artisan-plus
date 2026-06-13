@@ -26,6 +26,7 @@ export default function SignatureDevis({ token }) {
   const [logoBase64, setLogoBase64] = useState(null);
   const [couleurPdf, setCouleurPdf] = useState(null);
   const [couleursPdf, setCouleursPdf] = useState(null);
+  const [afficherBadgePdf, setAfficherBadgePdf] = useState(true);
 
   useEffect(() => {
     chargerDevis();
@@ -56,6 +57,9 @@ export default function SignatureDevis({ token }) {
       setArtisan(artisanData);
       if (couleur_pdf) setCouleurPdf(couleur_pdf);
       if (json.couleurs_pdf) setCouleursPdf(json.couleurs_pdf);
+      if (json.afficher_badge_verifie !== null && json.afficher_badge_verifie !== undefined) {
+        setAfficherBadgePdf(json.afficher_badge_verifie);
+      }
 
       if (artisanData?.logo_url) {
         chargerLogoBase64(artisanData.logo_url).then(setLogoBase64);
@@ -128,7 +132,7 @@ export default function SignatureDevis({ token }) {
   const telechargerDevis = () => {
     if (!devis || !artisan) return;
     try {
-      genererFacturePDF(devis, devis.clients, lignes, artisan, true, { logoBase64, couleurPdf, couleursPdf });
+      genererFacturePDF(devis, devis.clients, lignes, artisan, true, { logoBase64, couleurPdf, couleursPdf, artisanVerifie: artisan?.verification_statut === "verifie", afficherBadgeVerifie: afficherBadgePdf });
     } catch (e) {
       console.error("Erreur téléchargement PDF :", e);
     }
@@ -143,6 +147,8 @@ export default function SignatureDevis({ token }) {
         logoBase64,
         couleurPdf,
         couleursPdf,
+        artisanVerifie: artisan?.verification_statut === "verifie",
+        afficherBadgeVerifie: afficherBadgePdf,
       }));
     } catch (e) {
       console.error("Erreur génération PDF signé :", e);
@@ -158,6 +164,8 @@ export default function SignatureDevis({ token }) {
         logoBase64,
         couleurPdf,
         couleursPdf,
+        artisanVerifie: artisan?.verification_statut === "verifie",
+        afficherBadgeVerifie: afficherBadgePdf,
       });
     } catch (e) {
       console.error("Erreur téléchargement PDF signé :", e);
@@ -175,8 +183,8 @@ export default function SignatureDevis({ token }) {
     const signatureData = canvas.toDataURL();
     signatureDataRef.current = signatureData; // conserver pour les boutons post-signature
 
-    // 1. Enregistrer la signature en base
-    await supabase
+    // 1. Enregistrer la signature en base — C6 : vérifier le succès avant de continuer
+    const { error: sigErr } = await supabase
       .from("signatures")
       .update({
         signature_data: signatureData,
@@ -185,13 +193,23 @@ export default function SignatureDevis({ token }) {
       })
       .eq("id", signatureId);
 
-    // 2. Passer le devis en "accepté"
-    await supabase
+    if (sigErr) {
+      alert("Erreur lors de l'enregistrement de la signature. Veuillez réessayer.");
+      return;
+    }
+
+    // 2. Passer le devis en "accepté" seulement si la signature est bien enregistrée
+    const { error: devisErr } = await supabase
       .from("devis")
       .update({ statut: "accepte" })
       .eq("id", devis.id);
 
-    // 3. Afficher l'écran de succès immédiatement
+    if (devisErr) {
+      console.warn("[SignatureDevis] Mise à jour statut devis échouée :", devisErr.message);
+      // On continue quand même — la signature est enregistrée, c'est l'essentiel
+    }
+
+    // 3. Afficher l'écran de succès
     setSigne(true);
 
     // 4. Générer le PDF signé pour pièce jointe email
@@ -203,6 +221,8 @@ export default function SignatureDevis({ token }) {
         logoBase64,
         couleurPdf,
         couleursPdf,
+        artisanVerifie: artisan?.verification_statut === "verifie",
+        afficherBadgeVerifie: afficherBadgePdf,
       });
       pdfBase64 = dataUri.split(",")[1]; // strip "data:application/pdf;base64,"
     } catch (pdfErr) {
