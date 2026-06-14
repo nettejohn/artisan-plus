@@ -134,9 +134,7 @@ export default function SignatureDevis({ token }) {
     if (!devis || !artisan) return;
     try {
       genererFacturePDF(devis, devis.clients, lignes, artisan, true, { logoBase64, couleurPdf, couleursPdf, artisanVerifie: artisan?.verification_statut === "verifie", afficherBadgeVerifie: afficherBadgePdf });
-    } catch (e) {
-      console.error("Erreur téléchargement PDF :", e);
-    }
+    } catch (_) {}
   };
 
   const voirDevisSigne = () => {
@@ -151,9 +149,7 @@ export default function SignatureDevis({ token }) {
         artisanVerifie: artisan?.verification_statut === "verifie",
         afficherBadgeVerifie: afficherBadgePdf,
       }));
-    } catch (e) {
-      console.error("Erreur génération PDF signé :", e);
-    }
+    } catch (_) {}
   };
 
   const telechargerDevisSigne = () => {
@@ -168,9 +164,7 @@ export default function SignatureDevis({ token }) {
         artisanVerifie: artisan?.verification_statut === "verifie",
         afficherBadgeVerifie: afficherBadgePdf,
       });
-    } catch (e) {
-      console.error("Erreur téléchargement PDF signé :", e);
-    }
+    } catch (_) {}
   };
 
   // ── Signature et envoi email ─────────────────────────────────────────────────
@@ -205,10 +199,7 @@ export default function SignatureDevis({ token }) {
       .update({ statut: "accepte" })
       .eq("id", devis.id);
 
-    if (devisErr) {
-      console.warn("[SignatureDevis] Mise à jour statut devis échouée :", devisErr.message);
-      // On continue quand même — la signature est enregistrée, c'est l'essentiel
-    }
+    // On continue même si le statut n'a pas pu être mis à jour — la signature est enregistrée
 
     // 3. Afficher l'écran de succès
     setSigne(true);
@@ -226,9 +217,7 @@ export default function SignatureDevis({ token }) {
         afficherBadgeVerifie: afficherBadgePdf,
       });
       pdfBase64 = dataUri.split(",")[1]; // strip "data:application/pdf;base64,"
-    } catch (pdfErr) {
-      console.warn("[SignatureDevis] Génération PDF pour email échouée :", pdfErr.message);
-    }
+    } catch (_) {}
 
     // 5. Envoyer les emails via la fonction serverless Vercel
     setEmailStatut("envoi");
@@ -254,15 +243,11 @@ export default function SignatureDevis({ token }) {
       try {
         resultat = await response.json();
       } catch (_) {
-        // réponse non-JSON (page d'erreur Vercel, etc.)
-        const text = await response.text().catch(() => "");
-        console.error("[SignatureDevis] Réponse non-JSON :", response.status, text.slice(0, 200));
         setEmailStatut("erreur");
         return;
       }
 
       if (!response.ok && !resultat.artisanEnvoye && !resultat.clientEnvoye) {
-        console.error("[SignatureDevis] Erreur API :", resultat);
         setEmailStatut("erreur");
         return;
       }
@@ -279,8 +264,7 @@ export default function SignatureDevis({ token }) {
       } else {
         setEmailStatut("erreur");
       }
-    } catch (err) {
-      console.error("[SignatureDevis] Erreur fetch :", err);
+    } catch (_) {
       setEmailStatut("erreur");
     }
   };

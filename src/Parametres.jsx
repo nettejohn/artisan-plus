@@ -410,7 +410,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
         { user_id: user.id, couleurs_pdf: couleursPdf },
         { onConflict: "user_id" }
       );
-      if (cpErr) console.warn("[couleurs_pdf] Colonne absente en DB — localStorage utilisé");
+      if (cpErr) { /* colonne optionnelle — localStorage utilisé comme fallback */ }
     } catch (_) {}
     // Sauvegarde afficher_badge_verifie (colonne BOOLEAN optionnelle + localStorage)
     try {
@@ -580,8 +580,6 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     );
     setSavingModeSimplifie(false);
     if (error) {
-      console.error("[mode simplifié] erreur upsert :", error.message);
-      // Annuler l'optimistic update si erreur (colonne manquante → SQL migration à exécuter)
       setModeSimplifie(!valeur);
     } else {
       onModeSimpleChange?.(valeur);
@@ -599,7 +597,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       { user_id: user.id, simplifie_config: newConfig },
       { onConflict: "user_id" }
     );
-    if (error) console.warn("[simplifie_config] colonne absente — localStorage utilisé");
+    if (error) { /* colonne optionnelle — localStorage utilisé comme fallback */ }
     setSavingConfig(false);
   };
 
@@ -631,7 +629,6 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
       }
 
       // 2. account_id absent en base → tenter la récupération depuis Stripe
-      console.warn("[connect] account_id absent, tentative de récupération…");
       setConnectMsg({ text: "🔄 Récupération du compte depuis Stripe…", ok: true });
       const recoverData = await connectApi("recover");
 
