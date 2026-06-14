@@ -68,6 +68,7 @@ export default function Dashboard({
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
   const [lienCopie, setLienCopie] = useState(null);
   const [emailModal, setEmailModal] = useState({ open: false, docType: null, doc: null, mode: "sans_signature", emailClient: "", loading: false, sent: false, error: null });
+  const [shareModal, setShareModal] = useState({ open: false, doc: null, loading: false, copied: false });
 
   // Freemium / Upgrade
   const [upgradeModal,   setUpgradeModal]   = useState({ open: false, type: "factures" });
@@ -708,36 +709,44 @@ export default function Dashboard({
     chargerDonnees();
   };
 
-  const envoyerPourSignature = async (d) => {
-    if (!isPro) { setProGateModal("signature"); return; }
-    const { data: existing } = await supabase
-      .from("signatures")
-      .select("token")
-      .eq("devis_id", d.id)
-      .single();
-
-    let token;
-    if (existing) {
-      token = existing.token;
-    } else {
-      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-      await supabase.from("signatures").insert({ devis_id: d.id, token });
-      await new Promise(resolve => setTimeout(resolve, 300));
+  // ── Partage devis ────────────────────────────────────────────────
+  const obtenirLienSignature = async (d) => {
+    const { data: existing } = await supabase.from("signatures").select("token").eq("devis_id", d.id).single();
+    let tok = existing?.token;
+    if (!tok) {
+      tok = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      await supabase.from("signatures").insert({ devis_id: d.id, token: tok });
+      await new Promise(r => setTimeout(r, 300));
     }
+    return `https://www.artisan-plus.fr/signer/${tok}`;
+  };
 
-    const lien = `https://www.artisan-plus.fr/signer/${token}`;
+  const ouvrirShareModal = (d) => {
+    if (!isPro) { setProGateModal("signature"); return; }
+    setShareModal({ open: true, doc: d, loading: false, copied: false });
+  };
 
-    if (navigator.share) {
-      await navigator.share({
-        title: "Devis " + d.numero,
-        text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis ${d.numero}.\nPour le consulter et le signer en ligne, cliquez ici :`,
-        url: lien
-      });
-    } else {
+  const partagerParSMS = async () => {
+    const d = shareModal.doc;
+    setShareModal(m => ({ ...m, loading: true }));
+    try {
+      const lien = await obtenirLienSignature(d);
+      const corps = encodeURIComponent(`Bonjour,\n\nVoici votre devis ${d.numero} à consulter et signer en ligne :\n${lien}`);
+      window.open(`sms:?body=${corps}`);
+    } catch (_) {}
+    setShareModal({ open: false, doc: null, loading: false, copied: false });
+  };
+
+  const copierLienDevis = async () => {
+    const d = shareModal.doc;
+    setShareModal(m => ({ ...m, loading: true }));
+    try {
+      const lien = await obtenirLienSignature(d);
       navigator.clipboard.writeText(lien).catch(() => {});
       setLienCopie(d.id);
       setTimeout(() => setLienCopie(null), 3000);
-    }
+    } catch (_) {}
+    setShareModal({ open: false, doc: null, loading: false, copied: false });
   };
 
   // ── Envoi email avec PDF joint ───────────────────────────────────
@@ -1579,7 +1588,7 @@ export default function Dashboard({
                         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                           <span style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px" }}>{d.total_ttc?.toFixed(0)} €</span>
                           <button
-                            onClick={() => ouvrirEmailModal("devis", d)}
+                            onClick={() => ouvrirShareModal(d)}
                             style={{
                               background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)",
                               color: PRIMARY, borderRadius: "8px", padding: "6px 12px",
@@ -2587,7 +2596,7 @@ export default function Dashboard({
                         color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>📄 PDF</button>
-                      <button onClick={() => ouvrirEmailModal("devis", d)} style={{
+                      <button onClick={() => ouvrirShareModal(d)} style={{
                         background: "rgba(100,149,237,0.1)", border: "1px solid rgba(100,149,237,0.3)",
                         color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
@@ -3839,6 +3848,63 @@ export default function Dashboard({
           </>
         );
       })()}
+
+      {/* ── MODAL PARTAGE DEVIS ─────────────────────────────────── */}
+      {shareModal.open && (
+        <>
+          <div onClick={() => !shareModal.loading && setShareModal({ open: false, doc: null, loading: false, copied: false })} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 999, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "400px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(100,149,237,0.25)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }}>
+              <div>
+                <h3 style={{ color: "white", margin: "0 0 4px", fontSize: "17px", fontWeight: "700" }}>🔗 Partager le devis</h3>
+                <div style={{ color: "#8899aa", fontSize: "12px" }}>{shareModal.doc?.numero} — {shareModal.doc?.clients?.nom || "—"}</div>
+              </div>
+              {!shareModal.loading && <button onClick={() => setShareModal({ open: false, doc: null, loading: false, copied: false })} style={{ background: "none", border: "none", color: "#8899aa", cursor: "pointer", fontSize: "22px", lineHeight: 1, padding: 0 }}>✕</button>}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {/* Email */}
+              <button
+                onClick={() => { setShareModal({ open: false, doc: null, loading: false, copied: false }); ouvrirEmailModal("devis", shareModal.doc); }}
+                disabled={shareModal.loading}
+                style={{ display: "flex", alignItems: "center", gap: "16px", padding: "16px 18px", borderRadius: "14px", background: "rgba(100,149,237,0.1)", border: "1px solid rgba(100,149,237,0.3)", cursor: "pointer", textAlign: "left" }}
+              >
+                <span style={{ fontSize: "28px" }}>📧</span>
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>Par email</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Envoyer le PDF avec ou sans demande de signature</div>
+                </div>
+              </button>
+              {/* SMS */}
+              <button
+                onClick={partagerParSMS}
+                disabled={shareModal.loading}
+                style={{ display: "flex", alignItems: "center", gap: "16px", padding: "16px 18px", borderRadius: "14px", background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)", cursor: shareModal.loading ? "wait" : "pointer", textAlign: "left" }}
+              >
+                <span style={{ fontSize: "28px" }}>💬</span>
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>Par SMS</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Envoyer le lien de signature par SMS</div>
+                </div>
+              </button>
+              {/* Copier lien */}
+              <button
+                onClick={copierLienDevis}
+                disabled={shareModal.loading}
+                style={{ display: "flex", alignItems: "center", gap: "16px", padding: "16px 18px", borderRadius: "14px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", cursor: shareModal.loading ? "wait" : "pointer", textAlign: "left" }}
+              >
+                <span style={{ fontSize: "28px" }}>🔗</span>
+                <div>
+                  <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>Copier le lien</div>
+                  <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "2px" }}>Partager par WhatsApp, email, ou autre</div>
+                </div>
+              </button>
+            </div>
+            {shareModal.loading && (
+              <div style={{ marginTop: "14px", textAlign: "center", color: "#8899aa", fontSize: "13px" }}>⏳ Génération du lien…</div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* ── QR CODE MODAL ─────────────────────────────────────── */}
       {/* ── Modal envoi email avec PDF ─────────────────────────── */}

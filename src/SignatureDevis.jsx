@@ -28,6 +28,7 @@ export default function SignatureDevis({ token }) {
   const [couleurPdf, setCouleurPdf] = useState(null);
   const [couleursPdf, setCouleursPdf] = useState(null);
   const [afficherBadgePdf, setAfficherBadgePdf] = useState(true);
+  const [emailClientSaisie, setEmailClientSaisie] = useState("");
 
   useEffect(() => {
     chargerDevis();
@@ -224,10 +225,11 @@ export default function SignatureDevis({ token }) {
     // 5. Envoyer les emails via la fonction serverless Vercel
     setEmailStatut("envoi");
     try {
+      const emailClientFinal = emailClientSaisie.trim() || devis.clients?.email || null;
       const payload = isFacture
         ? {
             numeroFacture: devis.numero,
-            emailClient: devis.clients?.email || null,
+            emailClient: emailClientFinal,
             emailArtisan: artisan?.email || null,
             nomArtisan: artisan?.nom || null,
             nomClient: nom,
@@ -236,7 +238,7 @@ export default function SignatureDevis({ token }) {
           }
         : {
             emailArtisan: artisan?.email || null,
-            emailClient: devis.clients?.email || null,
+            emailClient: emailClientFinal,
             nomClient: nom,
             nomArtisan: artisan?.nom || null,
             numeroDevis: devis.numero,
@@ -510,6 +512,25 @@ export default function SignatureDevis({ token }) {
               borderRadius: "10px", padding: "12px 16px", color: "white",
               fontSize: "16px", outline: "none", width: "100%", boxSizing: "border-box"
             }} />
+        </div>
+
+        {/* EMAIL CLIENT OPTIONNEL */}
+        <div style={{ background: CARD, borderRadius: "16px", padding: "24px", border: "1px solid rgba(255,140,0,0.15)" }}>
+          <h3 style={{ color: "white", marginTop: 0, marginBottom: "6px" }}>📧 Recevoir une copie par email</h3>
+          <p style={{ color: "#8899aa", fontSize: "13px", margin: "0 0 14px", lineHeight: "1.5" }}>
+            Optionnel — entrez votre email pour recevoir le {isFacture ? "document" : "devis"} signé.
+          </p>
+          <input
+            type="email"
+            placeholder="votre@email.fr"
+            value={emailClientSaisie}
+            onChange={e => setEmailClientSaisie(e.target.value)}
+            style={{
+              background: "#0a1628", border: "1px solid rgba(255,140,0,0.2)",
+              borderRadius: "10px", padding: "12px 16px", color: "white",
+              fontSize: "15px", outline: "none", width: "100%", boxSizing: "border-box"
+            }}
+          />
         </div>
 
         {/* SIGNATURE */}
