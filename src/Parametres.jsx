@@ -894,7 +894,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                   onChange={e => setParams(p => ({ ...p, signature_email: e.target.value }))}
                   rows={3}
                   placeholder={lang === "en" ? "Best regards,\nJohn Smith — Artisan+\nTel. +44 000 000 000" : "Cordialement,\nJohn Nette — Artisan+\nTél. 06 00 00 00 00"}
-                  style={{ ...inp, resize: "vertical", fontFamily: "inherit", lineHeight: "1.55" }}
+                  style={{ ...inp, resize: "none", fontFamily: "inherit", lineHeight: "1.55" }}
                 />
                 <div style={{ color: "#555", fontSize: "11px", marginTop: "5px" }}>
                   {t("settings.emailSignatureHelp")}
@@ -977,7 +977,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
               <label style={lbl}>Description professionnelle</label>
               <textarea value={miniSite.description} onChange={e => setMiniSite(p => ({ ...p, description: e.target.value }))}
                 rows={4} placeholder="Artisan qualifié avec X ans d'expérience, spécialisé dans… Décrivez vos services, votre approche et ce qui vous différencie."
-                style={{ ...inp, resize: "vertical", fontFamily: "inherit" }} />
+                style={{ ...inp, resize: "none", fontFamily: "inherit" }} />
             </div>
 
             {/* Aperçu du lien */}
@@ -1783,7 +1783,7 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
                 onChange={e => setParams(prev => ({ ...prev, mention_legale: e.target.value }))}
                 rows={3}
                 placeholder={"TVA non applicable, art. 293 B du CGI\nMicro-entrepreneur — SIRET : …"}
-                style={{ ...inp, resize: "vertical", fontFamily: "inherit", lineHeight: "1.55" }}
+                style={{ ...inp, resize: "none", fontFamily: "inherit", lineHeight: "1.55" }}
               />
             </div>
 
@@ -2956,7 +2956,7 @@ ALTER TABLE profils
                     value={contactMsg}
                     onChange={e => setContactMsg(e.target.value)}
                     rows={5}
-                    style={{ ...inp, resize: "vertical", minHeight: "110px", fontFamily: "inherit" }}
+                    style={{ ...inp, resize: "none", minHeight: "110px", fontFamily: "inherit" }}
                   />
                 </div>
 
