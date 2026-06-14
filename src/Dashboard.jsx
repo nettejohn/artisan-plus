@@ -93,7 +93,7 @@ export default function Dashboard({
   const [tourStep, setTourStep] = useState(0);
 
   // Paramètres PDF (thème, couleur, logo)
-  const [paramsPdf, setParamsPdf] = useState({ couleur_pdf: null, couleurs_pdf: null });
+  const [paramsPdf, setParamsPdf] = useState({ couleur_pdf: null, couleurs_pdf: null, afficher_badge_verifie: true });
 
   // Mode simplifié
   const [modeSimple,      setModeSimple]      = useState(false);
@@ -182,9 +182,7 @@ export default function Dashboard({
 
   // ── Notifications : vérifie les items en retard quand les données arrivent
   useEffect(() => {
-    if (factures.length > 0 || devis.length > 0) {
-      checkAndNotify?.(factures, devis);
-    }
+    checkAndNotify?.(factures, devis);
   }, [factures, devis]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Retour depuis Stripe : recharger le profil pour lire le plan mis à jour
@@ -391,6 +389,14 @@ export default function Dashboard({
         try {
           const cached = localStorage.getItem(`couleurs_pdf_${user.id}`);
           if (cached) setParamsPdf(prev => ({ ...prev, couleurs_pdf: JSON.parse(cached) }));
+        } catch {}
+      }
+      if (data.afficher_badge_verifie !== null && data.afficher_badge_verifie !== undefined) {
+        setParamsPdf(prev => ({ ...prev, afficher_badge_verifie: data.afficher_badge_verifie }));
+      } else {
+        try {
+          const cached = localStorage.getItem(`afficher_badge_pdf_${user.id}`);
+          if (cached !== null) setParamsPdf(prev => ({ ...prev, afficher_badge_verifie: JSON.parse(cached) }));
         } catch {}
       }
     }
@@ -624,7 +630,7 @@ export default function Dashboard({
       .eq("facture_id", facture.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     const logoBase64 = await chargerLogoBase64(artisan.logo_url);
-    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf });
+    genererFacturePDF(facture, facture.clients, lignes || [], artisan, false, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf, artisanVerifie: profil?.verification_statut === "verifie", afficherBadgeVerifie: paramsPdf.afficher_badge_verifie });
   };
 
   // ── Factur-X XML (facturation électronique structurée, conforme EN 16931) ────
@@ -644,7 +650,7 @@ export default function Dashboard({
       .eq("devis_id", d.id);
     const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
     const logoBase64 = await chargerLogoBase64(artisan.logo_url);
-    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf });
+    genererFacturePDF(d, d.clients, lignes || [], artisan, true, { lang, logoBase64, couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf, artisanVerifie: profil?.verification_statut === "verifie", afficherBadgeVerifie: paramsPdf.afficher_badge_verifie });
   };
 
   const supprimerFacture = async (id) => {
@@ -1532,13 +1538,15 @@ export default function Dashboard({
               </h2>
               {profil?.verification_statut === "verifie" && (
                 <div style={{
-                  display: "inline-flex", alignItems: "center", gap: "6px",
-                  background: "rgba(255,140,0,0.12)", border: "1.5px solid rgba(255,140,0,0.4)",
-                  borderRadius: "30px", padding: "6px 16px",
-                  color: PRIMARY, fontWeight: "800", fontSize: "12px",
+                  display: "inline-flex", alignItems: "center", gap: "7px",
+                  background: "linear-gradient(135deg, rgba(255,140,0,0.16) 0%, rgba(255,200,50,0.08) 100%)",
+                  border: "1.5px solid rgba(255,160,0,0.55)",
+                  borderRadius: "30px", padding: "7px 16px",
+                  color: "#FFB830", fontWeight: "800", fontSize: "12px",
                   flexShrink: 0,
+                  boxShadow: "0 2px 12px rgba(255,140,0,0.2)",
                 }}>
-                  ✓ Artisan Vérifié
+                  🏅 <span>✓ Artisan Vérifié</span>
                 </div>
               )}
               {profil?.verification_statut === "en_attente" && (
