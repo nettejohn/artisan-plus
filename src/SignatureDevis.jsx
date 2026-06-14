@@ -7,6 +7,7 @@ const DARK = "#0a1628";
 const CARD = "#111e35";
 
 export default function SignatureDevis({ token }) {
+  const [isFacture, setIsFacture] = useState(false);
   const [devis, setDevis] = useState(null);
   const [lignes, setLignes] = useState([]);
   const [artisan, setArtisan] = useState(null);
@@ -43,7 +44,7 @@ export default function SignatureDevis({ token }) {
         return;
       }
 
-      const { signature: sigData, devis: devisData, lignes: lignesData, artisan: artisanData, couleur_pdf } = json;
+      const { signature: sigData, devis: devisData, lignes: lignesData, artisan: artisanData, couleur_pdf, isFacture: isFact } = json;
 
       if (sigData.signe_le) {
         setSigne(true);
@@ -51,6 +52,7 @@ export default function SignatureDevis({ token }) {
         return;
       }
 
+      setIsFacture(!!isFact);
       setSignatureId(sigData.id);
       setDevis(devisData);
       setLignes(lignesData || []);
@@ -193,13 +195,13 @@ export default function SignatureDevis({ token }) {
       return;
     }
 
-    // 2. Passer le devis en "accepté" seulement si la signature est bien enregistrée
-    const { error: devisErr } = await supabase
-      .from("devis")
-      .update({ statut: "accepte" })
-      .eq("id", devis.id);
-
-    // On continue même si le statut n'a pas pu être mis à jour — la signature est enregistrée
+    // 2. Mettre à jour le statut du document (devis ou facture)
+    if (isFacture) {
+      await supabase.from("factures").update({ statut: "signee" }).eq("id", devis.id);
+    } else {
+      await supabase.from("devis").update({ statut: "accepte" }).eq("id", devis.id);
+    }
+    // On continue même si la mise à jour échoue — la signature est enregistrée
 
     // 3. Afficher l'écran de succès
     setSigne(true);
@@ -222,15 +224,25 @@ export default function SignatureDevis({ token }) {
     // 5. Envoyer les emails via la fonction serverless Vercel
     setEmailStatut("envoi");
     try {
-      const payload = {
-        emailArtisan: artisan?.email || null,
-        emailClient: devis.clients?.email || null,
-        nomClient: nom,
-        nomArtisan: artisan?.nom || null,
-        numeroDevis: devis.numero,
-        montantTTC: devis.total_ttc ?? null,
-        pdfBase64,
-      };
+      const payload = isFacture
+        ? {
+            numeroFacture: devis.numero,
+            emailClient: devis.clients?.email || null,
+            emailArtisan: artisan?.email || null,
+            nomArtisan: artisan?.nom || null,
+            nomClient: nom,
+            montantTTC: devis.total_ttc ?? null,
+            pdfBase64,
+          }
+        : {
+            emailArtisan: artisan?.email || null,
+            emailClient: devis.clients?.email || null,
+            nomClient: nom,
+            nomArtisan: artisan?.nom || null,
+            numeroDevis: devis.numero,
+            montantTTC: devis.total_ttc ?? null,
+            pdfBase64,
+          };
 
       const response = await fetch("/api/send-email", {
         method: "POST",
@@ -290,7 +302,7 @@ export default function SignatureDevis({ token }) {
     <div style={{ minHeight: "100vh", background: DARK, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
       <div style={{ background: CARD, borderRadius: "20px", padding: "40px", textAlign: "center", maxWidth: "420px", width: "100%", border: "1px solid rgba(76,175,80,0.3)", boxShadow: "0 0 40px rgba(76,175,80,0.1)" }}>
         <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
-        <div style={{ color: "white", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>Devis signé !</div>
+        <div style={{ color: "white", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>{isFacture ? "Facture signée !" : "Devis signé !"}</div>
         <div style={{ color: "#8899aa", fontSize: "14px", marginBottom: "28px" }}>
           Votre accord a bien été enregistré.
         </div>
@@ -348,7 +360,7 @@ export default function SignatureDevis({ token }) {
               onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.1)"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              📄 Lire le devis signé
+              📄 Lire le {isFacture ? "document" : "devis"} signé
             </button>
             <button
               onClick={telechargerDevisSigne}
@@ -362,7 +374,7 @@ export default function SignatureDevis({ token }) {
               onMouseEnter={e => e.currentTarget.style.background = "rgba(255,140,0,0.1)"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              ⬇️ Télécharger le devis signé
+              ⬇️ Télécharger le {isFacture ? "document" : "devis"} signé
             </button>
           </div>
         )}

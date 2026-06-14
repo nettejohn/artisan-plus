@@ -768,17 +768,28 @@ export default function Dashboard({
         });
         pdfBase64 = uri.split(",")[1];
       } catch (_) {}
-      // Pour "avec signature" sur un devis : créer/récupérer le token
+      // Pour "avec signature" : créer/récupérer le token (devis ou facture)
       let signatureLien = null;
-      if (mode === "avec_signature" && docType === "devis") {
-        const { data: existing } = await supabase.from("signatures").select("token").eq("devis_id", doc.id).single();
-        let token = existing?.token;
-        if (!token) {
-          token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-          await supabase.from("signatures").insert({ devis_id: doc.id, token });
-          await new Promise(r => setTimeout(r, 300));
+      if (mode === "avec_signature") {
+        if (docType === "devis") {
+          const { data: existing } = await supabase.from("signatures").select("token").eq("devis_id", doc.id).single();
+          let tok = existing?.token;
+          if (!tok) {
+            tok = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            await supabase.from("signatures").insert({ devis_id: doc.id, token: tok });
+            await new Promise(r => setTimeout(r, 300));
+          }
+          signatureLien = `https://www.artisan-plus.fr/signer/${tok}`;
+        } else if (docType === "facture") {
+          const { data: existing } = await supabase.from("signatures").select("token").eq("facture_id", doc.id).single();
+          let tok = existing?.token;
+          if (!tok) {
+            tok = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            await supabase.from("signatures").insert({ facture_id: doc.id, token: tok });
+            await new Promise(r => setTimeout(r, 300));
+          }
+          signatureLien = `https://www.artisan-plus.fr/signer/${tok}`;
         }
-        signatureLien = `https://www.artisan-plus.fr/signer/${token}`;
       }
       // Construire le payload
       const payload = docType === "facture"
@@ -874,6 +885,25 @@ export default function Dashboard({
 
     await supabase.from("lignes_facture").insert(lignesFacture);
     await supabase.from("devis").update({ statut: "accepte" }).eq("id", d.id);
+
+    // Reporter la signature du devis sur la facture (preuve d'accord client)
+    const { data: sigDevis } = await supabase
+      .from("signatures")
+      .select("signature_data, nom_signataire, signe_le")
+      .eq("devis_id", d.id)
+      .not("signe_le", "is", null)
+      .single();
+    if (sigDevis?.signature_data) {
+      const tok = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      await supabase.from("signatures").insert({
+        facture_id: factureData.id,
+        token: tok,
+        signature_data: sigDevis.signature_data,
+        nom_signataire: sigDevis.nom_signataire,
+        signe_le: sigDevis.signe_le,
+      });
+    }
+
     chargerDonnees();
     setActiveTab("documents"); setDocSub("factures");
     alert("✅ Devis converti en facture !");
@@ -3834,13 +3864,12 @@ export default function Dashboard({
                 <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "10px" }}>Mode d'envoi</div>
                 {[
                   { value: "sans_signature", icon: "📄", label: "PDF uniquement", desc: "Le client reçoit le document en PDF joint à l'email" },
-                  { value: "avec_signature", icon: "✍️", label: "Avec demande de signature", desc: emailModal.docType === "facture" ? "Non disponible pour les factures" : "Le client reçoit le PDF et un lien pour signer en ligne" },
+                  { value: "avec_signature", icon: "✍️", label: "Avec demande de signature", desc: "Le client reçoit le PDF et un lien pour signer en ligne" },
                 ].map(opt => {
-                  const disabled = opt.value === "avec_signature" && emailModal.docType === "facture";
-                  const active   = emailModal.mode === opt.value && !disabled;
+                  const active = emailModal.mode === opt.value;
                   return (
-                    <label key={opt.value} style={{ display: "flex", gap: "12px", alignItems: "flex-start", cursor: disabled ? "not-allowed" : "pointer", padding: "12px 14px", borderRadius: "12px", marginBottom: "8px", opacity: disabled ? 0.45 : 1, background: active ? "rgba(255,140,0,0.1)" : "rgba(255,255,255,0.04)", border: `1px solid ${active ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.08)"}`, transition: "all 0.15s" }}>
-                      <input type="radio" name="email-mode" value={opt.value} disabled={disabled} checked={emailModal.mode === opt.value} onChange={() => !disabled && setEmailModal(m => ({ ...m, mode: opt.value }))} style={{ marginTop: "2px", accentColor: "#FF8C00" }} />
+                    <label key={opt.value} style={{ display: "flex", gap: "12px", alignItems: "flex-start", cursor: "pointer", padding: "12px 14px", borderRadius: "12px", marginBottom: "8px", background: active ? "rgba(255,140,0,0.1)" : "rgba(255,255,255,0.04)", border: `1px solid ${active ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.08)"}`, transition: "all 0.15s" }}>
+                      <input type="radio" name="email-mode" value={opt.value} checked={active} onChange={() => setEmailModal(m => ({ ...m, mode: opt.value }))} style={{ marginTop: "2px", accentColor: "#FF8C00" }} />
                       <div>
                         <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>{opt.icon} {opt.label}</div>
                         <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px" }}>{opt.desc}</div>

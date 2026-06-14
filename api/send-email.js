@@ -610,7 +610,7 @@ async function handleDevis(apiKey, body, res) {
     }
   }
 
-  const success = resultats.erreurs.length === 0;
+  const success = (resultats.artisanEnvoye || resultats.clientEnvoye) && resultats.erreurs.length === 0;
   const statusCode = success ? 200 : (resultats.artisanEnvoye || resultats.clientEnvoye) ? 207 : 500;
   return res.status(statusCode).json({ success, ...resultats });
 }
