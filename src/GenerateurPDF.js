@@ -276,12 +276,16 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   doc.line(15, 102, 195, 102);
 
   // TABLEAU
-  const tableData = lignes.map(l => [
-    l.description,
-    l.quantite.toString(),
-    l.prix_unitaire.toFixed(2) + " €",
-    (l.quantite * l.prix_unitaire).toFixed(2) + " €"
-  ]);
+  const tableData = lignes.map(l => {
+    const qty = parseFloat(l.quantite) || 0;
+    const pu  = parseFloat(l.prix_unitaire) || 0;
+    return [
+      l.description || "",
+      qty.toString(),
+      pu.toFixed(2) + " €",
+      (qty * pu).toFixed(2) + " €",
+    ];
+  });
 
   autoTable(doc, {
     startY: 107,
@@ -406,7 +410,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.text(lbl.notes, estDevis ? 110 : 20, notesY + 2);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...theme.textColor);
-    const lignesNotes = doc.splitTextToSize(document.notes, 75);
+    const lignesNotes = doc.splitTextToSize(document.notes, 75).slice(0, 5);
     doc.text(lignesNotes, estDevis ? 110 : 20, notesY + 9);
   }
 
