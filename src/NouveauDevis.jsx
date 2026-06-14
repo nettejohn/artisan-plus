@@ -304,9 +304,8 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
       return;
     }
 
-    setMessage("✅ Devis créé avec succès !");
     setLoading(false);
-    setTimeout(() => onBack(), 1500);
+    onBack();
   };
 
   // ── Dictée vocale ─────────────────────────────────────────────────────────
@@ -773,6 +772,8 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
                 modifierLigne(catalogueLigneIndex, "description", desc);
                 modifierLigne(catalogueLigneIndex, "prix_unitaire", prix);
               }
+              setShowCatalogue(false);
+              setCatalogueLigneIndex(null);
             }}
             onClose={() => { setShowCatalogue(false); setCatalogueLigneIndex(null); }}
           />
