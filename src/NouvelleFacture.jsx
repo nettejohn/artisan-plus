@@ -158,6 +158,8 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   // ── Sauvegarde ─────────────────────────────────────────────────────────────
   const sauvegarder = async () => {
     if (!client.nom.trim()) { setMessage("❌ Le nom du client est obligatoire"); return; }
+    if (client.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(client.email.trim())) { setMessage("❌ L'adresse email du client n'est pas valide"); return; }
+    if (lignes.some(l => !l.description.trim())) { setMessage("❌ Toutes les lignes doivent avoir une description"); return; }
     setLoading(true);
     setMessage("");
 
