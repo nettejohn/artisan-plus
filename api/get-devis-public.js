@@ -75,8 +75,9 @@ export default async function handler(req, res) {
     // Récupérer l'email depuis auth.users si absent dans profils
     let artisanEmail = artisan?.email || null;
     if (!artisanEmail) {
-      const { data: authData } = await supa.auth.admin.getUserById(facture.user_id);
+      const { data: authData, error: authErr } = await supa.auth.admin.getUserById(facture.user_id);
       artisanEmail = authData?.user?.email || null;
+      console.log(`[get-devis-public/facture] profils.email="${artisan?.email || 'NULL'}", auth.email="${artisanEmail || 'NULL'}", authErr="${authErr?.message || 'none'}"`);
     }
 
     const { data: params } = await supa
@@ -122,8 +123,9 @@ export default async function handler(req, res) {
   // Fix 3 — email artisan depuis auth.users si absent dans profils
   let artisanEmail = artisan?.email || null;
   if (!artisanEmail) {
-    const { data: authData } = await supa.auth.admin.getUserById(devis.user_id);
+    const { data: authData, error: authErr } = await supa.auth.admin.getUserById(devis.user_id);
     artisanEmail = authData?.user?.email || null;
+    console.log(`[get-devis-public/devis] profils.email="${artisan?.email || 'NULL'}", auth.email="${artisanEmail || 'NULL'}", authErr="${authErr?.message || 'none'}"`);
   }
 
   const { data: params } = await supa

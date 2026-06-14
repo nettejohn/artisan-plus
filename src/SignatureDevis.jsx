@@ -267,6 +267,7 @@ export default function SignatureDevis({ token }) {
       setEmailDetail({
         artisan: resultat.artisanEnvoye ?? false,
         client: resultat.clientEnvoye ?? false,
+        reason: resultat.reason ?? null,
       });
 
       if (resultat.success) {
@@ -341,7 +342,11 @@ export default function SignatureDevis({ token }) {
 
         {emailStatut === "erreur" && (
           <div style={{ background: "rgba(255,100,100,0.08)", border: "1px solid rgba(255,100,100,0.25)", borderRadius: "12px", padding: "14px" }}>
-            <div style={{ color: "#ff6b6b", fontSize: "13px" }}>⚠️ Emails non envoyés — votre signature est bien enregistrée.</div>
+            <div style={{ color: "#ff6b6b", fontSize: "13px" }}>
+              {emailDetail.reason === "no_email"
+                ? "⚠️ Aucun email configuré — votre signature est bien enregistrée."
+                : "⚠️ Emails non envoyés — votre signature est bien enregistrée."}
+            </div>
           </div>
         )}
 

@@ -560,6 +560,8 @@ async function handleDevis(apiKey, body, res) {
     return res.status(400).json({ error: "Paramètre manquant : numeroDevis" });
   }
 
+  console.log(`[send-email/devis] devis=${numeroDevis} | emailArtisan="${emailArtisan || 'NULL'}" | emailClient="${emailClient || 'NULL'}" | PDF=${pdfBase64 ? "oui" : "non"}`);
+
   const montantFormate =
     montantTTC != null
       ? (typeof montantTTC === "number" ? montantTTC.toFixed(2) : String(montantTTC))
@@ -612,7 +614,8 @@ async function handleDevis(apiKey, body, res) {
 
   const success = (resultats.artisanEnvoye || resultats.clientEnvoye) && resultats.erreurs.length === 0;
   const statusCode = success ? 200 : (resultats.artisanEnvoye || resultats.clientEnvoye) ? 207 : 500;
-  return res.status(statusCode).json({ success, ...resultats });
+  const reason = (!emailArtisan && !emailClient) ? "no_email" : resultats.erreurs.length > 0 ? "send_failed" : null;
+  return res.status(statusCode).json({ success, reason, ...resultats });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
