@@ -76,6 +76,7 @@ export default function SignatureDevis({ token }) {
   // ── Dessin de signature ──────────────────────────────────────────────────────
 
   const startDraw = (e) => {
+    if (!canvasRef.current) return;
     setDessin(true);
     setADessiné(true);
     const canvas = canvasRef.current;
@@ -90,7 +91,7 @@ export default function SignatureDevis({ token }) {
   };
 
   const draw = (e) => {
-    if (!dessin) return;
+    if (!dessin || !canvasRef.current) return;
     e.preventDefault();
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
