@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, Component } from "react";
 import CookieBanner from "./CookieBanner";
 
 // Singleton lazy : Supabase est chargé uniquement après le premier rendu,
@@ -23,6 +23,26 @@ const SignatureDevis = lazy(() => import("./SignatureDevis"));
 const SuiviChantier  = lazy(() => import("./SuiviChantier"));
 const MiniSite       = lazy(() => import("./MiniSite"));
 const OuvrierChantier = lazy(() => import("./OuvrierChantier"));
+
+class AppErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) return (
+      <div style={{ minHeight: "100vh", background: "#0a1628", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "white", padding: "24px", textAlign: "center" }}>
+        <div style={{ fontSize: "48px", marginBottom: "16px" }}>⚠️</div>
+        <h2 style={{ color: "#FF8C00", marginBottom: "8px" }}>Une erreur est survenue</h2>
+        <p style={{ color: "#aaa", marginBottom: "24px" }}>Veuillez recharger la page.</p>
+        <button onClick={() => window.location.reload()} style={{ background: "#FF8C00", color: "white", border: "none", borderRadius: "10px", padding: "12px 24px", cursor: "pointer", fontWeight: "600" }}>Recharger</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+function SafeLoad({ fallback, children }) {
+  return <AppErrorBoundary><Suspense fallback={fallback}>{children}</Suspense></AppErrorBoundary>;
+}
 
 // Fallback minimaliste pendant le chargement des pages publiques
 function PublicFallback() {
@@ -529,34 +549,34 @@ export default function App() {
   );
 
   // Page de signature — pas de splash
-  if (signatureToken) return <Suspense fallback={<PublicFallback />}><SignatureDevis token={signatureToken} /></Suspense>;
+  if (signatureToken) return <SafeLoad fallback={<PublicFallback />}><SignatureDevis token={signatureToken} /></SafeLoad>;
 
   // ── Sous-domaine automatique — [slug].artisan-plus.fr ────────────────────
   const hostname = window.location.hostname;
   const subMatch = hostname.match(/^([a-z0-9-]+)\.artisan-plus\.fr$/);
-  if (subMatch && subMatch[1] !== "www") return <Suspense fallback={<PublicFallback />}><MiniSite slug={subMatch[1]} /></Suspense>;
+  if (subMatch && subMatch[1] !== "www") return <SafeLoad fallback={<PublicFallback />}><MiniSite slug={subMatch[1]} /></SafeLoad>;
 
   // Page de suivi chantier — publique, pas d'auth
   const suiviPath = window.location.pathname;
   if (suiviPath.startsWith("/suivi/")) {
     const suiviToken = suiviPath.replace("/suivi/", "").split("?")[0];
-    if (suiviToken) return <Suspense fallback={<PublicFallback />}><SuiviChantier token={suiviToken} /></Suspense>;
+    if (suiviToken) return <SafeLoad fallback={<PublicFallback />}><SuiviChantier token={suiviToken} /></SafeLoad>;
   }
 
   // Mini-site artisan public — /site/:slug (primary) ou /artisan/:slug (legacy)
   if (suiviPath.startsWith("/site/")) {
     const artisanSlug = suiviPath.replace("/site/", "").split("?")[0];
-    if (artisanSlug) return <Suspense fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></Suspense>;
+    if (artisanSlug) return <SafeLoad fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></SafeLoad>;
   }
   if (suiviPath.startsWith("/artisan/")) {
     const artisanSlug = suiviPath.replace("/artisan/", "").split("?")[0];
-    if (artisanSlug) return <Suspense fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></Suspense>;
+    if (artisanSlug) return <SafeLoad fallback={<PublicFallback />}><MiniSite slug={artisanSlug} /></SafeLoad>;
   }
 
   // Accès ouvrier — /ouvrier/:token
   if (suiviPath.startsWith("/ouvrier/")) {
     const ouvrierToken = suiviPath.replace("/ouvrier/", "").split("?")[0];
-    if (ouvrierToken) return <Suspense fallback={<PublicFallback />}><OuvrierChantier token={ouvrierToken} /></Suspense>;
+    if (ouvrierToken) return <SafeLoad fallback={<PublicFallback />}><OuvrierChantier token={ouvrierToken} /></SafeLoad>;
   }
 
   // Détection compte invité : email déterministe généré par handleGuestLogin
@@ -572,13 +592,13 @@ export default function App() {
     if (sessionLoading) return <PublicFallback />;
     const isLoginPath = routePath === "/login" || routePath === "/connexion" || routePath === "/inscription";
     if (!isLoginPath) {
-      if (routePath === "/blog" || routePath.startsWith("/blog/")) return <><Suspense fallback={<PublicFallback />}><Blog /></Suspense><CookieBanner /></>;
+      if (routePath === "/blog" || routePath.startsWith("/blog/")) return <><SafeLoad fallback={<PublicFallback />}><Blog /></SafeLoad><CookieBanner /></>;
       return <><Vitrine /><CookieBanner /></>;
     }
   }
 
   if (user) return (
-    <Suspense fallback={<PublicFallback />}>
+    <SafeLoad fallback={<PublicFallback />}>
       <>
         {splashEl}
         <Dashboard
@@ -603,7 +623,7 @@ export default function App() {
           onPaymentStatusCleared={() => setPaymentStatus(null)}
         />
       </>
-    </Suspense>
+    </SafeLoad>
   );
 
   return (
