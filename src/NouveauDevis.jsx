@@ -384,7 +384,15 @@ export default function NouveauDevis({ user, onBack, clientInitialId, modeSimple
     };
     recog.onerror = (e) => {
       setVocalEcoute(false);
-      setVocalError(e.error === "no-speech" ? "⚠️ Aucune voix détectée. Réessayez." : "❌ Erreur : " + e.error);
+      const msgs = {
+        "no-speech":         "⚠️ Aucune voix détectée. Réessayez.",
+        "audio-capture":     "❌ Microphone inaccessible. Vérifiez les permissions.",
+        "not-allowed":       "❌ Accès au microphone refusé.",
+        "network":           "❌ Erreur réseau. Vérifiez votre connexion.",
+        "aborted":           "⚠️ Dictée annulée.",
+        "language-not-supported": "❌ Langue non supportée par votre navigateur.",
+      };
+      setVocalError(msgs[e.error] || "❌ Erreur dictée : " + e.error);
     };
     recog.onend = () => setVocalEcoute(false);
 
