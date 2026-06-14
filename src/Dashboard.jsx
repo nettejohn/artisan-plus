@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { useLanguage, useLocale } from "./i18n";
 import NouvelleFacture from "./NouvelleFacture";
 import NouveauDevis from "./NouveauDevis";
-import { genererFacturePDF, telechargerFactureXML, chargerLogoBase64 } from "./GenerateurPDF";
+import { genererFacturePDF, genererPDFBase64, telechargerFactureXML, chargerLogoBase64 } from "./GenerateurPDF";
 import Profil from "./Profil";
 import Chantiers from "./Chantiers";
 import Parametres from "./Parametres";
@@ -67,6 +67,7 @@ export default function Dashboard({
   const [profil, setProfil] = useState(null);
   const [stats, setStats] = useState({ factures: 0, devis: 0, ca: 0, clients: 0 });
   const [lienCopie, setLienCopie] = useState(null);
+  const [emailModal, setEmailModal] = useState({ open: false, docType: null, doc: null, mode: "sans_signature", emailClient: "", loading: false, sent: false, error: null });
 
   // Freemium / Upgrade
   const [upgradeModal,   setUpgradeModal]   = useState({ open: false, type: "factures" });
@@ -736,6 +737,59 @@ export default function Dashboard({
       navigator.clipboard.writeText(lien).catch(() => {});
       setLienCopie(d.id);
       setTimeout(() => setLienCopie(null), 3000);
+    }
+  };
+
+  // ── Envoi email avec PDF joint ───────────────────────────────────
+  const ouvrirEmailModal = (docType, doc) => {
+    setEmailModal({ open: true, docType, doc, mode: "sans_signature", emailClient: doc.clients?.email || "", loading: false, sent: false, error: null });
+  };
+
+  const envoyerEmail = async () => {
+    const { docType, doc, mode, emailClient } = emailModal;
+    if (!emailClient.trim()) { setEmailModal(m => ({ ...m, error: "Veuillez saisir l'email du client" })); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClient.trim())) { setEmailModal(m => ({ ...m, error: "Adresse email invalide" })); return; }
+    setEmailModal(m => ({ ...m, loading: true, error: null }));
+    try {
+      // Charger les lignes
+      const table = docType === "facture" ? "lignes_facture" : "lignes_devis";
+      const fk    = docType === "facture" ? "facture_id"    : "devis_id";
+      const { data: lignesData } = await supabase.from(table).select("*").eq(fk, doc.id);
+      // Générer le PDF
+      const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "" };
+      const logoB64 = await chargerLogoBase64(artisan.logo_url);
+      let pdfBase64 = null;
+      try {
+        const uri = genererPDFBase64(doc, doc.clients, lignesData || [], artisan, docType === "devis", {
+          lang, logoBase64: logoB64,
+          couleurPdf: paramsPdf.couleur_pdf, couleursPdf: paramsPdf.couleurs_pdf,
+          artisanVerifie: profil?.verification_statut === "verifie",
+          afficherBadgeVerifie: paramsPdf.afficher_badge_verifie,
+        });
+        pdfBase64 = uri.split(",")[1];
+      } catch (_) {}
+      // Pour "avec signature" sur un devis : créer/récupérer le token
+      let signatureLien = null;
+      if (mode === "avec_signature" && docType === "devis") {
+        const { data: existing } = await supabase.from("signatures").select("token").eq("devis_id", doc.id).single();
+        let token = existing?.token;
+        if (!token) {
+          token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+          await supabase.from("signatures").insert({ devis_id: doc.id, token });
+          await new Promise(r => setTimeout(r, 300));
+        }
+        signatureLien = `https://www.artisan-plus.fr/signer/${token}`;
+      }
+      // Construire le payload
+      const payload = docType === "facture"
+        ? { numeroFacture: doc.numero, emailClient: emailClient.trim(), emailArtisan: artisan.email || null, nomArtisan: artisan.nom, nomClient: doc.clients?.nom, montantTTC: doc.total_ttc, pdfBase64, lang }
+        : { type: mode === "avec_signature" ? "devis_avec_signature" : "devis_direct", numeroDevis: doc.numero, emailClient: emailClient.trim(), emailArtisan: artisan.email || null, nomArtisan: artisan.nom, nomClient: doc.clients?.nom, montantTTC: doc.total_ttc, pdfBase64, signatureLien, lang };
+      const resp = await fetch("/api/send-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.error || "Erreur serveur"); }
+      setEmailModal(m => ({ ...m, loading: false, sent: true }));
+      setTimeout(() => setEmailModal({ open: false, docType: null, doc: null, mode: "sans_signature", emailClient: "", loading: false, sent: false, error: null }), 2500);
+    } catch (err) {
+      setEmailModal(m => ({ ...m, loading: false, error: "❌ " + err.message }));
     }
   };
 
@@ -1495,7 +1549,7 @@ export default function Dashboard({
                         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                           <span style={{ color: PRIMARY, fontWeight: "700", fontSize: "14px" }}>{d.total_ttc?.toFixed(0)} €</span>
                           <button
-                            onClick={() => envoyerPourSignature(d)}
+                            onClick={() => ouvrirEmailModal("devis", d)}
                             style={{
                               background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)",
                               color: PRIMARY, borderRadius: "8px", padding: "6px 12px",
@@ -2413,17 +2467,7 @@ export default function Dashboard({
                           cursor: "pointer", fontSize: "12px", fontWeight: "600"
                         }}>📄 PDF</button>
                         <button
-                          onClick={async () => {
-                            const { data: lignes } = await supabase.from("lignes_facture").select("*").eq("facture_id", f.id);
-                            const artisan = profil || { nom: user.email, adresse: "", siret: "", telephone: "", iban: "" };
-                            try {
-                              if (navigator.share) {
-                                await navigator.share({ title: `Facture ${f.numero}`, text: `Bonjour,\n\nVeuillez trouver votre facture ${f.numero} — Total : ${parseFloat(f.total_ttc || 0).toFixed(2)} €.\n\nCordialement` });
-                              } else {
-                                await navigator.clipboard.writeText(`Facture ${f.numero} — ${parseFloat(f.total_ttc || 0).toFixed(2)} €`);
-                              }
-                            } catch(e) { if (e.name !== "AbortError") alert("Partage non disponible"); }
-                          }}
+                          onClick={() => ouvrirEmailModal("facture", f)}
                           title="Envoyer la facture au client"
                           style={{
                             background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
@@ -2513,7 +2557,7 @@ export default function Dashboard({
                         color: PRIMARY, borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
                       }}>📄 PDF</button>
-                      <button onClick={() => envoyerPourSignature(d)} style={{
+                      <button onClick={() => ouvrirEmailModal("devis", d)} style={{
                         background: "rgba(100,149,237,0.1)", border: "1px solid rgba(100,149,237,0.3)",
                         color: "#6495ED", borderRadius: "8px", padding: "8px 12px",
                         cursor: "pointer", fontSize: "13px", fontWeight: "600"
@@ -3767,6 +3811,61 @@ export default function Dashboard({
       })()}
 
       {/* ── QR CODE MODAL ─────────────────────────────────────── */}
+      {/* ── Modal envoi email avec PDF ─────────────────────────── */}
+      {emailModal.open && (
+        <>
+          <div onClick={() => !emailModal.loading && setEmailModal(m => ({ ...m, open: false }))} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 999, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "440px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,140,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }}>
+              <h3 style={{ color: "white", margin: 0, fontSize: "17px", fontWeight: "700" }}>
+                📤 Envoyer {emailModal.docType === "facture" ? "la facture" : "le devis"} par email
+              </h3>
+              {!emailModal.loading && <button onClick={() => setEmailModal(m => ({ ...m, open: false }))} style={{ background: "none", border: "none", color: "#8899aa", cursor: "pointer", fontSize: "22px", lineHeight: 1, padding: 0 }}>✕</button>}
+            </div>
+            {emailModal.sent ? (
+              <div style={{ textAlign: "center", padding: "24px 0" }}>
+                <div style={{ fontSize: "52px", marginBottom: "12px" }}>✅</div>
+                <div style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>Email envoyé avec succès !</div>
+                <div style={{ color: "#8899aa", fontSize: "13px", marginTop: "6px" }}>Le PDF est joint à l'email.</div>
+              </div>
+            ) : (<>
+              {/* Mode */}
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: "10px" }}>Mode d'envoi</div>
+                {[
+                  { value: "sans_signature", icon: "📄", label: "PDF uniquement", desc: "Le client reçoit le document en PDF joint à l'email" },
+                  { value: "avec_signature", icon: "✍️", label: "Avec demande de signature", desc: emailModal.docType === "facture" ? "Non disponible pour les factures" : "Le client reçoit le PDF et un lien pour signer en ligne" },
+                ].map(opt => {
+                  const disabled = opt.value === "avec_signature" && emailModal.docType === "facture";
+                  const active   = emailModal.mode === opt.value && !disabled;
+                  return (
+                    <label key={opt.value} style={{ display: "flex", gap: "12px", alignItems: "flex-start", cursor: disabled ? "not-allowed" : "pointer", padding: "12px 14px", borderRadius: "12px", marginBottom: "8px", opacity: disabled ? 0.45 : 1, background: active ? "rgba(255,140,0,0.1)" : "rgba(255,255,255,0.04)", border: `1px solid ${active ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.08)"}`, transition: "all 0.15s" }}>
+                      <input type="radio" name="email-mode" value={opt.value} disabled={disabled} checked={emailModal.mode === opt.value} onChange={() => !disabled && setEmailModal(m => ({ ...m, mode: opt.value }))} style={{ marginTop: "2px", accentColor: "#FF8C00" }} />
+                      <div>
+                        <div style={{ color: "white", fontWeight: "600", fontSize: "14px" }}>{opt.icon} {opt.label}</div>
+                        <div style={{ color: "#8899aa", fontSize: "12px", marginTop: "3px" }}>{opt.desc}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {/* Email */}
+              <div style={{ marginBottom: "18px" }}>
+                <label style={{ color: "#8899aa", fontSize: "11px", fontWeight: "700", letterSpacing: "0.8px", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>Email du client *</label>
+                <input type="email" value={emailModal.emailClient} onChange={e => setEmailModal(m => ({ ...m, emailClient: e.target.value, error: null }))} placeholder="client@exemple.fr" style={{ width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${emailModal.error ? "#f44336" : "rgba(255,140,0,0.3)"}`, background: "rgba(255,255,255,0.06)", color: "white", fontSize: "14px", boxSizing: "border-box", outline: "none" }} />
+              </div>
+              {emailModal.error && <div style={{ color: "#f87171", fontSize: "13px", marginBottom: "14px" }}>{emailModal.error}</div>}
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button onClick={() => setEmailModal(m => ({ ...m, open: false }))} style={{ flex: 1, padding: "12px", borderRadius: "10px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#aaa", cursor: "pointer", fontWeight: "600", fontSize: "14px" }}>Annuler</button>
+                <button onClick={envoyerEmail} disabled={emailModal.loading} style={{ flex: 2, padding: "12px", borderRadius: "10px", background: emailModal.loading ? "#333" : "#FF8C00", border: "none", color: "white", cursor: emailModal.loading ? "not-allowed" : "pointer", fontWeight: "700", fontSize: "14px" }}>
+                  {emailModal.loading ? "⏳ Génération PDF…" : "📤 Envoyer"}
+                </button>
+              </div>
+            </>)}
+          </div>
+        </>
+      )}
+
       {qrModal.open && (
         <>
           {/* Backdrop */}

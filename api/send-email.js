@@ -64,6 +64,12 @@ export default async function handler(req, res) {
   if (body.type === "verification") {
     return handleVerification(apiKey, body, res);
   }
+  if (body.type === "devis_direct") {
+    return handleDevisDirect(apiKey, body, res);
+  }
+  if (body.type === "devis_avec_signature") {
+    return handleDevisAvecSignature(apiKey, body, res);
+  }
   if (body.numeroFacture) {
     return handleFacture(apiKey, body, res);
   }
@@ -383,6 +389,163 @@ async function handleFacture(apiKey, body, res) {
   const success = resultats.erreurs.length === 0 && (resultats.clientEnvoye || resultats.artisanEnvoye);
   const status = success ? 200 : (resultats.clientEnvoye || resultats.artisanEnvoye) ? 207 : 500;
   return res.status(status).json({ success, ...resultats });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Envoi devis SANS signature (PDF joint, pas de lien)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handleDevisDirect(apiKey, body, res) {
+  const { emailClient, emailArtisan, nomArtisan, nomClient, numeroDevis, montantTTC, pdfBase64, lang } = body;
+  if (!numeroDevis) return res.status(400).json({ error: "Paramètre manquant : numeroDevis" });
+
+  const isEn = lang === "en";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const montantFormate = montantTTC != null ? (typeof montantTTC === "number" ? montantTTC.toFixed(2) : String(montantTTC)) : "—";
+  const attachments = pdfBase64 ? [{ filename: `devis-${esc(numeroDevis)}.pdf`, content: pdfBase64 }] : [];
+  const resultats = { clientEnvoye: false, artisanEnvoye: false, erreurs: [] };
+
+  if (emailClient) {
+    try {
+      await appelResend(apiKey, {
+        from: FROM, to: [emailClient],
+        subject: isEn ? `Your quote ${esc(numeroDevis)} — ${esc(nomArtisan) || "Craftsman"}` : `Votre devis ${esc(numeroDevis)} — ${esc(nomArtisan) || "Artisan"}`,
+        html: `<!DOCTYPE html><html lang="${isEn ? "en" : "fr"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+  <div style="background:#0a1628;padding:28px 36px;text-align:center;"><span style="font-size:30px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span></div>
+  <div style="background:#FF8C00;padding:22px 36px;text-align:center;"><div style="font-size:36px;margin-bottom:8px;">📋</div><div style="color:#fff;font-size:20px;font-weight:700;">${isEn ? "Your quote" : "Votre devis"}</div></div>
+  <div style="padding:36px;">
+    <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${isEn ? "Hello" : "Bonjour"} <strong>${esc(nomClient) || (isEn ? "Client" : "Client")}</strong>,</p>
+    <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.7;">${isEn ? `Please find attached your quote <strong>${esc(numeroDevis)}</strong> from <strong>${esc(nomArtisan) || "your craftsman"}</strong> dated <strong>${date}</strong>.` : `Veuillez trouver ci-joint votre devis <strong>${esc(numeroDevis)}</strong> de <strong>${esc(nomArtisan) || "votre artisan"}</strong> en date du <strong>${date}</strong>.`}</p>
+    <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Reference" : "Référence"}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${esc(numeroDevis)}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Craftsman" : "Artisan"}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${esc(nomArtisan) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Total amount" : "Montant TTC"}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+      </table>
+    </div>
+    <p style="margin:0;color:#777;font-size:13px;">${isEn ? "The quote is attached to this email as a PDF." : "Le devis est joint à cet email en PDF. Pour toute question, contactez votre artisan."}</p>
+  </div>
+  <div style="background:#0a1628;padding:18px 36px;text-align:center;"><span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span></div>
+</div></body></html>`,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
+      resultats.clientEnvoye = true;
+    } catch (err) { resultats.erreurs.push(`Client : ${err.message}`); }
+  }
+
+  if (emailArtisan) {
+    try {
+      await appelResend(apiKey, {
+        from: FROM, to: [emailArtisan],
+        subject: isEn ? `✅ Quote ${esc(numeroDevis)} sent to ${esc(nomClient) || "client"}` : `✅ Devis ${esc(numeroDevis)} envoyé à ${esc(nomClient) || "votre client"}`,
+        html: `<!DOCTYPE html><html lang="${isEn ? "en" : "fr"}"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+  <div style="background:#0a1628;padding:24px 32px;text-align:center;"><span style="font-size:26px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span></div>
+  <div style="padding:28px;">
+    <p style="color:#1a1a2e;font-size:15px;margin:0 0 12px;">${isEn ? "Hello" : "Bonjour"} <strong>${esc(nomArtisan) || (isEn ? "Craftsman" : "Artisan")}</strong>,</p>
+    <p style="color:#555;font-size:14px;line-height:1.7;margin:0 0 20px;">${isEn ? `Your quote <strong>${esc(numeroDevis)}</strong> has been sent to <strong>${esc(nomClient) || "your client"}</strong> on <strong>${date}</strong>.` : `Votre devis <strong>${esc(numeroDevis)}</strong> a été envoyé à <strong>${esc(nomClient) || "votre client"}</strong> le <strong>${date}</strong>.`}</p>
+    <div style="background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">${isEn ? "Reference" : "Référence"}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${esc(numeroDevis)}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">${isEn ? "Client" : "Client"}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${esc(nomClient) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">${isEn ? "Amount" : "Montant"}</td><td style="color:#FF8C00;font-size:16px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+      </table>
+    </div>
+  </div>
+  <div style="background:#0a1628;padding:16px 32px;text-align:center;"><span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span></div>
+</div></body></html>`,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
+      resultats.artisanEnvoye = true;
+    } catch (err) { resultats.erreurs.push(`Artisan : ${err.message}`); }
+  }
+
+  const success = resultats.erreurs.length === 0 && (resultats.clientEnvoye || resultats.artisanEnvoye);
+  return res.status(success ? 200 : (resultats.clientEnvoye || resultats.artisanEnvoye) ? 207 : 500).json({ success, ...resultats });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Envoi devis AVEC demande de signature (PDF + lien de signature)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function handleDevisAvecSignature(apiKey, body, res) {
+  const { emailClient, emailArtisan, nomArtisan, nomClient, numeroDevis, montantTTC, pdfBase64, signatureLien, lang } = body;
+  if (!numeroDevis) return res.status(400).json({ error: "Paramètre manquant : numeroDevis" });
+
+  const isEn = lang === "en";
+  const locale = isEn ? "en-GB" : "fr-FR";
+  const date = new Date().toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+  const montantFormate = montantTTC != null ? (typeof montantTTC === "number" ? montantTTC.toFixed(2) : String(montantTTC)) : "—";
+  const attachments = pdfBase64 ? [{ filename: `devis-${esc(numeroDevis)}.pdf`, content: pdfBase64 }] : [];
+  const btnLabel = isEn ? "Sign the quote online" : "Signer le devis en ligne";
+  const resultats = { clientEnvoye: false, artisanEnvoye: false, erreurs: [] };
+
+  if (emailClient) {
+    try {
+      await appelResend(apiKey, {
+        from: FROM, to: [emailClient],
+        subject: isEn ? `Your quote ${esc(numeroDevis)} — Signature required` : `Votre devis ${esc(numeroDevis)} — Signature demandée`,
+        html: `<!DOCTYPE html><html lang="${isEn ? "en" : "fr"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+  <div style="background:#0a1628;padding:28px 36px;text-align:center;"><span style="font-size:30px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span></div>
+  <div style="background:#FF8C00;padding:22px 36px;text-align:center;"><div style="font-size:36px;margin-bottom:8px;">✍️</div><div style="color:#fff;font-size:20px;font-weight:700;">${isEn ? "Quote ready to sign" : "Devis à signer"}</div></div>
+  <div style="padding:36px;">
+    <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;">${isEn ? "Hello" : "Bonjour"} <strong>${esc(nomClient) || "Client"}</strong>,</p>
+    <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.7;">${isEn ? `Please find attached your quote <strong>${esc(numeroDevis)}</strong> from <strong>${esc(nomArtisan) || "your craftsman"}</strong>. You can review and sign it online by clicking the button below.` : `Voici votre devis <strong>${esc(numeroDevis)}</strong> de <strong>${esc(nomArtisan) || "votre artisan"}</strong> en date du <strong>${date}</strong>. Consultez et signez-le en ligne en cliquant ci-dessous.`}</p>
+    <div style="background:#f8f9fb;border-radius:10px;padding:20px 24px;margin-bottom:24px;border-left:4px solid #FF8C00;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Reference" : "Référence"}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${esc(numeroDevis)}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Craftsman" : "Artisan"}</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${esc(nomArtisan) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:5px 0;text-transform:uppercase;letter-spacing:0.8px;">${isEn ? "Total amount" : "Montant TTC"}</td><td style="color:#FF8C00;font-size:20px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+      </table>
+    </div>
+    ${signatureLien ? `<div style="text-align:center;margin-bottom:24px;"><a href="${esc(signatureLien)}" style="display:inline-block;background:#FF8C00;color:#fff;padding:16px 32px;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;">${btnLabel}</a></div><p style="text-align:center;color:#999;font-size:12px;margin:0 0 16px;">Ou copiez ce lien : <a href="${esc(signatureLien)}" style="color:#FF8C00;">${esc(signatureLien)}</a></p>` : ""}
+    <p style="margin:0;color:#777;font-size:13px;">${isEn ? "The quote is also attached to this email as a PDF." : "Le devis est également joint à cet email en PDF."}</p>
+  </div>
+  <div style="background:#0a1628;padding:18px 36px;text-align:center;"><span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span></div>
+</div></body></html>`,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
+      resultats.clientEnvoye = true;
+    } catch (err) { resultats.erreurs.push(`Client : ${err.message}`); }
+  }
+
+  if (emailArtisan) {
+    try {
+      await appelResend(apiKey, {
+        from: FROM, to: [emailArtisan],
+        subject: isEn ? `✅ Quote ${esc(numeroDevis)} sent for signature to ${esc(nomClient) || "client"}` : `✅ Devis ${esc(numeroDevis)} envoyé pour signature à ${esc(nomClient) || "votre client"}`,
+        html: `<!DOCTYPE html><html lang="${isEn ? "en" : "fr"}"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f2f5;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:600px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+  <div style="background:#0a1628;padding:24px 32px;text-align:center;"><span style="font-size:26px;font-weight:900;color:#fff;">Artisan<span style="color:#FF8C00">+</span></span></div>
+  <div style="padding:28px;">
+    <p style="color:#1a1a2e;font-size:15px;margin:0 0 12px;">${isEn ? "Hello" : "Bonjour"} <strong>${esc(nomArtisan) || "Artisan"}</strong>,</p>
+    <p style="color:#555;font-size:14px;line-height:1.7;margin:0 0 20px;">${isEn ? `Your quote <strong>${esc(numeroDevis)}</strong> has been sent to <strong>${esc(nomClient) || "your client"}</strong> with a signature request on <strong>${date}</strong>.` : `Votre devis <strong>${esc(numeroDevis)}</strong> a été envoyé à <strong>${esc(nomClient) || "votre client"}</strong> avec une demande de signature le <strong>${date}</strong>.`}</p>
+    <div style="background:#f8f9fb;border-radius:10px;padding:16px 20px;border-left:4px solid #FF8C00;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">${isEn ? "Reference" : "Référence"}</td><td style="color:#1a1a2e;font-size:14px;font-weight:700;text-align:right;">${esc(numeroDevis)}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">Client</td><td style="color:#1a1a2e;font-size:14px;text-align:right;">${esc(nomClient) || "—"}</td></tr>
+        <tr><td style="color:#999;font-size:11px;padding:4px 0;text-transform:uppercase;">${isEn ? "Amount" : "Montant"}</td><td style="color:#FF8C00;font-size:16px;font-weight:800;text-align:right;">${montantFormate} €</td></tr>
+      </table>
+    </div>
+    ${signatureLien ? `<p style="margin:16px 0 0;color:#999;font-size:12px;">${isEn ? "Signature link:" : "Lien de signature :"} <a href="${esc(signatureLien)}" style="color:#FF8C00;">${esc(signatureLien)}</a></p>` : ""}
+  </div>
+  <div style="background:#0a1628;padding:16px 32px;text-align:center;"><span style="color:#8899aa;font-size:12px;">Artisan+ — artisan-plus.fr</span></div>
+</div></body></html>`,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      });
+      resultats.artisanEnvoye = true;
+    } catch (err) { resultats.erreurs.push(`Artisan : ${err.message}`); }
+  }
+
+  const success = resultats.erreurs.length === 0 && (resultats.clientEnvoye || resultats.artisanEnvoye);
+  return res.status(success ? 200 : (resultats.clientEnvoye || resultats.artisanEnvoye) ? 207 : 500).json({ success, ...resultats });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
