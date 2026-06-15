@@ -1815,7 +1815,8 @@ function PageVille({ ville }) {
             Artisan+ est utilisé par des centaines d'artisans en {ville.region}, dont beaucoup à {ville.label}. Devis, factures, chantiers et paiement en ligne à <strong style={{ color: P }}>7,99€/mois</strong> — aucun engagement.
           </p>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-            style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
+            className="ap-btn"
+            style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "17px 36px", borderRadius: "14px", textDecoration: "none" }}>
             🚀 Démarrer gratuitement à {ville.label}
           </a>
         </div>
@@ -1831,11 +1832,13 @@ function PageVille({ ville }) {
               { val: "7,99€/mois", label: "Prix Artisan+ Pro" },
               { val: "2 min", label: "Pour créer un devis" },
               { val: "100%", label: "Sans engagement" },
-            ].map(s => (
-              <div key={s.label} style={{ background: C, borderRadius: "14px", padding: "20px", textAlign: "center", border: "1px solid rgba(255,140,0,0.1)" }}>
-                <div style={{ color: P, fontWeight: "900", fontSize: "24px" }}>{s.val}</div>
-                <div style={{ color: G, fontSize: "12px", marginTop: "4px" }}>{s.label}</div>
-              </div>
+            ].map((s, i) => (
+              <Reveal key={s.label} delay={i * 0.08}>
+                <div className="ap-card" style={{ background: C, borderRadius: "18px", padding: "22px", textAlign: "center", border: "1px solid rgba(255,140,0,0.12)" }}>
+                  <div style={{ color: P, fontWeight: "900", fontSize: "26px" }}>{s.val}</div>
+                  <div style={{ color: G, fontSize: "12px", marginTop: "6px" }}>{s.label}</div>
+                </div>
+              </Reveal>
             ))}
           </div>
 
@@ -1861,8 +1864,9 @@ function PageVille({ ville }) {
                 {METIERS.slice(0,20).map(m => (
                   <a key={m.slug} href={`/devis-facture-${m.slug}`}
                     onClick={e => { e.preventDefault(); navigate(`/devis-facture-${m.slug}`); }}
-                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "12px", padding: "16px 12px", textDecoration: "none", textAlign: "center", display: "block" }}>
-                    <div style={{ fontSize: "24px", marginBottom: "6px" }}>{m.emoji}</div>
+                    className="ap-card"
+                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "14px", padding: "18px 12px", textDecoration: "none", textAlign: "center", display: "block" }}>
+                    <div style={{ fontSize: "26px", marginBottom: "8px" }}>{m.emoji}</div>
                     <div style={{ color: "white", fontSize: "12px", fontWeight: "700" }}>{m.label}</div>
                   </a>
                 ))}
@@ -1873,9 +1877,8 @@ function PageVille({ ville }) {
                 {TOP20_M.map(m => (
                   <a key={m.slug} href={`/${m.slug}-${ville.slug}`}
                     onClick={e => { e.preventDefault(); navigate(`/${m.slug}-${ville.slug}`); }}
-                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "12px", padding: "14px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: "10px", transition: "border-color 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "rgba(255,140,0,0.4)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,140,0,0.1)"}
+                    className="ap-card"
+                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "14px", padding: "14px 12px", textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}
                   >
                     <span style={{ fontSize: "20px" }}>{m.emoji}</span>
                     <div>
@@ -1933,25 +1936,29 @@ function PageAlternative({ concurrent }) {
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           {/* Prix cards */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "60px" }}>
-            <div style={{ background: "rgba(255,140,0,0.08)", border: "2px solid rgba(255,140,0,0.4)", borderRadius: "20px", padding: "32px", textAlign: "center" }}>
-              <div style={{ color: P, fontWeight: "900", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>✅ Artisan+</div>
-              <div style={{ color: P, fontWeight: "900", fontSize: "42px" }}>7,99€</div>
-              <div style={{ color: G, fontSize: "14px" }}>/mois — tout inclus</div>
-              <div style={{ marginTop: "16px", color: G, fontSize: "13px", lineHeight: "1.6" }}>
-                {FEATURES.slice(0, 4).map(f => <div key={f.titre}>✅ {f.titre}</div>)}
-                <div>✅ Mini-site vitrine</div>
-                <div>✅ Paiement en ligne</div>
+            <Reveal delay={0.05} style={{ display: "flex" }}>
+              <div style={{ background: "rgba(255,140,0,0.09)", border: "2px solid rgba(255,140,0,0.45)", borderRadius: "22px", padding: "34px", textAlign: "center", flex: 1, boxShadow: "0 16px 48px rgba(255,140,0,0.12)" }}>
+                <div style={{ color: P, fontWeight: "900", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>✅ Artisan+</div>
+                <div style={{ color: P, fontWeight: "900", fontSize: "44px" }}>7,99€</div>
+                <div style={{ color: G, fontSize: "14px" }}>/mois — tout inclus</div>
+                <div style={{ marginTop: "16px", color: G, fontSize: "13px", lineHeight: "1.65" }}>
+                  {FEATURES.slice(0, 4).map(f => <div key={f.titre}>✅ {f.titre}</div>)}
+                  <div>✅ Mini-site vitrine</div>
+                  <div>✅ Paiement en ligne</div>
+                </div>
               </div>
-            </div>
-            <div style={{ background: C, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", padding: "32px", textAlign: "center" }}>
-              <div style={{ color: G, fontWeight: "700", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>{concurrent.label}</div>
-              <div style={{ color: "white", fontWeight: "900", fontSize: "42px" }}>{concurrent.prix.replace("/mois", "")}</div>
-              <div style={{ color: G, fontSize: "14px" }}>/mois</div>
-              <div style={{ marginTop: "16px", color: G, fontSize: "13px", lineHeight: "1.6" }}>
-                {concurrent.avantages.map(a => <div key={a}>✅ {a}</div>)}
-                {concurrent.inconvenients.map(i => <div key={i} style={{ color: "#ff6b6b" }}>❌ {i}</div>)}
+            </Reveal>
+            <Reveal delay={0.12} style={{ display: "flex" }}>
+              <div className="ap-card" style={{ background: C, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "22px", padding: "34px", textAlign: "center", flex: 1 }}>
+                <div style={{ color: G, fontWeight: "700", fontSize: "14px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>{concurrent.label}</div>
+                <div style={{ color: "white", fontWeight: "900", fontSize: "44px" }}>{concurrent.prix.replace("/mois", "")}</div>
+                <div style={{ color: G, fontSize: "14px" }}>/mois</div>
+                <div style={{ marginTop: "16px", color: G, fontSize: "13px", lineHeight: "1.65" }}>
+                  {concurrent.avantages.map(a => <div key={a}>✅ {a}</div>)}
+                  {concurrent.inconvenients.map(i => <div key={i} style={{ color: "#ff6b6b" }}>❌ {i}</div>)}
+                </div>
               </div>
-            </div>
+            </Reveal>
           </div>
 
           {/* Contenu SEO */}
