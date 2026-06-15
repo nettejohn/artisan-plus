@@ -20,55 +20,152 @@ function VitrineStyles() {
     const el = document.createElement("style");
     el.id = id;
     el.textContent = `
-      /* ── Cards flottantes ──────────────── */
-      .ap-card { transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease !important; }
-      .ap-card:hover { transform: translateY(-7px) !important; box-shadow: 0 28px 64px rgba(0,0,0,.55), 0 0 44px rgba(255,140,0,.12) !important; border-color: rgba(255,140,0,.4) !important; }
+      /* ══ LAYOUT ════════════════════════════════════════ */
+      * { box-sizing: border-box; }
 
-      /* ── Boutons ────────────────────────── */
-      .ap-btn { transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease !important; }
-      .ap-btn:hover { transform: translateY(-2px) scale(1.02) !important; box-shadow: 0 10px 28px rgba(255,140,0,.42) !important; opacity: .95; }
-      .ap-btn:active { transform: translateY(0) scale(.97) !important; }
-      .ap-btn-ghost:hover { background: rgba(255,255,255,.1) !important; transform: translateY(-2px) !important; box-shadow: 0 8px 22px rgba(0,0,0,.3) !important; }
+      /* ══ GRADIENT TEXT ══════════════════════════════════ */
+      .ap-grad-text {
+        background: linear-gradient(125deg, #FF8C00 0%, #FFB347 35%, #FF6000 65%, #FFCC44 100%);
+        background-size: 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: ap-grad-shift 6s ease infinite;
+        filter: drop-shadow(0 0 28px rgba(255,140,0,.55));
+      }
+      @keyframes ap-grad-shift { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
 
-      /* ── Badge shimmer ──────────────────── */
-      .ap-badge { position:relative; overflow:hidden; }
-      .ap-badge::after { content:''; position:absolute; top:0; left:-100%; width:55%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent); animation:ap-shimmer 3.5s ease-in-out infinite; }
+      /* ══ BACKGROUND ORBS ════════════════════════════════ */
+      @keyframes ap-orb1 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(80px,-60px) scale(1.12)} 65%{transform:translate(-50px,70px) scale(.92)} }
+      @keyframes ap-orb2 { 0%,100%{transform:translate(0,0) scale(1)} 45%{transform:translate(-100px,40px) scale(1.08)} 80%{transform:translate(60px,-30px) scale(.96)} }
+      @keyframes ap-orb3 { 0%,100%{transform:translate(0,0)} 35%{transform:translate(60px,80px) scale(1.1)} 70%{transform:translate(-30px,-40px) scale(.94)} }
+
+      /* ══ CARDS ══════════════════════════════════════════ */
+      .ap-card { transition: transform .32s cubic-bezier(.34,1.56,.64,1), box-shadow .32s ease, border-color .32s ease !important; }
+      .ap-card:hover { transform: translateY(-8px) !important; box-shadow: 0 32px 72px rgba(0,0,0,.6), 0 0 50px rgba(255,140,0,.14) !important; border-color: rgba(255,140,0,.45) !important; }
+
+      /* ══ SPOTLIGHT (cursor glow inside card) ════════════ */
+      .ap-spotlight { position: relative; overflow: hidden; }
+      .ap-spotlight::before {
+        content: '';
+        position: absolute; inset: 0;
+        border-radius: inherit;
+        background: radial-gradient(circle 280px at var(--mx,50%) var(--my,50%), rgba(255,140,0,.18), transparent 65%);
+        opacity: 0;
+        transition: opacity .35s ease;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .ap-spotlight:hover::before { opacity: 1; }
+      .ap-spotlight > * { position: relative; z-index: 1; }
+
+      /* ══ BUTTONS ════════════════════════════════════════ */
+      .ap-btn { transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease !important; }
+      .ap-btn:hover { transform: translateY(-3px) scale(1.03) !important; box-shadow: 0 12px 36px rgba(255,140,0,.5) !important; }
+      .ap-btn:active { transform: translateY(1px) scale(.97) !important; }
+      .ap-btn-ghost { transition: transform .18s ease, box-shadow .18s ease, background .18s ease !important; }
+      .ap-btn-ghost:hover { transform: translateY(-2px) !important; background: rgba(255,255,255,.11) !important; box-shadow: 0 8px 24px rgba(0,0,0,.35) !important; }
+      .ap-btn-primary { position: relative; overflow: hidden; }
+      .ap-btn-primary::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 60%); opacity:0; transition:opacity .25s; border-radius:inherit; }
+      .ap-btn-primary:hover::after { opacity:1; }
+
+      /* ══ BADGE SHIMMER ══════════════════════════════════ */
+      .ap-badge { position: relative; overflow: hidden; }
+      .ap-badge::after { content:''; position:absolute; top:0; left:-100%; width:60%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent); animation:ap-shimmer 3.5s ease-in-out infinite; }
       @keyframes ap-shimmer { 0%{left:-100%} 100%{left:220%} }
 
-      /* ── Float hero ─────────────────────── */
-      @keyframes ap-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-      .ap-float { animation: ap-float 4.5s ease-in-out infinite; }
+      /* ══ FLOAT / GLOW ═══════════════════════════════════ */
+      @keyframes ap-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+      .ap-float { animation: ap-float 5s ease-in-out infinite; }
+      @keyframes ap-glow { 0%,100%{box-shadow:0 0 30px rgba(255,140,0,.2),0 48px 130px rgba(0,0,0,.7)} 50%{box-shadow:0 0 60px rgba(255,140,0,.42),0 48px 130px rgba(0,0,0,.7)} }
+      .ap-glow { animation: ap-glow 3.5s ease-in-out infinite; }
 
-      /* ── Glow phone ─────────────────────── */
-      @keyframes ap-glow { 0%,100%{box-shadow:0 0 28px rgba(255,140,0,.18),0 40px 120px rgba(0,0,0,.65)} 50%{box-shadow:0 0 52px rgba(255,140,0,.36),0 40px 120px rgba(0,0,0,.65)} }
-      .ap-glow { animation: ap-glow 3.2s ease-in-out infinite; }
-
-      /* ── Invoice ────────────────────────── */
-      @keyframes ap-fade-up { 0%{opacity:0;transform:translateY(10px)} 100%{opacity:1;transform:none} }
+      /* ══ INVOICE ANIMATIONS ═════════════════════════════ */
+      @keyframes ap-fade-up { 0%{opacity:0;transform:translateY(12px)} 100%{opacity:1;transform:none} }
       @keyframes ap-sign { 0%{stroke-dashoffset:170;opacity:0} 12%{opacity:1} 100%{stroke-dashoffset:0} }
 
-      /* ── House ──────────────────────────── */
+      /* ══ HOUSE ANIMATIONS ═══════════════════════════════ */
       @keyframes ap-brick { 0%,68%{opacity:0;transform:translateY(-8px) scale(.88)} 100%{opacity:1;transform:none} }
       @keyframes ap-roof-a { 0%,52%{opacity:0;transform:translateY(-16px)} 100%{opacity:1;transform:none} }
       @keyframes ap-win { 0%,72%{opacity:0;transform:scale(.3)} 100%{opacity:1;transform:none} }
       @keyframes ap-check { 0%,88%{opacity:0;transform:scale(.2) rotate(-15deg)} 100%{opacity:1;transform:none} }
 
-      /* ── Revenue ────────────────────────── */
+      /* ══ REVENUE ANIMATIONS ═════════════════════════════ */
       @keyframes ap-avatar { 0%{opacity:0;transform:scale(0) rotate(-8deg)} 65%{transform:scale(1.18) rotate(2deg)} 100%{opacity:1;transform:none} }
 
-      /* ── FAQ ────────────────────────────── */
-      summary::-webkit-details-marker{display:none}
-      details{transition:border-color .25s ease}
-      details[open]{border-color:rgba(255,140,0,.38) !important}
-      .ap-faq-plus{transition:transform .25s ease;display:inline-block}
-      details[open] .ap-faq-plus{transform:rotate(45deg)}
+      /* ══ FAQ ════════════════════════════════════════════ */
+      summary::-webkit-details-marker { display:none; }
+      details { transition: border-color .25s ease; }
+      details[open] { border-color: rgba(255,140,0,.4) !important; box-shadow: 0 0 20px rgba(255,140,0,.06) !important; }
+      .ap-faq-plus { transition: transform .28s cubic-bezier(.34,1.56,.64,1); display:inline-block; }
+      details[open] .ap-faq-plus { transform: rotate(45deg); }
 
-      /* ── Séparateur accent ──────────────── */
-      .ap-sep{width:52px;height:3px;background:linear-gradient(90deg,#FF8C00,transparent);border-radius:2px;margin-top:12px}
+      /* ══ NEON DIVIDER LINE ══════════════════════════════ */
+      .ap-neon-line { width:60px; height:3px; border-radius:99px; background:linear-gradient(90deg,#FF8C00 0%,rgba(255,140,0,.3) 50%,transparent 100%); margin-top:14px; }
+
+      /* ══ SECTION GRID PATTERN ═══════════════════════════ */
+      .ap-grid-bg {
+        background-image: linear-gradient(rgba(255,140,0,.05) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(255,140,0,.05) 1px, transparent 1px);
+        background-size: 64px 64px;
+      }
+
+      /* ══ GLASSMORPHISM ══════════════════════════════════ */
+      .ap-glass {
+        background: rgba(255,255,255,.03) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,.08) !important;
+      }
+
+      /* ══ HERO ENTRY ANIMATION ═══════════════════════════ */
+      @keyframes ap-hero-in { 0%{opacity:0;transform:translateY(32px)} 100%{opacity:1;transform:none} }
+      .ap-hero-line1 { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .1s both; }
+      .ap-hero-line2 { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .22s both; }
+      .ap-hero-line3 { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .32s both; }
+      .ap-hero-sub   { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .42s both; }
+      .ap-hero-cta   { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .52s both; }
+      .ap-hero-proof { animation: ap-hero-in .7s cubic-bezier(.16,1,.3,1) .62s both; }
+      .ap-hero-phone { animation: ap-hero-in .9s cubic-bezier(.16,1,.3,1) .3s both; }
     `;
     document.head.appendChild(el);
   }, []);
   return null;
+}
+
+// ── Fond animé hero ───────────────────────────────────────────────────────────
+function HeroBackground() {
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      {/* Grille de points */}
+      <div className="ap-grid-bg" style={{ position: "absolute", inset: 0, opacity: .6 }} />
+      {/* Orbe 1 — haut gauche orange vif */}
+      <div style={{ position: "absolute", top: "-20%", left: "-12%", width: "70vw", height: "70vw", maxWidth: 800, maxHeight: 800, borderRadius: "50%", background: "radial-gradient(circle at 40% 40%, rgba(255,140,0,.28) 0%, rgba(255,100,0,.06) 40%, transparent 70%)", animation: "ap-orb1 16s ease-in-out infinite", filter: "blur(2px)" }} />
+      {/* Orbe 2 — centre droite bleu profond */}
+      <div style={{ position: "absolute", top: "10%", right: "-20%", width: "60vw", height: "60vw", maxWidth: 700, maxHeight: 700, borderRadius: "50%", background: "radial-gradient(circle at 60% 40%, rgba(30,80,200,.22) 0%, transparent 65%)", animation: "ap-orb2 21s ease-in-out infinite", filter: "blur(4px)" }} />
+      {/* Orbe 3 — bas centre orange doux */}
+      <div style={{ position: "absolute", bottom: "-15%", left: "25%", width: "50vw", height: "50vw", maxWidth: 600, maxHeight: 600, borderRadius: "50%", background: "radial-gradient(circle at 50% 60%, rgba(255,100,0,.14) 0%, transparent 70%)", animation: "ap-orb3 13s ease-in-out infinite" }} />
+      {/* Halo lumineux centré (style Stripe) */}
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "100%", maxWidth: 900, height: 400, background: "radial-gradient(ellipse at center, rgba(255,140,0,.07) 0%, transparent 70%)", pointerEvents: "none" }} />
+    </div>
+  );
+}
+
+// ── Carte spotlight (cursor-glow) ─────────────────────────────────────────────
+function SpotlightCard({ children, style = {}, className = "", ...props }) {
+  const ref = useRef(null);
+  const onMove = (e) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    el.style.setProperty("--my", `${e.clientY - r.top}px`);
+  };
+  return (
+    <div ref={ref} onMouseMove={onMove} className={`ap-spotlight ap-card ${className}`} style={style} {...props}>
+      {children}
+    </div>
+  );
 }
 
 // ── Scroll reveal ─────────────────────────────────────────────────────────────
@@ -1411,49 +1508,56 @@ function PageHome() {
       </div>
 
       {/* ── Hero ────────────────────────────────────────────────── */}
-      <section style={{ padding: "clamp(48px,8vw,100px) 20px clamp(32px,6vw,80px)", background: `linear-gradient(180deg, rgba(255,140,0,0.04) 0%, transparent 100%)` }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto", gap: isMobile ? "40px" : "60px", alignItems: "center" }}>
+      <section style={{ position: "relative", padding: "clamp(60px,9vw,120px) 20px clamp(48px,7vw,100px)", overflow: "hidden" }}>
+        <HeroBackground />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "1240px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 380px", gap: isMobile ? "48px" : "72px", alignItems: "center" }}>
           <div>
             {/* Badge */}
-            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.35)", borderRadius: "20px", padding: "7px 16px", marginBottom: "28px" }}>
-              <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>🏆 N°1 des apps artisan les moins chères</span>
+            <div className="ap-badge ap-hero-line1" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.4)", borderRadius: "20px", padding: "8px 18px", marginBottom: "32px" }}>
+              <span style={{ color: P, fontSize: "12px", fontWeight: "800", letterSpacing: ".3px" }}>🏆 N°1 des apps artisan les moins chères</span>
             </div>
 
-            <h1 style={{ color: "white", fontSize: "clamp(32px,5vw,56px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
-              Vos devis et factures<br />
-              <span style={{ color: P }}>en 2 minutes</span><br />
-              Gratuit pour commencer
+            <h1 style={{ margin: "0 0 24px" }}>
+              <span className="ap-hero-line1" style={{ display: "block", color: "white", fontSize: "clamp(38px,5.5vw,68px)", fontWeight: "900", lineHeight: "1.05", letterSpacing: "-2px" }}>
+                Vos devis et factures
+              </span>
+              <span className="ap-hero-line2" style={{ display: "block", fontSize: "clamp(42px,6vw,76px)", fontWeight: "900", lineHeight: "1", letterSpacing: "-2px" }}>
+                <span className="ap-grad-text">en 2 minutes</span>
+              </span>
+              <span className="ap-hero-line3" style={{ display: "block", color: "rgba(255,255,255,0.6)", fontSize: "clamp(28px,3.5vw,48px)", fontWeight: "800", lineHeight: "1.15", letterSpacing: "-1px", marginTop: "4px" }}>
+                Gratuit pour commencer
+              </span>
             </h1>
 
-            <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "520px" }}>
+            <p className="ap-hero-sub" style={{ color: G, fontSize: "clamp(15px,1.8vw,18px)", lineHeight: "1.75", marginBottom: "40px", maxWidth: "540px" }}>
               L'application de gestion pour artisans la plus complète et la moins chère du marché. Devis, factures, suivi chantier, mini-site vitrine et paiement en ligne — tout en un.
             </p>
 
-            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "36px" }}>
+            <div className="ap-hero-cta" style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "36px" }}>
               <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-                className="ap-btn"
-                style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "17px 30px", borderRadius: "14px", textDecoration: "none" }}
+                className="ap-btn ap-btn-primary"
+                style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "18px 34px", borderRadius: "14px", textDecoration: "none", boxShadow: "0 8px 32px rgba(255,140,0,0.4)" }}
               >
                 🚀 Créer un compte gratuit
               </a>
               <a href="#comparatif" onClick={e => { e.preventDefault(); document.getElementById("comparatif")?.scrollIntoView({ behavior: "smooth" }); }}
                 className="ap-btn ap-btn-ghost"
-                style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "17px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
-                Voir le comparatif
+                style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "18px 30px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)" }}>
+                Voir le comparatif ↓
               </a>
             </div>
 
             {/* Proof points */}
-            <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+            <div className="ap-hero-proof" style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
               {["✅ Sans engagement", "✅ Essai gratuit", "✅ Support inclus"].map(p => (
                 <span key={p} style={{ color: G, fontSize: "13px", fontWeight: "600" }}>{p}</span>
               ))}
             </div>
           </div>
 
-          {/* Animation devis — masquée sur mobile pour éviter le débordement */}
+          {/* Animation devis — masquée sur mobile */}
           {!isMobile && (
-            <div style={{ display: "flex", justifyContent: "center", minWidth: "300px" }}>
+            <div className="ap-hero-phone" style={{ display: "flex", justifyContent: "center" }}>
               <InvoiceAnimation />
             </div>
           )}
@@ -1480,17 +1584,17 @@ function PageHome() {
       {/* ── Fonctionnalités ─────────────────────────────────────── */}
       <section id="fonctionnalites" style={{ padding: "clamp(60px,8vw,100px) 20px", scrollMarginTop: "80px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "72px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 16px", marginBottom: "20px" }}>
-              <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>✦ 25+ fonctionnalités incluses</span>
+          <Reveal style={{ textAlign: "center", marginBottom: "80px" }}>
+            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.35)", borderRadius: "20px", padding: "8px 18px", marginBottom: "24px" }}>
+              <span style={{ color: P, fontSize: "12px", fontWeight: "800", letterSpacing: ".3px" }}>✦ 25+ fonctionnalités incluses</span>
             </div>
-            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,42px)", fontWeight: "900", margin: "0 0 16px", lineHeight: "1.1" }}>
-              Tout ce dont un artisan a besoin,<br /><span style={{ color: P }}>dans une seule app</span>
+            <h2 style={{ color: "white", fontSize: "clamp(28px,4.5vw,50px)", fontWeight: "900", margin: "0 0 18px", lineHeight: "1.08", letterSpacing: "-1px" }}>
+              Tout ce dont un artisan a besoin,<br /><span className="ap-grad-text">dans une seule app</span>
             </h2>
-            <p style={{ color: G, fontSize: "17px", maxWidth: "600px", margin: "0 auto" }}>
+            <p style={{ color: G, fontSize: "18px", maxWidth: "620px", margin: "0 auto", lineHeight: "1.7" }}>
               Du devis vocal sur le chantier au récap mensuel IA, en passant par le suivi en temps réel et les 20 outils de terrain.
             </p>
-          </div>
+          </Reveal>
 
           {FEATURE_GROUPS.map(group => (
             <div key={group.id} style={{ marginBottom: "64px" }}>
@@ -1504,19 +1608,16 @@ function PageHome() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "16px" }}>
                 {group.features.map((f, fi) => (
                   <Reveal key={f.titre} delay={fi * 0.06} style={{ display: "flex" }}>
-                    <div
-                      className="ap-card"
-                      style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "0", flex: 1 }}
-                    >
-                      <div style={{ fontSize: "30px", marginBottom: "14px" }}>{f.icon}</div>
+                    <SpotlightCard style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "22px", padding: "28px", display: "flex", flexDirection: "column", gap: "0", flex: 1 }}>
+                      <div style={{ fontSize: "32px", marginBottom: "16px" }}>{f.icon}</div>
                       <h4 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 10px", lineHeight: "1.3" }}>{f.titre}</h4>
-                      <p style={{ color: G, fontSize: "13px", lineHeight: "1.65", margin: "0 0 16px", flexGrow: 1 }}>{f.desc}</p>
+                      <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: "0 0 16px", flexGrow: 1 }}>{f.desc}</p>
                       {f.benefit && (
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "5px 10px", width: "fit-content" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)", borderRadius: "8px", padding: "6px 12px", width: "fit-content" }}>
                           <span style={{ color: P, fontSize: "11px", fontWeight: "800" }}>✓ {f.benefit}</span>
                         </div>
                       )}
-                    </div>
+                    </SpotlightCard>
                   </Reveal>
                 ))}
               </div>
@@ -1526,26 +1627,28 @@ function PageHome() {
       </section>
 
       {/* ── Construisez votre activité ───────────────────────── */}
-      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: C }}>
-        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
-          <Reveal style={{ textAlign: "center", marginBottom: "60px" }}>
-            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "7px 16px", marginBottom: "20px" }}>
-              <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>🏗️ Construit pour les artisans</span>
+      <section style={{ position: "relative", padding: "clamp(80px,10vw,130px) 20px", background: `linear-gradient(180deg, ${C} 0%, ${D} 100%)`, overflow: "hidden" }}>
+        {/* Halo de fond */}
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(255,140,0,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: "1100px", margin: "0 auto" }}>
+          <Reveal style={{ textAlign: "center", marginBottom: "72px" }}>
+            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.35)", borderRadius: "20px", padding: "8px 18px", marginBottom: "24px" }}>
+              <span style={{ color: P, fontSize: "12px", fontWeight: "800", letterSpacing: ".3px" }}>🏗️ Construit pour les artisans</span>
             </div>
-            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,40px)", fontWeight: "900", margin: "0 0 12px", lineHeight: "1.15" }}>
-              Construisez votre activité,<br /><span style={{ color: P }}>on gère le reste</span>
+            <h2 style={{ color: "white", fontSize: "clamp(28px,4.5vw,52px)", fontWeight: "900", margin: "0 0 16px", lineHeight: "1.08", letterSpacing: "-1px" }}>
+              Construisez votre activité,<br /><span className="ap-grad-text">on gère le reste</span>
             </h2>
-            <p style={{ color: G, fontSize: "16px", maxWidth: "540px", margin: "0 auto" }}>De la première brique au chantier livré — Artisan+ vous accompagne à chaque étape.</p>
+            <p style={{ color: G, fontSize: "17px", maxWidth: "560px", margin: "0 auto", lineHeight: "1.7" }}>De la première brique au chantier livré — Artisan+ vous accompagne à chaque étape.</p>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "40px", alignItems: "center" }}>
-            <Reveal delay={0.05}>
-              <div style={{ textAlign: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px", alignItems: "center" }}>
+            <Reveal delay={0.06}>
+              <div style={{ textAlign: "center", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,140,0,0.12)", borderRadius: "28px", padding: "40px 24px", backdropFilter: "blur(8px)" }}>
                 <HouseAnimation />
-                <div style={{ color: "white", fontWeight: "800", fontSize: "16px", marginTop: "20px" }}>Chaque chantier maîtrisé</div>
-                <p style={{ color: G, fontSize: "13px", marginTop: "8px", lineHeight: "1.65" }}>Suivez l'avancement, les coûts et partagez les photos avec vos clients en temps réel.</p>
+                <div style={{ color: "white", fontWeight: "800", fontSize: "18px", marginTop: "24px", letterSpacing: "-.3px" }}>Chaque chantier maîtrisé</div>
+                <p style={{ color: G, fontSize: "14px", marginTop: "10px", lineHeight: "1.7" }}>Suivez l'avancement, les coûts et partagez les photos avec vos clients en temps réel.</p>
               </div>
             </Reveal>
-            <Reveal delay={0.15}>
+            <Reveal delay={0.16}>
               <RevenueAnimation />
             </Reveal>
           </div>
@@ -1555,14 +1658,14 @@ function PageHome() {
       {/* ── Comparatif ──────────────────────────────────────────── */}
       <section id="comparatif" style={{ padding: "clamp(60px,8vw,100px) 20px", background: `linear-gradient(180deg, rgba(255,140,0,0.03) 0%, transparent 100%)`, scrollMarginTop: "80px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
-            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 16px" }}>
-              Artisan+ :<br /><span style={{ color: P }}>2× moins cher que la concurrence</span>
+          <Reveal style={{ textAlign: "center", marginBottom: "56px" }}>
+            <h2 style={{ color: "white", fontSize: "clamp(28px,4.5vw,48px)", fontWeight: "900", margin: "0 0 16px", lineHeight: "1.1", letterSpacing: "-1px" }}>
+              Artisan+ :<br /><span className="ap-grad-text">2× moins cher que la concurrence</span>
             </h2>
-            <p style={{ color: G, fontSize: "16px" }}>
+            <p style={{ color: G, fontSize: "17px", maxWidth: "560px", margin: "0 auto" }}>
               Toutes les fonctionnalités pour 7,99€/mois au lieu de 19€ à 39€ chez nos concurrents.
             </p>
-          </div>
+          </Reveal>
           <TableauComparatif />
         </div>
       </section>
@@ -1570,34 +1673,34 @@ function PageHome() {
       {/* ── Témoignages ─────────────────────────────────────────── */}
       <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "48px" }}>
-            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,38px)", fontWeight: "900", margin: "0 0 12px" }}>
-              Ils font confiance à <span style={{ color: P }}>Artisan+</span>
+          <Reveal style={{ textAlign: "center", marginBottom: "56px" }}>
+            <h2 style={{ color: "white", fontSize: "clamp(28px,4.5vw,48px)", fontWeight: "900", margin: "0 0 12px", letterSpacing: "-1px" }}>
+              Ils font confiance à <span className="ap-grad-text">Artisan+</span>
             </h2>
             <div style={{ display: "flex", justifyContent: "center", gap: "4px", marginBottom: "8px" }}>
               {[...Array(5)].map((_, i) => <span key={i} style={{ color: "#FFD700", fontSize: "20px" }}>★</span>)}
             </div>
             <p style={{ color: G, fontSize: "14px" }}>Note moyenne 4,9/5 · Plus de 500 artisans satisfaits</p>
-          </div>
+          </Reveal>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
             {TEMOIGNAGES.map((t, ti) => (
-              <Reveal key={t.nom} delay={ti * 0.1} style={{ display: "flex" }}>
-                <div className="ap-card" style={{ background: C, border: "1px solid rgba(255,140,0,0.18)", borderRadius: "22px", padding: "30px", flex: 1, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
-                  <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
-                    {[...Array(t.note)].map((_, i) => <span key={i} style={{ color: "#FFD700", fontSize: "16px" }}>★</span>)}
+              <Reveal key={t.nom} delay={ti * 0.12} style={{ display: "flex" }}>
+                <SpotlightCard style={{ background: "linear-gradient(145deg, rgba(17,30,53,1) 0%, rgba(10,22,40,1) 100%)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "24px", padding: "32px", flex: 1, boxShadow: "0 16px 48px rgba(0,0,0,0.3)" }}>
+                  <div style={{ display: "flex", gap: "3px", marginBottom: "18px" }}>
+                    {[...Array(t.note)].map((_, i) => <span key={i} style={{ color: "#FFD700", fontSize: "18px" }}>★</span>)}
                   </div>
-                  <p style={{ color: "white", fontSize: "14px", lineHeight: "1.75", fontStyle: "italic", margin: "0 0 20px" }}>"{t.texte}"</p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "42px", height: "42px", background: `rgba(255,140,0,0.15)`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", flexShrink: 0, border: "1px solid rgba(255,140,0,0.2)" }}>
+                  <p style={{ color: "rgba(255,255,255,0.88)", fontSize: "15px", lineHeight: "1.8", fontStyle: "italic", margin: "0 0 24px" }}>"{t.texte}"</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    <div style={{ width: "46px", height: "46px", background: "rgba(255,140,0,0.15)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0, border: "1px solid rgba(255,140,0,0.25)", boxShadow: "0 0 16px rgba(255,140,0,0.12)" }}>
                       {t.metier === "Plombier" ? "🔧" : t.metier === "Électricienne" ? "⚡" : "🧱"}
                     </div>
                     <div>
                       <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{t.nom}</div>
-                      <div style={{ color: G, fontSize: "12px" }}>{t.metier} · {t.ville}</div>
+                      <div style={{ color: G, fontSize: "12px", marginTop: "2px" }}>{t.metier} · {t.ville}</div>
                     </div>
                   </div>
-                </div>
+                </SpotlightCard>
               </Reveal>
             ))}
           </div>
