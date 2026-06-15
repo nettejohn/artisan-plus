@@ -1462,7 +1462,7 @@ export default function Dashboard({
                   <div style={{
                     position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    zIndex: 1000, padding: "20px"
+                    zIndex: 1100, padding: "20px"
                   }} onClick={e => { if (e.target === e.currentTarget) setClientModal(false); }}>
                     <div style={{ background: CARD, borderRadius: "20px", padding: "20px", width: "100%", maxWidth: "400px", border: "1px solid rgba(255,140,0,0.3)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
@@ -3066,7 +3066,7 @@ export default function Dashboard({
               <div style={{
                 position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                zIndex: 1000, padding: "20px"
+                zIndex: 1100, padding: "20px"
               }} onClick={e => { if (e.target === e.currentTarget) setClientModal(false); }}>
                 <div style={{
                   background: CARD, borderRadius: "20px", padding: "20px",
@@ -3852,8 +3852,8 @@ export default function Dashboard({
       {/* ── MODAL PARTAGE DEVIS ─────────────────────────────────── */}
       {shareModal.open && (
         <>
-          <div onClick={() => !shareModal.loading && setShareModal({ open: false, doc: null, loading: false, copied: false })} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 999, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "400px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(100,149,237,0.25)" }}>
+          <div onClick={() => !shareModal.loading && setShareModal({ open: false, doc: null, loading: false, copied: false })} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 1101, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "400px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(100,149,237,0.25)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }}>
               <div>
                 <h3 style={{ color: "white", margin: "0 0 4px", fontSize: "17px", fontWeight: "700" }}>🔗 Partager le devis</h3>
@@ -3910,8 +3910,8 @@ export default function Dashboard({
       {/* ── Modal envoi email avec PDF ─────────────────────────── */}
       {emailModal.open && (
         <>
-          <div onClick={() => !emailModal.loading && setEmailModal(m => ({ ...m, open: false }))} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
-          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 999, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "440px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,140,0,0.2)" }}>
+          <div onClick={() => !emailModal.loading && setEmailModal(m => ({ ...m, open: false }))} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 1101, background: "#0f1f35", borderRadius: "20px", padding: "28px", maxWidth: "440px", width: "calc(100% - 40px)", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", border: "1px solid rgba(255,140,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px" }}>
               <h3 style={{ color: "white", margin: 0, fontSize: "17px", fontWeight: "700" }}>
                 📤 Envoyer {emailModal.docType === "facture" ? "la facture" : "le devis"} par email
@@ -3967,7 +3967,7 @@ export default function Dashboard({
           <div
             onClick={() => setQrModal({ open: false, url: "", numero: "", loading: false })}
             style={{
-              position: "fixed", inset: 0, zIndex: 998,
+              position: "fixed", inset: 0, zIndex: 1100,
               background: "rgba(0,0,0,0.75)",
               backdropFilter: "blur(4px)",
             }}
@@ -3976,7 +3976,7 @@ export default function Dashboard({
           <div style={{
             position: "fixed", top: "50%", left: "50%",
             transform: "translate(-50%, -50%)",
-            zIndex: 999,
+            zIndex: 1101,
             background: CARD,
             borderRadius: "24px",
             padding: "32px 28px",
@@ -4067,10 +4067,10 @@ export default function Dashboard({
       {/* ── MODAL ACOMPTE ─────────────────────────────────────── */}
       {acompteModal && (
         <>
-          <div onClick={() => setAcompteModal(null)} style={{ position: "fixed", inset: 0, zIndex: 998, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
+          <div onClick={() => setAcompteModal(null)} style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }} />
           <div style={{
             position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-            zIndex: 999, background: CARD, borderRadius: "24px", padding: "28px",
+            zIndex: 1101, background: CARD, borderRadius: "24px", padding: "28px",
             width: "min(380px, 94vw)", border: "1px solid rgba(255,140,0,0.3)",
             animation: "popIn 0.25s ease",
           }}>
@@ -4135,7 +4135,7 @@ export default function Dashboard({
       {/* ── BANDEAU RÔLE ÉQUIPE ────────────────────────────────── */}
       {teamInfo && (
         <div style={{
-          position: "fixed", bottom: isDesktop ? "16px" : "74px", left: "50%",
+          position: "fixed", bottom: isDesktop ? "16px" : "calc(80px + env(safe-area-inset-bottom, 0px))", left: "50%",
           transform: "translateX(-50%)", zIndex: 500,
           background: CARD, border: "1px solid rgba(255,140,0,0.3)",
           borderRadius: "24px", padding: "8px 16px",

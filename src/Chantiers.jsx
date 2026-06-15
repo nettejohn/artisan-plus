@@ -2082,7 +2082,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
 
         {/* ── Bouton flottant ────────────────────────────────── */}
         {ficheModifie && (
-          <div style={{ position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)", zIndex: 200 }}>
+          <div style={{ position: "fixed", bottom: "calc(80px + env(safe-area-inset-bottom, 0px))", left: "50%", transform: "translateX(-50%)", zIndex: 1200 }}>
             <button onClick={sauvegarderFiche} disabled={ficheSaving} style={{
               background: PRIMARY, color: "white", border: "none", borderRadius: "14px",
               padding: "14px 36px", fontSize: "15px", fontWeight: "700",
@@ -2291,10 +2291,10 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
       {/* ── Modal Nouveau chantier (bottom sheet mobile) ──────── */}
       {nvModal && (
         <div
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
           onClick={e => { if (e.target === e.currentTarget) setNvModal(false); }}
         >
-          <div style={{ background: CARD, borderRadius: "20px 20px 0 0", padding: "24px 20px 40px", width: "100%", maxWidth: "600px", border: "1px solid rgba(255,140,0,0.25)", maxHeight: "92vh", overflowY: "auto" }}>
+          <div style={{ background: CARD, borderRadius: "20px 20px 0 0", padding: "24px 20px", paddingBottom: "calc(40px + env(safe-area-inset-bottom, 0px))", width: "100%", maxWidth: "600px", border: "1px solid rgba(255,140,0,0.25)", maxHeight: "92vh", overflowY: "auto" }}>
 
             <div style={{ width: "40px", height: "4px", background: "rgba(255,255,255,0.15)", borderRadius: "2px", margin: "0 auto 20px" }} />
 

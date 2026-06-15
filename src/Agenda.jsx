@@ -747,11 +747,11 @@ export default function Agenda({ user, profil, clients = [], chantiers = [], isP
       {/* ── MODAL ÉVÉNEMENT ─────────────────────────────────────────── */}
       {modal && (
         <>
-          <div style={{ position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)" }}
+          <div style={{ position:"fixed",inset:0,zIndex:1100,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)" }}
             onClick={fermerModal} />
           <div style={{
             position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",
-            zIndex:501, background:CARD, borderRadius:"18px", padding:"24px",
+            zIndex:1101, background:CARD, borderRadius:"18px", padding:"24px",
             width:"min(460px,95vw)", maxHeight:"90vh", overflowY:"auto",
             boxShadow:"0 20px 80px rgba(0,0,0,0.7)",
             border:"1px solid rgba(255,140,0,0.2)",
