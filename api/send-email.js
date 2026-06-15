@@ -19,9 +19,14 @@ const FROM_NOTIF = "Artisan+ <notifications@artisan-plus.fr>";
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL || "contact@artisan-plus.fr";
 const BASE_URL = "https://artisan-plus.fr";
 
+const ALLOWED_ORIGINS = ["https://artisan-plus.fr", "https://www.artisan-plus.fr", "https://artisan-plus.vercel.app"];
+
 export default async function handler(req, res) {
   // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin || "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 

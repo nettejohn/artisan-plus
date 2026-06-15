@@ -3107,6 +3107,41 @@ function PageGenerique({ slug }) {
   );
 }
 
+// ── PAGE : 404 ───────────────────────────────────────────────────────────────
+function PageNotFound() {
+  useEffect(() => {
+    setPageMeta(
+      "Page introuvable | Artisan+",
+      "La page que vous cherchez n'existe pas.",
+      BASE
+    );
+  }, []);
+
+  return (
+    <section style={{ padding: "clamp(80px,10vw,120px) 20px", textAlign: "center" }}>
+      <div style={{ maxWidth: "540px", margin: "0 auto" }}>
+        <div style={{ fontSize: "80px", fontWeight: "900", color: P, lineHeight: 1 }}>404</div>
+        <h1 style={{ color: "white", fontSize: "clamp(22px,4vw,32px)", fontWeight: "800", margin: "16px 0 12px" }}>
+          Page introuvable
+        </h1>
+        <p style={{ color: G, fontSize: "15px", lineHeight: "1.7", marginBottom: "36px" }}>
+          Cette page n'existe pas ou a été déplacée.
+        </p>
+        <a
+          href="/"
+          style={{
+            display: "inline-block", background: P, color: "white",
+            padding: "14px 32px", borderRadius: "12px",
+            fontWeight: "700", fontSize: "15px", textDecoration: "none",
+          }}
+        >
+          Retour à l'accueil
+        </a>
+      </div>
+    </section>
+  );
+}
+
 // ── Routeur principal ─────────────────────────────────────────────────────────
 export { METIERS, VILLES, CONCURRENTS };
 
@@ -3136,7 +3171,8 @@ export default function Vitrine() {
   else if (path === "/facturation-electronique-obligatoire-2026")        PageContent = <PageFacturationElectronique />;
   else if (FACT_ELEC_VARIANTS[path])                                      PageContent = <PageFactElecVariante slug={path} />;
   else if (GENERIC_VARIANTS[path])                                        PageContent = <PageGenerique slug={path} />;
-  else                                                                    PageContent = <PageHome />;
+  else if (path === "/")                                                   PageContent = <PageHome />;
+  else                                                                    PageContent = <PageNotFound />;
 
   return (
     <div style={{ minHeight: "100vh", background: D, fontFamily: "'Segoe UI', -apple-system, sans-serif", color: "white" }}>
