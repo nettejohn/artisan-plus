@@ -468,6 +468,8 @@ function renderPath(routePath) {
       .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
       .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`)
       .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${canonicalUrl}"`)
+      .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${escHtml(title)}"`)
+      .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${escHtml(description)}"`)
       .replace('</head>', `${schemaTag}\n</head>`);
     // Injecter ou remplacer le canonical
     if (result.includes('rel="canonical"')) {

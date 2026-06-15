@@ -1048,22 +1048,16 @@ function CTASection({ titre, sous }) {
 // ── PAGE : Accueil ────────────────────────────────────────────────────────────
 // ── Composant : Accordion FAQ ────────────────────────────────────────────────
 function FaqAccordion({ items }) {
-  const [open, setOpen] = useState(null);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       {items.map((item, i) => (
-        <div key={i} style={{ background: D, border: `1px solid ${open === i ? "rgba(255,140,0,0.4)" : "rgba(255,255,255,0.06)"}`, borderRadius: "14px", overflow: "hidden", transition: "border-color 0.2s" }}>
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            style={{ width: "100%", background: "none", border: "none", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", cursor: "pointer", textAlign: "left" }}
-          >
+        <details key={i} style={{ background: D, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", overflow: "hidden" }}>
+          <summary style={{ listStyle: "none", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", cursor: "pointer", userSelect: "none" }}>
             <span style={{ color: "white", fontSize: "15px", fontWeight: "700", lineHeight: "1.4" }}>{item.q}</span>
-            <span style={{ color: P, fontSize: "20px", flexShrink: 0, transform: open === i ? "rotate(45deg)" : "rotate(0)", transition: "transform 0.2s" }}>+</span>
-          </button>
-          {open === i && (
-            <div style={{ padding: "0 24px 20px", color: G, fontSize: "14px", lineHeight: "1.8" }}>{item.a}</div>
-          )}
-        </div>
+            <span style={{ color: P, fontSize: "20px", flexShrink: 0 }}>+</span>
+          </summary>
+          <div style={{ padding: "0 24px 20px", color: G, fontSize: "14px", lineHeight: "1.8" }}>{item.a}</div>
+        </details>
       ))}
     </div>
   );
