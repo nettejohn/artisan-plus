@@ -885,6 +885,7 @@ function Footer() {
               { label: "Alternative à ArtisanFacture", href: "/alternative-artisanfacture" },
               { label: "Conditions d'utilisation", href: "/cgu" },
               { label: "Politique de confidentialité", href: "/politique-confidentialite" },
+              { label: "Mentions légales", href: "/mentions-legales" },
             ].map(l => (
               <a key={l.label} href={l.href}
                 onClick={e => { e.preventDefault(); navigate(l.href); }}
@@ -903,6 +904,7 @@ function Footer() {
           <div style={{ display: "flex", gap: "20px" }}>
             <a href="/cgu" onClick={e => { e.preventDefault(); navigate("/cgu"); }} style={{ color: "#445566", fontSize: "12px", textDecoration: "none" }}>CGU</a>
             <a href="/politique-confidentialite" onClick={e => { e.preventDefault(); navigate("/politique-confidentialite"); }} style={{ color: "#445566", fontSize: "12px", textDecoration: "none" }}>Confidentialité</a>
+            <a href="/mentions-legales" onClick={e => { e.preventDefault(); navigate("/mentions-legales"); }} style={{ color: "#445566", fontSize: "12px", textDecoration: "none" }}>Mentions légales</a>
             <a href="mailto:contact@artisan-plus.fr" style={{ color: "#445566", fontSize: "12px", textDecoration: "none" }}>Contact</a>
           </div>
         </div>
@@ -1656,7 +1658,7 @@ function PageAlternative({ concurrent }) {
             Artisan+ vs {concurrent.label} :<br /><span style={{ color: P }}>7,99€/mois au lieu de {concurrent.prix}</span>
           </h1>
           <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "640px", margin: "0 auto 36px" }}>
-            Artisan+ propose les mêmes fonctionnalités que {concurrent.label} — et même plus — pour un tarif jusqu'à <strong style={{ color: P }}>{Math.round((parseFloat(concurrent.prix) / 7.99 - 1) * 100)}% moins cher</strong>. Découvrez le comparatif complet.
+            Artisan+ propose les mêmes fonctionnalités que {concurrent.label} — et même plus — pour un tarif jusqu'à <strong style={{ color: P }}>{Math.round((1 - 7.99 / parseFloat(concurrent.prix)) * 100)}% moins cher</strong>. Découvrez le comparatif complet.
           </p>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
             style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
@@ -1711,7 +1713,7 @@ function PageAlternative({ concurrent }) {
                     <li><strong>Paiement en ligne</strong> par carte bancaire — une fonctionnalité que {concurrent.label} ne propose pas</li>
                     <li><strong>Support par chat et email</strong> inclus dans l'abonnement</li>
                   </ul>
-                  <p>En résumé : Artisan+ propose plus de fonctionnalités que {concurrent.label} pour un prix {Math.round((parseFloat(concurrent.prix) / 7.99 - 1) * 100)}% moins élevé. Sans engagement, avec un essai gratuit pour tester avant de s'abonner.</p>
+                  <p>En résumé : Artisan+ propose plus de fonctionnalités que {concurrent.label} pour un prix {Math.round((1 - 7.99 / parseFloat(concurrent.prix)) * 100)}% moins élevé. Sans engagement, avec un essai gratuit pour tester avant de s'abonner.</p>
                 </>
               )}
             </div>
@@ -1746,8 +1748,12 @@ function PageCGU() {
 
         {[
           {
+            titre: "Éditeur du Service",
+            contenu: `Le Service Artisan+ est édité par Kessler Cassandra, auto-entrepreneur — SIRET : 99513518300011 — Adresse : 116 route de conflans — Email : contact@artisan-plus.fr`,
+          },
+          {
             titre: "1. Objet et acceptation",
-            contenu: `Les présentes Conditions Générales d'Utilisation (CGU) régissent l'accès et l'utilisation de l'application Artisan+ (ci-après "le Service") éditée par Artisan+ SAS. En créant un compte ou en utilisant le Service, l'utilisateur accepte sans réserve les présentes CGU. Si vous n'acceptez pas ces conditions, vous ne devez pas utiliser le Service.`,
+            contenu: `Les présentes Conditions Générales d'Utilisation (CGU) régissent l'accès et l'utilisation de l'application Artisan+ (ci-après "le Service") éditée par Kessler Cassandra, auto-entrepreneur. En créant un compte ou en utilisant le Service, l'utilisateur accepte sans réserve les présentes CGU. Si vous n'acceptez pas ces conditions, vous ne devez pas utiliser le Service.`,
           },
           {
             titre: "2. Description du Service",
@@ -1775,7 +1781,7 @@ function PageCGU() {
           },
           {
             titre: "8. Résiliation",
-            contenu: `L'utilisateur peut résilier son abonnement à tout moment depuis son espace Paramètres > Abonnement, ou en contactant support@artisan-plus.fr. Artisan+ se réserve le droit de suspendre ou de résilier un compte en cas de violation des présentes CGU, d'utilisation abusive ou frauduleuse, sans préavis.`,
+            contenu: `L'utilisateur peut résilier son abonnement à tout moment depuis son espace Paramètres > Abonnement, ou en contactant contact@artisan-plus.fr. Artisan+ se réserve le droit de suspendre ou de résilier un compte en cas de violation des présentes CGU, d'utilisation abusive ou frauduleuse, sans préavis.`,
           },
           {
             titre: "9. Loi applicable et litiges",
@@ -1815,7 +1821,7 @@ function PageRGPD() {
         {[
           {
             titre: "1. Responsable du traitement",
-            contenu: `Artisan+ SAS est responsable du traitement de vos données personnelles. Contact : contact@artisan-plus.fr — Vous pouvez nous contacter pour toute question relative à vos données.`,
+            contenu: `Kessler Cassandra (auto-entrepreneur, SIRET : 99513518300011, 116 route de conflans) est responsable du traitement de vos données personnelles. Contact : contact@artisan-plus.fr — Vous pouvez nous contacter pour toute question relative à vos données.`,
           },
           {
             titre: "2. Données collectées",
@@ -1857,6 +1863,58 @@ function PageRGPD() {
           <div key={s.titre} style={{ marginBottom: "32px" }}>
             <h2 style={{ color: "white", fontWeight: "700", fontSize: "18px", marginBottom: "12px" }}>{s.titre}</h2>
             <p style={{ color: G, fontSize: "14px", lineHeight: "1.8", margin: 0 }}>{s.contenu}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── PAGE : Mentions Légales ───────────────────────────────────────────────────
+function PageMentionsLegales() {
+  useEffect(() => {
+    setPageMeta(
+      "Mentions Légales | Artisan+",
+      "Mentions légales de l'application Artisan+ — éditeur, hébergeur, propriété intellectuelle.",
+      `${BASE}/mentions-legales`
+    );
+  }, []);
+
+  return (
+    <section style={{ padding: "clamp(60px,8vw,80px) 20px" }}>
+      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+        <h1 style={{ color: "white", fontSize: "clamp(24px,4vw,36px)", fontWeight: "900", marginBottom: "8px" }}>Mentions Légales</h1>
+        <p style={{ color: G, fontSize: "13px", marginBottom: "40px" }}>Dernière mise à jour : juin 2026</p>
+
+        {[
+          {
+            titre: "1. Éditeur du site",
+            contenu: `Le site www.artisan-plus.fr est édité par :\nKessler Cassandra\nAuto-entrepreneur\nSIRET : 99513518300011\nAdresse : 116 route de conflans\nEmail : contact@artisan-plus.fr\nDirectrice de la publication : Kessler Cassandra`,
+          },
+          {
+            titre: "2. Hébergement",
+            contenu: `Le site est hébergé par :\nVercel Inc. — 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis — https://vercel.com\n\nBase de données hébergée par :\nSupabase Inc. — https://supabase.com — serveurs en Europe (UE).`,
+          },
+          {
+            titre: "3. Propriété intellectuelle",
+            contenu: `L'ensemble des contenus présents sur ce site (textes, images, logos, base de données) sont la propriété exclusive de Kessler Cassandra et sont protégés par les lois françaises et internationales relatives à la propriété intellectuelle. Toute reproduction, représentation ou utilisation non autorisée est strictement interdite sans autorisation écrite préalable.`,
+          },
+          {
+            titre: "4. Responsabilité",
+            contenu: `Kessler Cassandra s'efforce d'assurer l'exactitude et la mise à jour des informations diffusées sur ce site. Toutefois, l'exactitude, la complétude ou l'actualité des informations ne peuvent être garanties. L'utilisateur reconnaît utiliser ces informations sous sa responsabilité exclusive.`,
+          },
+          {
+            titre: "5. Données personnelles",
+            contenu: `Pour toute information relative au traitement de vos données personnelles, veuillez consulter notre Politique de Confidentialité accessible à l'adresse : https://www.artisan-plus.fr/politique-confidentialite`,
+          },
+          {
+            titre: "6. Contact",
+            contenu: `Pour toute question relative aux présentes mentions légales : contact@artisan-plus.fr`,
+          },
+        ].map(s => (
+          <div key={s.titre} style={{ marginBottom: "32px" }}>
+            <h2 style={{ color: "white", fontWeight: "700", fontSize: "18px", marginBottom: "12px" }}>{s.titre}</h2>
+            <p style={{ color: G, fontSize: "14px", lineHeight: "1.8", margin: 0, whiteSpace: "pre-line" }}>{s.contenu}</p>
           </div>
         ))}
       </div>
@@ -2699,6 +2757,7 @@ export default function Vitrine() {
   else if (combo)                                                         PageContent = <PageMetierVille metier={combo.metier} ville={combo.ville} />;
   else if (path === "/cgu")                                               PageContent = <PageCGU />;
   else if (path === "/politique-confidentialite")                         PageContent = <PageRGPD />;
+  else if (path === "/mentions-legales")                                  PageContent = <PageMentionsLegales />;
   else if (path === "/facturation-electronique-obligatoire-2026")        PageContent = <PageFacturationElectronique />;
   else if (FACT_ELEC_VARIANTS[path])                                      PageContent = <PageFactElecVariante slug={path} />;
   else if (GENERIC_VARIANTS[path])                                        PageContent = <PageGenerique slug={path} />;

@@ -313,6 +313,10 @@ function getPageMeta(path) {
     title: 'Politique de confidentialité | Artisan+',
     description: 'Politique de confidentialité et traitement des données personnelles de l\'application Artisan+.',
   };
+  if (path === '/mentions-legales') return {
+    title: 'Mentions Légales | Artisan+',
+    description: 'Mentions légales de l\'application Artisan+ — éditeur Kessler Cassandra (auto-entrepreneur), hébergeur, propriété intellectuelle.',
+  };
   if (path === '/facturation-electronique-obligatoire-2026') return {
     title: 'Facturation électronique obligatoire 2026 | Artisan+ prêt',
     description: 'La facturation électronique devient obligatoire en 2026 pour les artisans. Artisan+ est déjà conforme Factur-X. Découvrez comment être prêt.',
@@ -335,6 +339,7 @@ ROUTES.push({ path: '/', dir: null, priority: '1.0', changefreq: 'weekly' });
 // Pages statiques
 ROUTES.push({ path: '/cgu',                                   dir: 'cgu',                                   priority: '0.3', changefreq: 'yearly'  });
 ROUTES.push({ path: '/politique-confidentialite',             dir: 'politique-confidentialite',             priority: '0.3', changefreq: 'yearly'  });
+ROUTES.push({ path: '/mentions-legales',                      dir: 'mentions-legales',                      priority: '0.3', changefreq: 'yearly'  });
 ROUTES.push({ path: '/facturation-electronique-obligatoire-2026', dir: 'facturation-electronique-obligatoire-2026', priority: '0.8', changefreq: 'monthly' });
 
 // Pages métiers (/devis-facture-{slug})
@@ -457,13 +462,20 @@ function renderPath(routePath) {
       ? `\n  <script type="application/ld+json">${serializeSchema(schema)}</script>`
       : '';
     const canonicalUrl = `${BASE}${routePath === '/' ? '' : routePath}`;
-    return template
+    const canonicalTag = `<link rel="canonical" href="${canonicalUrl}" />`;
+    let result = template
       .replace('<div id="root"></div>', `<div id="root">${html}</div>`)
       .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
       .replace(/(<meta name="description" content=")[^"]*"/, `$1${escHtml(description)}"`)
-      .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${canonicalUrl}" />`)
       .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${canonicalUrl}"`)
       .replace('</head>', `${schemaTag}\n</head>`);
+    // Injecter ou remplacer le canonical
+    if (result.includes('rel="canonical"')) {
+      result = result.replace(/<link rel="canonical" href="[^"]*"\s*\/>/, canonicalTag);
+    } else {
+      result = result.replace('<link rel="sitemap"', `${canonicalTag}\n    <link rel="sitemap"`);
+    }
+    return result;
   } catch (err) {
     console.warn(`  ⚠️  ${routePath}: ${err.message}`);
     return null;

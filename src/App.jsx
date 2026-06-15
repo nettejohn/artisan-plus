@@ -56,7 +56,7 @@ function PublicFallback() {
 // Préfixes de routes de la vitrine marketing (hors /login)
 const VITRINE_PREFIXES = [
   "/devis-facture-", "/artisan-", "/alternative-",
-  "/cgu", "/politique-confidentialite", "/fonctionnalites", "/tarifs",
+  "/cgu", "/politique-confidentialite", "/mentions-legales", "/fonctionnalites", "/tarifs",
   "/blog",
   "/facturation-electronique-", "/facture-electronique-",
   "/logiciel-facturation-electronique-",
