@@ -3,7 +3,7 @@
  * Routes : /, /devis-facture-:metier, /artisan-:ville,
  *          /alternative-:concurrent, /cgu, /politique-confidentialite
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "./i18n";
 
 const P  = "#FF8C00";
@@ -11,6 +11,241 @@ const D  = "#0a1628";
 const C  = "#111e35";
 const G  = "#8899aa";
 const BASE = "https://www.artisan-plus.fr";
+
+// ── Styles globaux animés ─────────────────────────────────────────────────────
+function VitrineStyles() {
+  useEffect(() => {
+    const id = "ap-vitrine-styles";
+    if (document.getElementById(id)) return;
+    const el = document.createElement("style");
+    el.id = id;
+    el.textContent = `
+      /* ── Cards flottantes ──────────────── */
+      .ap-card { transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease !important; }
+      .ap-card:hover { transform: translateY(-7px) !important; box-shadow: 0 28px 64px rgba(0,0,0,.55), 0 0 44px rgba(255,140,0,.12) !important; border-color: rgba(255,140,0,.4) !important; }
+
+      /* ── Boutons ────────────────────────── */
+      .ap-btn { transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease !important; }
+      .ap-btn:hover { transform: translateY(-2px) scale(1.02) !important; box-shadow: 0 10px 28px rgba(255,140,0,.42) !important; opacity: .95; }
+      .ap-btn:active { transform: translateY(0) scale(.97) !important; }
+      .ap-btn-ghost:hover { background: rgba(255,255,255,.1) !important; transform: translateY(-2px) !important; box-shadow: 0 8px 22px rgba(0,0,0,.3) !important; }
+
+      /* ── Badge shimmer ──────────────────── */
+      .ap-badge { position:relative; overflow:hidden; }
+      .ap-badge::after { content:''; position:absolute; top:0; left:-100%; width:55%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent); animation:ap-shimmer 3.5s ease-in-out infinite; }
+      @keyframes ap-shimmer { 0%{left:-100%} 100%{left:220%} }
+
+      /* ── Float hero ─────────────────────── */
+      @keyframes ap-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+      .ap-float { animation: ap-float 4.5s ease-in-out infinite; }
+
+      /* ── Glow phone ─────────────────────── */
+      @keyframes ap-glow { 0%,100%{box-shadow:0 0 28px rgba(255,140,0,.18),0 40px 120px rgba(0,0,0,.65)} 50%{box-shadow:0 0 52px rgba(255,140,0,.36),0 40px 120px rgba(0,0,0,.65)} }
+      .ap-glow { animation: ap-glow 3.2s ease-in-out infinite; }
+
+      /* ── Invoice ────────────────────────── */
+      @keyframes ap-fade-up { 0%{opacity:0;transform:translateY(10px)} 100%{opacity:1;transform:none} }
+      @keyframes ap-sign { 0%{stroke-dashoffset:170;opacity:0} 12%{opacity:1} 100%{stroke-dashoffset:0} }
+
+      /* ── House ──────────────────────────── */
+      @keyframes ap-brick { 0%,68%{opacity:0;transform:translateY(-8px) scale(.88)} 100%{opacity:1;transform:none} }
+      @keyframes ap-roof-a { 0%,52%{opacity:0;transform:translateY(-16px)} 100%{opacity:1;transform:none} }
+      @keyframes ap-win { 0%,72%{opacity:0;transform:scale(.3)} 100%{opacity:1;transform:none} }
+      @keyframes ap-check { 0%,88%{opacity:0;transform:scale(.2) rotate(-15deg)} 100%{opacity:1;transform:none} }
+
+      /* ── Revenue ────────────────────────── */
+      @keyframes ap-avatar { 0%{opacity:0;transform:scale(0) rotate(-8deg)} 65%{transform:scale(1.18) rotate(2deg)} 100%{opacity:1;transform:none} }
+
+      /* ── FAQ ────────────────────────────── */
+      summary::-webkit-details-marker{display:none}
+      details{transition:border-color .25s ease}
+      details[open]{border-color:rgba(255,140,0,.38) !important}
+      .ap-faq-plus{transition:transform .25s ease;display:inline-block}
+      details[open] .ap-faq-plus{transform:rotate(45deg)}
+
+      /* ── Séparateur accent ──────────────── */
+      .ap-sep{width:52px;height:3px;background:linear-gradient(90deg,#FF8C00,transparent);border-radius:2px;margin-top:12px}
+    `;
+    document.head.appendChild(el);
+  }, []);
+  return null;
+}
+
+// ── Scroll reveal ─────────────────────────────────────────────────────────────
+function Reveal({ children, delay = 0, style = {}, ...props }) {
+  const ref = useRef(null);
+  const [phase, setPhase] = useState("init");
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.95) { setPhase("show"); return; }
+    setPhase("hide");
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setPhase("in"); obs.disconnect(); }
+    }, { threshold: 0.06, rootMargin: "0px 0px -32px 0px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  const hidden = phase === "hide";
+  return (
+    <div ref={ref} {...props} style={{
+      opacity: hidden ? 0 : 1,
+      transform: hidden ? "translateY(24px)" : "none",
+      transition: phase === "in" ? `opacity .65s cubic-bezier(.16,1,.3,1) ${delay}s, transform .65s cubic-bezier(.16,1,.3,1) ${delay}s` : undefined,
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Animation 1 : Devis qui se remplit ────────────────────────────────────────
+function InvoiceAnimation() {
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: "340px", margin: "0 auto" }} className="ap-float">
+      <div className="ap-glow" style={{ background: "#0d1f3c", borderRadius: "32px", border: "2px solid rgba(255,140,0,0.4)", padding: "14px" }}>
+        <div style={{ background: D, borderRadius: "22px", overflow: "hidden", padding: "18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", animation: "ap-fade-up .4s ease .1s both" }}>
+            <span style={{ color: "white", fontWeight: "900", fontSize: "18px" }}>Artisan<span style={{ color: P }}>+</span></span>
+            <div style={{ background: "rgba(76,175,80,0.15)", color: "#4CAF50", fontSize: "11px", fontWeight: "700", padding: "4px 10px", borderRadius: "8px", border: "1px solid rgba(76,175,80,0.3)" }}>✓ Pro</div>
+          </div>
+          <div style={{ background: C, borderRadius: "16px", padding: "16px", border: "1px solid rgba(255,140,0,0.15)", animation: "ap-fade-up .4s ease .3s both" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
+              <div>
+                <div style={{ color: "white", fontWeight: "800", fontSize: "11px", letterSpacing: ".5px" }}>DEVIS N° 2025-047</div>
+                <div style={{ color: G, fontSize: "10px", marginTop: "3px" }}>M. Dupont — Réfection toiture</div>
+              </div>
+              <div style={{ color: G, fontSize: "9px" }}>15 jan. 2025</div>
+            </div>
+            {[
+              { label: "Main d'œuvre (8h)", price: "960,00 €", delay: ".6s" },
+              { label: "Tuiles terre cuite (120m²)", price: "1 280,00 €", delay: "1.0s" },
+              { label: "Faîtières + Solins", price: "320,00 €", delay: "1.4s" },
+              { label: "Échafaudage 3 jours", price: "450,00 €", delay: "1.8s" },
+            ].map((l, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", animation: `ap-fade-up .35s ease ${l.delay} both` }}>
+                <span style={{ color: G, fontSize: "10px", flex: 1 }}>{l.label}</span>
+                <span style={{ color: "white", fontSize: "10px", fontWeight: "700", marginLeft: "8px" }}>{l.price}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: "12px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.25)", borderRadius: "10px", padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", animation: "ap-fade-up .4s ease 2.2s both" }}>
+              <span style={{ color: "white", fontWeight: "800", fontSize: "11px" }}>TOTAL TTC</span>
+              <span style={{ color: P, fontWeight: "900", fontSize: "16px" }}>3 010,00 €</span>
+            </div>
+            <div style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px", animation: "ap-fade-up .4s ease 2.8s both" }}>
+              <div style={{ color: G, fontSize: "9px", textAlign: "center", marginBottom: "8px" }}>Signature client</div>
+              <svg viewBox="0 0 160 40" width="100%" height="38">
+                <path d="M8,32 C18,22 26,10 38,20 C50,30 56,12 68,22 C80,32 86,16 100,24 C114,32 120,18 136,22 C146,24 150,20 156,16" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="170" style={{ animation: "ap-sign 1.3s ease 3.2s both" }} />
+              </svg>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px", animation: "ap-fade-up .4s ease 4.0s both" }}>
+            <div style={{ flex: 1, background: "rgba(76,175,80,0.12)", border: "1px solid rgba(76,175,80,0.3)", borderRadius: "10px", padding: "8px", textAlign: "center" }}>
+              <div style={{ color: "#4CAF50", fontSize: "10px", fontWeight: "800" }}>✓ SIGNÉ</div>
+            </div>
+            <div style={{ flex: 1, background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "10px", padding: "8px", textAlign: "center" }}>
+              <div style={{ color: P, fontSize: "10px", fontWeight: "800" }}>💶 PAYÉ</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ position: "absolute", top: "28px", right: "-18px", background: "rgba(76,175,80,0.93)", color: "white", fontSize: "11px", fontWeight: "700", padding: "7px 12px", borderRadius: "10px", boxShadow: "0 4px 16px rgba(0,0,0,0.4)", whiteSpace: "nowrap", animation: "ap-fade-up .4s ease 4.3s both" }}>
+        ✓ Devis signé !
+      </div>
+      <div style={{ position: "absolute", bottom: "72px", left: "-20px", background: "rgba(255,140,0,0.93)", color: "white", fontSize: "11px", fontWeight: "700", padding: "7px 12px", borderRadius: "10px", boxShadow: "0 4px 16px rgba(0,0,0,0.4)", whiteSpace: "nowrap", animation: "ap-fade-up .4s ease 4.6s both" }}>
+        💶 Paiement reçu
+      </div>
+    </div>
+  );
+}
+
+// ── Animation 2 : Maison qui se construit ────────────────────────────────────
+function HouseAnimation() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width="210" height="210" viewBox="0 0 210 210" fill="none" aria-hidden="true">
+        {/* Foundation */}
+        <rect x="26" y="174" width="158" height="10" rx="3" fill="rgba(255,140,0,0.25)" style={{ animation: "ap-brick .5s ease .1s both" }} />
+        {/* Wall row 1 */}
+        {[0,1,2,3,4,5].map(i => (
+          <rect key={`r1-${i}`} x={26+i*26} y={148} width={24} height={24} rx="1.5" fill="rgba(255,140,0,0.13)" stroke="rgba(255,140,0,0.25)" strokeWidth=".8" style={{ animation: `ap-brick .35s ease ${0.25+i*0.07}s both` }} />
+        ))}
+        {/* Wall row 2 */}
+        {[0,1,2,3,4,5].map(i => (
+          <rect key={`r2-${i}`} x={26+i*26} y={122} width={24} height={24} rx="1.5" fill="rgba(255,140,0,0.13)" stroke="rgba(255,140,0,0.25)" strokeWidth=".8" style={{ animation: `ap-brick .35s ease ${0.75+i*0.07}s both` }} />
+        ))}
+        {/* Wall row 3 */}
+        {[0,1,2,3,4,5].map(i => (
+          <rect key={`r3-${i}`} x={26+i*26} y={96} width={24} height={24} rx="1.5" fill="rgba(255,140,0,0.13)" stroke="rgba(255,140,0,0.25)" strokeWidth=".8" style={{ animation: `ap-brick .35s ease ${1.2+i*0.07}s both` }} />
+        ))}
+        {/* Door */}
+        <rect x="90" y="146" width="30" height="38" rx="3" fill="rgba(255,140,0,0.22)" stroke="rgba(255,140,0,0.45)" strokeWidth="1" style={{ animation: "ap-brick .4s ease 1.65s both" }} />
+        <circle cx="115" cy="166" r="2.5" fill={P} style={{ animation: "ap-brick .3s ease 1.75s both" }} />
+        {/* Windows */}
+        <rect x="34" y="126" width="24" height="16" rx="3" fill="rgba(100,180,230,0.2)" stroke="rgba(100,180,230,0.4)" strokeWidth="1" style={{ animation: "ap-win .4s ease 1.7s both" }} />
+        <line x1="46" y1="126" x2="46" y2="142" stroke="rgba(100,180,230,0.3)" strokeWidth=".8" style={{ animation: "ap-win .4s ease 1.8s both" }} />
+        <rect x="152" y="126" width="24" height="16" rx="3" fill="rgba(100,180,230,0.2)" stroke="rgba(100,180,230,0.4)" strokeWidth="1" style={{ animation: "ap-win .4s ease 1.9s both" }} />
+        <line x1="164" y1="126" x2="164" y2="142" stroke="rgba(100,180,230,0.3)" strokeWidth=".8" style={{ animation: "ap-win .4s ease 2.0s both" }} />
+        {/* Roof */}
+        <polygon points="12,98 105,30 198,98" fill="rgba(255,140,0,0.16)" stroke={P} strokeWidth="2.5" strokeLinejoin="round" style={{ animation: "ap-roof-a .6s ease 1.4s both" }} />
+        {/* Chimney */}
+        <rect x="140" y="44" width="18" height="36" rx="2.5" fill="rgba(255,140,0,0.22)" stroke="rgba(255,140,0,0.35)" strokeWidth="1" style={{ animation: "ap-roof-a .4s ease 1.85s both" }} />
+        <circle cx="149" cy="37" r="5" fill="rgba(255,255,255,0.07)" style={{ animation: "ap-win .5s ease 2.2s both" }} />
+        <circle cx="156" cy="28" r="7" fill="rgba(255,255,255,0.05)" style={{ animation: "ap-win .5s ease 2.4s both" }} />
+        {/* Badge check */}
+        <circle cx="172" cy="50" r="19" fill={P} style={{ animation: "ap-check .4s ease 2.6s both" }} />
+        <path d="M163,50 L170,58 L182,38" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "ap-check .35s ease 2.9s both" }} />
+      </svg>
+    </div>
+  );
+}
+
+// ── Animation 3 : Chiffre d'affaires qui monte ────────────────────────────────
+function RevenueAnimation() {
+  const ref = useRef(null);
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !started) {
+        obs.disconnect();
+        setStarted(true);
+        const target = 4820, duration = 1800, t0 = performance.now();
+        const tick = (now) => {
+          const p = Math.min((now - t0) / duration, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          setCount(Math.round(ease * target));
+          if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+    }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [started]);
+  const AVATARS = ["🔧","⚡","🧱","🎨","🪚","🌿","🔥","🔑","🏗️","🪟"];
+  return (
+    <div ref={ref} style={{ background: C, borderRadius: "24px", border: "1px solid rgba(255,140,0,0.2)", padding: "36px 28px", textAlign: "center", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
+      <div style={{ color: G, fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "10px" }}>CA mensuel moyen</div>
+      <div style={{ color: P, fontSize: "clamp(40px,6vw,56px)", fontWeight: "900", lineHeight: "1", marginBottom: "8px", fontVariantNumeric: "tabular-nums" }}>
+        {count.toLocaleString("fr-FR")} €
+      </div>
+      <div style={{ color: G, fontSize: "13px", marginBottom: "24px" }}>par artisan actif sur Artisan+</div>
+      <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+        {AVATARS.map((av, i) => (
+          <div key={i} style={{
+            width: "40px", height: "40px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.22)", borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px",
+            animation: started ? `ap-avatar .4s ease ${i * 0.1}s both` : "none",
+          }}>{av}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ── Données métiers (50 métiers) ──────────────────────────────────────────────
 const METIERS = [
@@ -1021,23 +1256,23 @@ function TableauComparatif({ titre }) {
 // ── Composant : Section CTA ───────────────────────────────────────────────────
 function CTASection({ titre, sous }) {
   return (
-    <div style={{ background: `linear-gradient(135deg, rgba(255,140,0,0.08) 0%, rgba(10,22,40,0) 100%)`, border: "1px solid rgba(255,140,0,0.2)", borderRadius: "24px", padding: "clamp(40px,6vw,80px) 20px", textAlign: "center", margin: "0 auto", maxWidth: "800px" }}>
+    <div style={{ background: `linear-gradient(135deg, rgba(255,140,0,0.1) 0%, rgba(10,22,40,0) 60%, rgba(255,140,0,0.04) 100%)`, border: "1px solid rgba(255,140,0,0.25)", borderRadius: "28px", padding: "clamp(44px,6vw,88px) 28px", textAlign: "center", margin: "0 auto", maxWidth: "800px", boxShadow: "0 32px 80px rgba(0,0,0,0.3), 0 0 60px rgba(255,140,0,0.06) inset" }}>
       <div style={{ fontSize: "clamp(28px,5vw,44px)", fontWeight: "900", color: "white", lineHeight: "1.2", marginBottom: "16px" }}>
         {titre || <>Commencez <span style={{ color: P }}>gratuitement</span> aujourd'hui</>}
       </div>
-      <p style={{ color: G, fontSize: "16px", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
+      <p style={{ color: G, fontSize: "16px", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 36px", lineHeight: "1.7" }}>
         {sous || "Aucune carte bancaire requise. Commencez gratuitement — passez Pro à 7,99€/mois quand vous êtes prêt."}
       </p>
       <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
         <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-          style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 32px", borderRadius: "14px", textDecoration: "none", transition: "opacity 0.15s" }}
-          onMouseEnter={e => e.currentTarget.style.opacity = "0.88"}
-          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          className="ap-btn"
+          style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "17px 36px", borderRadius: "14px", textDecoration: "none" }}
         >
           🚀 Créer un compte gratuit
         </a>
         <a href="/#tarifs" onClick={e => { e.preventDefault(); navigate("/#tarifs"); }}
-          style={{ background: "rgba(255,255,255,0.07)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 32px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
+          className="ap-btn ap-btn-ghost"
+          style={{ background: "rgba(255,255,255,0.07)", color: "white", fontWeight: "700", fontSize: "16px", padding: "17px 36px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.18)" }}>
           Voir les tarifs
         </a>
       </div>
@@ -1054,7 +1289,7 @@ function FaqAccordion({ items }) {
         <details key={i} style={{ background: D, border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px", overflow: "hidden" }}>
           <summary style={{ listStyle: "none", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", cursor: "pointer", userSelect: "none" }}>
             <span style={{ color: "white", fontSize: "15px", fontWeight: "700", lineHeight: "1.4" }}>{item.q}</span>
-            <span style={{ color: P, fontSize: "20px", flexShrink: 0 }}>+</span>
+            <span className="ap-faq-plus" style={{ color: P, fontSize: "20px", flexShrink: 0 }}>+</span>
           </summary>
           <div style={{ padding: "0 24px 20px", color: G, fontSize: "14px", lineHeight: "1.8" }}>{item.a}</div>
         </details>
@@ -1180,7 +1415,7 @@ function PageHome() {
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto", gap: isMobile ? "40px" : "60px", alignItems: "center" }}>
           <div>
             {/* Badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "6px 14px", marginBottom: "24px" }}>
+            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.12)", border: "1px solid rgba(255,140,0,0.35)", borderRadius: "20px", padding: "7px 16px", marginBottom: "28px" }}>
               <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>🏆 N°1 des apps artisan les moins chères</span>
             </div>
 
@@ -1194,16 +1429,16 @@ function PageHome() {
               L'application de gestion pour artisans la plus complète et la moins chère du marché. Devis, factures, suivi chantier, mini-site vitrine et paiement en ligne — tout en un.
             </p>
 
-            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "32px" }}>
+            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", marginBottom: "36px" }}>
               <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-                style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", transition: "transform 0.15s, opacity 0.15s" }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = "0.88"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+                className="ap-btn"
+                style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "17px 30px", borderRadius: "14px", textDecoration: "none" }}
               >
                 🚀 Créer un compte gratuit
               </a>
               <a href="#comparatif" onClick={e => { e.preventDefault(); document.getElementById("comparatif")?.scrollIntoView({ behavior: "smooth" }); }}
-                style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
+                className="ap-btn ap-btn-ghost"
+                style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "17px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
                 Voir le comparatif
               </a>
             </div>
@@ -1216,28 +1451,28 @@ function PageHome() {
             </div>
           </div>
 
-          {/* Mockup app — masqué sur mobile pour éviter le débordement */}
+          {/* Animation devis — masquée sur mobile pour éviter le débordement */}
           {!isMobile && (
             <div style={{ display: "flex", justifyContent: "center", minWidth: "300px" }}>
-              <AppMockup />
+              <InvoiceAnimation />
             </div>
           )}
         </div>
       </section>
 
       {/* ── Stats ───────────────────────────────────────────────── */}
-      <section style={{ background: C, padding: "32px 20px", borderTop: "1px solid rgba(255,140,0,0.1)", borderBottom: "1px solid rgba(255,140,0,0.1)" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "24px" }}>
+      <section style={{ background: C, padding: "40px 20px", borderTop: "1px solid rgba(255,140,0,0.12)", borderBottom: "1px solid rgba(255,140,0,0.12)" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "28px" }}>
           {[
             { val: "500+",    label: "Artisans actifs" },
             { val: "10 000+", label: "Devis générés" },
             { val: "Gratuit", label: "Pour commencer" },
             { val: "4.9/5",   label: "Note moyenne" },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
-              <div style={{ color: P, fontWeight: "900", fontSize: "clamp(24px,4vw,36px)" }}>{s.val}</div>
-              <div style={{ color: G, fontSize: "13px", marginTop: "4px" }}>{s.label}</div>
-            </div>
+          ].map((s, i) => (
+            <Reveal key={s.label} delay={i * 0.08} style={{ textAlign: "center" }}>
+              <div style={{ color: P, fontWeight: "900", fontSize: "clamp(26px,4vw,38px)", letterSpacing: "-1px" }}>{s.val}</div>
+              <div style={{ color: G, fontSize: "13px", marginTop: "6px" }}>{s.label}</div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -1267,25 +1502,53 @@ function PageHome() {
               </div>
               {/* Grille de cartes */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "16px" }}>
-                {group.features.map(f => (
-                  <div key={f.titre}
-                    style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "16px", padding: "24px", transition: "border-color 0.2s, transform 0.2s", display: "flex", flexDirection: "column", gap: "0" }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.35)"; e.currentTarget.style.transform = "translateY(-3px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.1)"; e.currentTarget.style.transform = "translateY(0)"; }}
-                  >
-                    <div style={{ fontSize: "30px", marginBottom: "14px" }}>{f.icon}</div>
-                    <h4 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 10px", lineHeight: "1.3" }}>{f.titre}</h4>
-                    <p style={{ color: G, fontSize: "13px", lineHeight: "1.65", margin: "0 0 16px", flexGrow: 1 }}>{f.desc}</p>
-                    {f.benefit && (
-                      <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "5px 10px", width: "fit-content" }}>
-                        <span style={{ color: P, fontSize: "11px", fontWeight: "800" }}>✓ {f.benefit}</span>
-                      </div>
-                    )}
-                  </div>
+                {group.features.map((f, fi) => (
+                  <Reveal key={f.titre} delay={fi * 0.06} style={{ display: "flex" }}>
+                    <div
+                      className="ap-card"
+                      style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "20px", padding: "26px", display: "flex", flexDirection: "column", gap: "0", flex: 1 }}
+                    >
+                      <div style={{ fontSize: "30px", marginBottom: "14px" }}>{f.icon}</div>
+                      <h4 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 10px", lineHeight: "1.3" }}>{f.titre}</h4>
+                      <p style={{ color: G, fontSize: "13px", lineHeight: "1.65", margin: "0 0 16px", flexGrow: 1 }}>{f.desc}</p>
+                      {f.benefit && (
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.2)", borderRadius: "8px", padding: "5px 10px", width: "fit-content" }}>
+                          <span style={{ color: P, fontSize: "11px", fontWeight: "800" }}>✓ {f.benefit}</span>
+                        </div>
+                      )}
+                    </div>
+                  </Reveal>
                 ))}
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Construisez votre activité ───────────────────────── */}
+      <section style={{ padding: "clamp(60px,8vw,100px) 20px", background: C }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <Reveal style={{ textAlign: "center", marginBottom: "60px" }}>
+            <div className="ap-badge" style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(255,140,0,0.1)", border: "1px solid rgba(255,140,0,0.3)", borderRadius: "20px", padding: "7px 16px", marginBottom: "20px" }}>
+              <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>🏗️ Construit pour les artisans</span>
+            </div>
+            <h2 style={{ color: "white", fontSize: "clamp(24px,4vw,40px)", fontWeight: "900", margin: "0 0 12px", lineHeight: "1.15" }}>
+              Construisez votre activité,<br /><span style={{ color: P }}>on gère le reste</span>
+            </h2>
+            <p style={{ color: G, fontSize: "16px", maxWidth: "540px", margin: "0 auto" }}>De la première brique au chantier livré — Artisan+ vous accompagne à chaque étape.</p>
+          </Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "40px", alignItems: "center" }}>
+            <Reveal delay={0.05}>
+              <div style={{ textAlign: "center" }}>
+                <HouseAnimation />
+                <div style={{ color: "white", fontWeight: "800", fontSize: "16px", marginTop: "20px" }}>Chaque chantier maîtrisé</div>
+                <p style={{ color: G, fontSize: "13px", marginTop: "8px", lineHeight: "1.65" }}>Suivez l'avancement, les coûts et partagez les photos avec vos clients en temps réel.</p>
+              </div>
+            </Reveal>
+            <Reveal delay={0.15}>
+              <RevenueAnimation />
+            </Reveal>
+          </div>
         </div>
       </section>
 
@@ -1318,22 +1581,24 @@ function PageHome() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px" }}>
-            {TEMOIGNAGES.map(t => (
-              <div key={t.nom} style={{ background: C, border: "1px solid rgba(255,140,0,0.15)", borderRadius: "20px", padding: "28px" }}>
-                <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
-                  {[...Array(t.note)].map((_, i) => <span key={i} style={{ color: "#FFD700", fontSize: "16px" }}>★</span>)}
-                </div>
-                <p style={{ color: "white", fontSize: "14px", lineHeight: "1.7", fontStyle: "italic", margin: "0 0 20px" }}>"{t.texte}"</p>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ width: "40px", height: "40px", background: `rgba(255,140,0,0.15)`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", flexShrink: 0 }}>
-                    {t.metier === "Plombier" ? "🔧" : t.metier === "Électricienne" ? "⚡" : "🧱"}
+            {TEMOIGNAGES.map((t, ti) => (
+              <Reveal key={t.nom} delay={ti * 0.1} style={{ display: "flex" }}>
+                <div className="ap-card" style={{ background: C, border: "1px solid rgba(255,140,0,0.18)", borderRadius: "22px", padding: "30px", flex: 1, boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+                  <div style={{ display: "flex", gap: "4px", marginBottom: "16px" }}>
+                    {[...Array(t.note)].map((_, i) => <span key={i} style={{ color: "#FFD700", fontSize: "16px" }}>★</span>)}
                   </div>
-                  <div>
-                    <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{t.nom}</div>
-                    <div style={{ color: G, fontSize: "12px" }}>{t.metier} · {t.ville}</div>
+                  <p style={{ color: "white", fontSize: "14px", lineHeight: "1.75", fontStyle: "italic", margin: "0 0 20px" }}>"{t.texte}"</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: "42px", height: "42px", background: `rgba(255,140,0,0.15)`, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", flexShrink: 0, border: "1px solid rgba(255,140,0,0.2)" }}>
+                      {t.metier === "Plombier" ? "🔧" : t.metier === "Électricienne" ? "⚡" : "🧱"}
+                    </div>
+                    <div>
+                      <div style={{ color: "white", fontWeight: "700", fontSize: "14px" }}>{t.nom}</div>
+                      <div style={{ color: G, fontSize: "12px" }}>{t.metier} · {t.ville}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -1354,11 +1619,10 @@ function PageHome() {
             {METIERS.map(m => (
               <a key={m.slug} href={`/devis-facture-${m.slug}`}
                 onClick={e => { e.preventDefault(); navigate(`/devis-facture-${m.slug}`); }}
-                style={{ background: D, border: "1px solid rgba(255,140,0,0.12)", borderRadius: "14px", padding: "20px 16px", textDecoration: "none", textAlign: "center", transition: "all 0.2s", display: "block" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.4)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,140,0,0.12)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                className="ap-card"
+                style={{ background: D, border: "1px solid rgba(255,140,0,0.12)", borderRadius: "16px", padding: "22px 16px", textDecoration: "none", textAlign: "center", display: "block" }}
               >
-                <div style={{ fontSize: "28px", marginBottom: "8px" }}>{m.emoji}</div>
+                <div style={{ fontSize: "30px", marginBottom: "10px" }}>{m.emoji}</div>
                 <div style={{ color: "white", fontWeight: "700", fontSize: "13px" }}>{m.label}</div>
               </a>
             ))}
@@ -1423,7 +1687,8 @@ function PageMetier({ metier }) {
             Artisan+ est l'outil de gestion conçu pour {art(metier.art)}{metier.label.toLowerCase()}. Créez des devis professionnels de {metier.desc}, envoyez-les par email, obtenez la signature électronique et encaissez en ligne — <strong style={{ color: P }}>gratuit pour commencer</strong>.
           </p>
           <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-            style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "16px 36px", borderRadius: "14px", textDecoration: "none" }}>
+            className="ap-btn"
+            style={{ display: "inline-block", background: P, color: "white", fontWeight: "800", fontSize: "17px", padding: "17px 36px", borderRadius: "14px", textDecoration: "none" }}>
             🚀 Créer un compte gratuit — {metier.label}
           </a>
         </div>
@@ -1432,7 +1697,7 @@ function PageMetier({ metier }) {
       {/* Contenu SEO */}
       <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "24px", marginBottom: "60px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginBottom: "60px" }}>
             {[
               { icon: "⚡", titre: `Devis ${metier.desc} en 2 min`, desc: `Catalogue de prix ${metier.desc} intégré. Créez un devis complet en quelques clics, sans saisie répétitive.` },
               { icon: "🧾", titre: "Factures conformes", desc: "Factures légalement conformes avec TVA, acomptes, mentions obligatoires et export PDF professionnel." },
@@ -1440,12 +1705,14 @@ function PageMetier({ metier }) {
               { icon: "💶", titre: "Paiement en ligne", desc: "Encaissez par carte bancaire directement depuis la facture. Virements dans les 48h sur votre compte." },
               { icon: "🌐", titre: "Mini-site gratuit", desc: `Votre vitrine en ligne de ${metier.label.toLowerCase()} avec vos réalisations. Recevez des demandes de devis directement.` },
               { icon: "🏗️", titre: "Suivi de chantier", desc: "Gérez vos chantiers de A à Z : photos, coûts, avancement. Partagez l'état d'avancement avec vos clients." },
-            ].map(f => (
-              <div key={f.titre} style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "16px", padding: "24px" }}>
-                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{f.icon}</div>
-                <h3 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 8px" }}>{f.titre}</h3>
-                <p style={{ color: G, fontSize: "13px", lineHeight: "1.6", margin: 0 }}>{f.desc}</p>
-              </div>
+            ].map((f, fi) => (
+              <Reveal key={f.titre} delay={fi * 0.07} style={{ display: "flex" }}>
+                <div className="ap-card" style={{ background: C, border: "1px solid rgba(255,140,0,0.1)", borderRadius: "20px", padding: "26px", flex: 1 }}>
+                  <div style={{ fontSize: "30px", marginBottom: "14px" }}>{f.icon}</div>
+                  <h3 style={{ color: "white", fontWeight: "800", fontSize: "15px", margin: "0 0 8px" }}>{f.titre}</h3>
+                  <p style={{ color: G, fontSize: "13px", lineHeight: "1.65", margin: 0 }}>{f.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
 
@@ -2674,11 +2941,13 @@ function PageGenerique({ slug }) {
           <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", maxWidth: "720px", margin: "0 auto 36px" }}>{v.intro}</p>
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
-              style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
+              className="ap-btn"
+              style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "17px 30px", borderRadius: "14px", textDecoration: "none" }}>
               🚀 Créer un compte gratuit
             </a>
             <a href="/" onClick={e => { e.preventDefault(); navigate("/"); }}
-              style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
+              className="ap-btn ap-btn-ghost"
+              style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "17px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)" }}>
               Voir toutes les fonctionnalités
             </a>
           </div>
@@ -2686,13 +2955,15 @@ function PageGenerique({ slug }) {
       </section>
       <section style={{ padding: "clamp(60px,8vw,100px) 20px" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
             {v.features.map((f, i) => (
-              <div key={i} style={{ background: C, borderRadius: "16px", padding: "28px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize: "28px", marginBottom: "12px" }}>{f.icon}</div>
-                <h3 style={{ color: "white", fontWeight: "800", fontSize: "16px", margin: "0 0 10px" }}>{f.titre}</h3>
-                <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: 0 }}>{f.desc}</p>
-              </div>
+              <Reveal key={i} delay={i * 0.07} style={{ display: "flex" }}>
+                <div className="ap-card" style={{ background: C, borderRadius: "20px", padding: "28px", border: "1px solid rgba(255,255,255,0.06)", flex: 1 }}>
+                  <div style={{ fontSize: "28px", marginBottom: "12px" }}>{f.icon}</div>
+                  <h3 style={{ color: "white", fontWeight: "800", fontSize: "16px", margin: "0 0 10px" }}>{f.titre}</h3>
+                  <p style={{ color: G, fontSize: "13px", lineHeight: "1.7", margin: 0 }}>{f.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
           {v.pricing && (
@@ -2759,6 +3030,7 @@ export default function Vitrine() {
 
   return (
     <div style={{ minHeight: "100vh", background: D, fontFamily: "'Segoe UI', -apple-system, sans-serif", color: "white" }}>
+      <VitrineStyles />
       <Header />
       <main>{PageContent}</main>
       <Footer />
