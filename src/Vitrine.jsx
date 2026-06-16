@@ -2120,7 +2120,7 @@ function PageCGU() {
         {[
           {
             titre: "Éditeur du Service",
-            contenu: `Le Service Artisan+ est édité par Kessler Cassandra, auto-entrepreneur — SIRET : 99513518300011 — Adresse : 116 route de conflans — Email : contact@artisan-plus.fr`,
+            contenu: `Le Service Artisan+ est édité par Kessler Cassandra, auto-entrepreneur — SIRET : 99513518300011 — Email : contact@artisan-plus.fr`,
           },
           {
             titre: "1. Objet et acceptation",
@@ -2192,7 +2192,7 @@ function PageRGPD() {
         {[
           {
             titre: "1. Responsable du traitement",
-            contenu: `Kessler Cassandra (auto-entrepreneur, SIRET : 99513518300011, 116 route de conflans) est responsable du traitement de vos données personnelles. Contact : contact@artisan-plus.fr — Vous pouvez nous contacter pour toute question relative à vos données.`,
+            contenu: `Kessler Cassandra (auto-entrepreneur, SIRET : 99513518300011) est responsable du traitement de vos données personnelles. Contact : contact@artisan-plus.fr — Vous pouvez nous contacter pour toute question relative à vos données.`,
           },
           {
             titre: "2. Données collectées",
@@ -2260,7 +2260,7 @@ function PageMentionsLegales() {
         {[
           {
             titre: "1. Éditeur du site",
-            contenu: `Le site www.artisan-plus.fr est édité par :\nKessler Cassandra\nAuto-entrepreneur\nSIRET : 99513518300011\nAdresse : 116 route de conflans\nEmail : contact@artisan-plus.fr\nDirectrice de la publication : Kessler Cassandra`,
+            contenu: `Le site www.artisan-plus.fr est édité par :\nKessler Cassandra\nAuto-entrepreneur\nSIRET : 99513518300011\nEmail : contact@artisan-plus.fr\nDirectrice de la publication : Kessler Cassandra`,
           },
           {
             titre: "2. Hébergement",
