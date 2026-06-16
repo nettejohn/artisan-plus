@@ -162,15 +162,18 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
   const style = document.style || "classique";
   let theme = { ...(THEMES[style] || THEMES.classique) };
 
-  // Backward compat : couleur unique legacy
-  if (couleurPdf && !couleursPdf) {
+  // Palette complète avec au moins une couleur non-null
+  const hasCouleursPdf = couleursPdf && typeof couleursPdf === "object" && !Array.isArray(couleursPdf)
+    && Object.values(couleursPdf).some(v => v !== null);
+
+  // Backward compat : couleur unique legacy (skippé si palette active)
+  if (couleurPdf && !hasCouleursPdf) {
     const rgb = hexToRgb(couleurPdf);
     if (rgb) { theme.headerBg = rgb; theme.accent = rgb; }
   }
 
   // Palette complète (prioritaire sur couleurPdf)
-  // C7 — guard : vérifier que couleursPdf est un objet non-null avant d'accéder à ses propriétés
-  if (couleursPdf && typeof couleursPdf === "object" && !Array.isArray(couleursPdf)) {
+  if (hasCouleursPdf) {
     const applyHex = (hex, key) => { if (hex) { const rgb = hexToRgb(hex); if (rgb) theme[key] = rgb; } };
     applyHex(couleursPdf.principale,  "headerBg");
     applyHex(couleursPdf.fondEntetes, "tableBg");

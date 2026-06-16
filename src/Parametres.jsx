@@ -404,10 +404,13 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
     }, { onConflict: "user_id" });
 
     // Sauvegarde palette couleurs (colonne JSONB optionnelle + localStorage)
+    // Si toutes les valeurs sont null, on sauvegarde null pour ne pas bloquer le couleurPdf legacy
     try {
-      localStorage.setItem(`couleurs_pdf_${user.id}`, JSON.stringify(couleursPdf));
+      const hasCustomColors = Object.values(couleursPdf).some(v => v !== null);
+      const paletteCouleurs = hasCustomColors ? couleursPdf : null;
+      localStorage.setItem(`couleurs_pdf_${user.id}`, JSON.stringify(paletteCouleurs));
       const { error: cpErr } = await supabase.from("parametres").upsert(
-        { user_id: user.id, couleurs_pdf: couleursPdf },
+        { user_id: user.id, couleurs_pdf: paletteCouleurs },
         { onConflict: "user_id" }
       );
       if (cpErr) { /* colonne optionnelle — localStorage utilisé comme fallback */ }
