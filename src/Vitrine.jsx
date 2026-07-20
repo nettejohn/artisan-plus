@@ -1496,7 +1496,7 @@ function PageHome() {
       <div style={{ background: "linear-gradient(90deg, rgba(255,140,0,0.15) 0%, rgba(255,140,0,0.08) 100%)", borderBottom: "1px solid rgba(255,140,0,0.3)", padding: "10px 20px" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
           <span style={{ fontSize: "16px" }}>⚡</span>
-          <span style={{ color: "white", fontSize: "13px", fontWeight: "700" }}>Artisan+ est prêt pour la facturation électronique obligatoire 2026</span>
+          <span style={{ color: "white", fontSize: "13px", fontWeight: "700" }}>Anticipez la facturation électronique obligatoire 2026–2027 avec Artisan+</span>
           <span style={{ color: G, fontSize: "12px" }}>—</span>
           <span style={{ color: G, fontSize: "12px" }}>Format Factur-X (EN 16931) déjà disponible dans votre app</span>
           <a href="/facturation-electronique-obligatoire-2026"
@@ -2401,8 +2401,8 @@ function PageMetierVille({ metier, ville }) {
 function PageFacturationElectronique() {
   useEffect(() => {
     setPageMeta(
-      "Facturation électronique obligatoire 2026–2027 | Artisan+ est prêt",
-      "À partir du 1er septembre 2026, toutes les entreprises doivent recevoir des factures électroniques (Factur-X). Dès 2027, les artisans et TPE doivent aussi les émettre. Artisan+ est déjà conforme.",
+      "Facturation électronique obligatoire 2026–2027 | Anticipez avec Artisan+",
+      "À partir du 1er septembre 2026, toutes les entreprises doivent recevoir des factures électroniques (Factur-X). Dès 2027, les artisans et TPE doivent aussi les émettre. Artisan+ génère le format Factur-X (EN 16931) et se prépare à la connexion aux Plateformes Agréées.",
       `${BASE}/facturation-electronique-obligatoire-2026`
     );
     const schema = {
@@ -2412,7 +2412,7 @@ function PageFacturationElectronique() {
         { "@type": "Question", "name": "La facturation électronique est-elle obligatoire pour les artisans ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. À partir du 1er septembre 2026, toutes les entreprises (y compris les artisans) doivent pouvoir recevoir des factures électroniques structurées via une PDP agréée. Dès le 1er septembre 2027, les TPE, PME et micro-entreprises devront aussi émettre leurs factures dans un format structuré (Factur-X, UBL ou CII)." } },
         { "@type": "Question", "name": "Qu'est-ce que le format Factur-X ?", "acceptedAnswer": { "@type": "Answer", "text": "Factur-X est le format de facture électronique structurée choisi par la France. C'est un PDF enrichi d'un fichier XML conforme à la norme européenne EN 16931. Il est lisible par l'humain (PDF) et traitable automatiquement par les logiciels (XML)." } },
         { "@type": "Question", "name": "Artisan+ génère-t-il des factures Factur-X ?", "acceptedAnswer": { "@type": "Answer", "text": "Oui. Artisan+ génère des factures PDF classiques ET permet de télécharger le fichier Factur-X XML correspondant en un clic. Ce fichier est conforme à la norme EN 16931 et au profil Factur-X MINIMUM ou EN16931 selon votre régime de TVA." } },
-        { "@type": "Question", "name": "Dois-je faire quelque chose maintenant ?", "acceptedAnswer": { "@type": "Answer", "text": "Non, si vous utilisez Artisan+. La fonctionnalité Factur-X est déjà disponible dans votre espace. Pour chaque facture, un bouton 'Factur-X' vous permet de télécharger le fichier XML structuré. Aucune action supplémentaire n'est requise avant 2026." } },
+        { "@type": "Question", "name": "Dois-je faire quelque chose maintenant ?", "acceptedAnswer": { "@type": "Answer", "text": "Avec Artisan+, vous pouvez déjà télécharger le fichier Factur-X XML de chaque facture depuis votre tableau de bord. La connexion automatique à une Plateforme de Dématérialisation Partenaire (PDP) agréée est en cours de préparation. Nous vous tiendrons informé dès qu'elle sera disponible." } },
       ]
     };
     let el = document.getElementById("schema-facture-elec");
@@ -2433,9 +2433,9 @@ function PageFacturationElectronique() {
 
   const FAQ_FE = [
     { q: "Qui est concerné par la réforme de 2026 ?", a: "Toutes les entreprises françaises soumises à la TVA (y compris les auto-entrepreneurs assujettis à la TVA). Les micro-entreprises sous le seuil de franchise TVA (art. 293B CGI) sont aussi concernées dès 2027 pour l'émission, même si leur XML contiendra une mention d'exonération." },
-    { q: "Qu'est-ce qu'une PDP (Plateforme de Dématérialisation Partenaire) ?", a: "C'est un opérateur privé agréé par la DGFIP pour transmettre et recevoir des factures électroniques. Il est immatriculé, contrôlé et tenu de respecter des normes de sécurité strictes. Artisan+ s'interface avec ces plateformes pour assurer la conformité de ses utilisateurs." },
+    { q: "Qu'est-ce qu'une PDP (Plateforme de Dématérialisation Partenaire) ?", a: "C'est un opérateur privé agréé par la DGFIP pour transmettre et recevoir des factures électroniques. Il est immatriculé, contrôlé et tenu de respecter des normes de sécurité strictes. Artisan+ se prépare à s'interfacer avec les principales PDP pour accompagner ses utilisateurs vers la conformité." },
     { q: "Mes factures PDF actuelles ne sont-elles plus valables ?", a: "Pour les transactions B2C (artisan → particulier), le PDF reste valable. Pour les transactions B2B (artisan → entreprise, SCI, etc.), à partir du 1er septembre 2027, il faudra émettre des factures dans un format structuré (Factur-X, UBL ou CII)." },
-    { q: "Artisan+ est-il conforme à la réforme ?", a: "Oui. Artisan+ génère déjà des factures au format Factur-X (XML structuré conforme EN 16931). Pour chaque facture créée, vous pouvez télécharger le fichier XML Factur-X en un clic depuis votre tableau de bord." },
+    { q: "Artisan+ est-il prêt pour la réforme ?", a: "Artisan+ génère déjà des factures au format Factur-X (XML structuré conforme EN 16931) : pour chaque facture, un bouton dans votre tableau de bord vous permet de télécharger le fichier XML. La connexion à une PDP agréée (obligatoire pour l'émission légale) est en cours de préparation — nous vous informerons dès son déploiement." },
     { q: "Qu'arrive-t-il si je n'émets pas de factures électroniques en 2027 ?", a: "Des pénalités peuvent s'appliquer en cas de non-conformité. La DGFiP a prévu des amendes pouvant atteindre 15€ par facture non conforme, plafonnées à 15 000€ par an. Il est recommandé de se préparer dès maintenant." },
   ];
 
@@ -2448,7 +2448,7 @@ function PageFacturationElectronique() {
             <span style={{ color: P, fontSize: "12px", fontWeight: "800" }}>⚡ Loi de finances 2024 — Réforme DGFiP</span>
           </div>
           <h1 style={{ color: "white", fontSize: "clamp(28px,5vw,52px)", fontWeight: "900", lineHeight: "1.1", margin: "0 0 20px", letterSpacing: "-1px" }}>
-            Facturation électronique<br /><span style={{ color: P }}>obligatoire en 2026</span> :<br />Artisan+ est déjà prêt
+            Facturation électronique<br /><span style={{ color: P }}>obligatoire en 2026–2027</span> :<br />Anticipez avec Artisan+
           </h1>
           <p style={{ color: G, fontSize: "clamp(15px,2vw,18px)", lineHeight: "1.7", marginBottom: "36px", maxWidth: "680px", margin: "0 auto 36px" }}>
             À partir du 1er septembre 2026, toute entreprise française devra pouvoir recevoir des factures électroniques structurées. Dès septembre 2027, les artisans et TPE/PME devront aussi les émettre au format Factur-X, UBL ou CII. Artisan+ génère déjà le format Factur-X conforme EN 16931.
@@ -2456,7 +2456,7 @@ function PageFacturationElectronique() {
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
-              🚀 Créer un compte gratuit — déjà conforme
+              🚀 Créer un compte gratuit — anticipez dès maintenant
             </a>
             <a href="#calendrier" onClick={e => { e.preventDefault(); document.getElementById("calendrier")?.scrollIntoView({ behavior: "smooth" }); }}
               style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
@@ -2597,8 +2597,8 @@ function PageFacturationElectronique() {
       <section style={{ padding: "clamp(40px,6vw,80px) 20px" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
           <CTASection
-            titre={<>Préparez-vous à la réforme 2026<br /><span style={{ color: P }}>avec Artisan+, dès aujourd'hui</span></>}
-            sous="Artisan+ génère déjà des factures Factur-X conformes EN 16931. Essai gratuit, sans carte bancaire, à 7,99€/mois ensuite."
+            titre={<>Anticipez la réforme 2026–2027<br /><span style={{ color: P }}>avec Artisan+, dès aujourd'hui</span></>}
+            sous="Artisan+ génère déjà le format Factur-X (EN 16931) et se prépare à la connexion aux Plateformes Agréées. Essai gratuit, sans carte bancaire, à 7,99€/mois ensuite."
           />
         </div>
       </section>
@@ -2621,7 +2621,7 @@ const FACT_ELEC_VARIANTS = {
       { icon: "📤", titre: "Émission obligatoire : 1er sept. 2027", desc: "Pour vos clients professionnels (B2B), vos factures PDF classiques ne suffiront plus. Vous devrez émettre des fichiers au format Factur-X, UBL ou CII." },
       { icon: "🆓", titre: "Micro-entrepreneurs aussi concernés", desc: "Même sans TVA (franchise art. 293B CGI), vous devrez émettre des factures au format Factur-X profil MINIMUM à partir du 1er septembre 2027." },
       { icon: "⚠️", titre: "Sanctions jusqu'à 15 000€/an", desc: "Des amendes de 15€ par facture non conforme, plafonnées à 15 000€ par an, sont prévues. Mieux vaut anticiper dès maintenant." },
-      { icon: "✅", titre: "Artisan+ déjà conforme", desc: "Artisan+ génère automatiquement le fichier XML Factur-X conforme EN 16931 pour chaque facture créée. Le bon profil est sélectionné selon votre régime TVA." },
+      { icon: "✅", titre: "Artisan+ génère déjà le Factur-X", desc: "Artisan+ génère automatiquement le fichier XML Factur-X (EN 16931) pour chaque facture créée. La connexion aux PDP agréées est en préparation pour une conformité complète." },
       { icon: "💶", titre: "À 7,99€/mois seulement", desc: "Artisan+ est le logiciel complet le moins cher du marché : devis, factures, Factur-X, suivi chantier, paiement en ligne — tout inclus." },
     ],
     faq: [
@@ -2645,7 +2645,7 @@ const FACT_ELEC_VARIANTS = {
       { icon: "📄", titre: "3 formats acceptés par l'État", desc: "Factur-X (PDF + XML embarqué, standard français), UBL 2.1 (pan-européen) et CII (international). En France, le Factur-X est le format recommandé." },
       { icon: "🔗", titre: "PDP : Plateforme de Dématérialisation Partenaire", desc: "Vous devrez passer par une PDP agréée par la DGFiP pour transmettre et recevoir vos factures électroniques. Artisan+ sera compatible avec les principales PDP." },
       { icon: "🧾", titre: "B2B uniquement pour l'émission", desc: "L'obligation d'émission électronique s'applique uniquement aux transactions entre professionnels (B2B). Vos factures aux particuliers (B2C) restent au format PDF." },
-      { icon: "✅", titre: "Artisan+ conforme pour les TPE du BTP", desc: "Artisan+ est spécialement conçu pour les TPE et artisans du bâtiment. Il génère déjà les fichiers Factur-X XML conformes EN 16931 pour chaque facture." },
+      { icon: "✅", titre: "Artisan+ prépare les TPE du BTP", desc: "Artisan+ est spécialement conçu pour les TPE et artisans du bâtiment. Il génère déjà les fichiers Factur-X XML (EN 16931) et se prépare à la connexion aux PDP agréées." },
       { icon: "💶", titre: "Moins de 8€/mois pour être conforme", desc: "Artisan+ est l'outil le plus abordable du marché incluant la génération Factur-X : 7,99€/mois avec devis, factures, suivi chantier et paiement en ligne inclus." },
     ],
     faq: [
@@ -2694,7 +2694,7 @@ const FACT_ELEC_VARIANTS = {
       { icon: "👨‍👩‍👦", titre: "Particuliers non concernés par l'émission", desc: "L'obligation ne s'applique qu'aux transactions B2B (entre professionnels). Vos factures pour clients particuliers (B2C) restent au format PDF sans changement." },
       { icon: "💰", titre: "Sanctions : jusqu'à 15 000€/an", desc: "Des amendes de 15€ par facture non conforme, plafonnées à 15 000€ par an, sont prévues. C'est pourquoi anticiper dès maintenant est la meilleure stratégie." },
       { icon: "🔄", titre: "Factur-X : rien de visible pour vous", desc: "Avec Artisan+, rien ne change dans votre façon de travailler. Vous créez votre facture normalement, et le fichier XML Factur-X est généré automatiquement en arrière-plan." },
-      { icon: "🚀", titre: "Artisan+ : prêt pour 2027 dès aujourd'hui", desc: "Artisan+ génère déjà des fichiers Factur-X conformes EN 16931. Aucune mise à jour, aucun paramétrage supplémentaire ne sera nécessaire le 1er septembre 2027." },
+      { icon: "🚀", titre: "Artisan+ : en route pour 2027", desc: "Artisan+ génère déjà des fichiers Factur-X (EN 16931) et se prépare à la connexion aux Plateformes Agréées pour une conformité complète au 1er septembre 2027." },
     ],
     faq: [
       { q: "Pourquoi 2027 pour les TPE alors que la réforme démarre en 2026 ?", a: "La réforme est progressive : 2026 pour la réception (toutes entreprises), 2027 pour l'émission des ETI, PME, TPE et micro-entreprises. Ce calendrier permet aux petites structures de s'adapter progressivement." },
@@ -2702,8 +2702,8 @@ const FACT_ELEC_VARIANTS = {
       { q: "Et si je travaille exclusivement avec des particuliers ?", a: "Si 100% de votre activité est B2C (clients particuliers), vous n'êtes pas directement concerné par l'obligation d'émission de 2027. Mais vous devrez quand même pouvoir recevoir des factures électroniques de vos fournisseurs à partir de 2026." },
       { q: "Comment démarrer avec Artisan+ pour être conforme en 2027 ?", a: "Créez votre compte Artisan+ gratuitement, renseignez votre SIRET et vos informations professionnelles, puis commencez à créer vos factures normalement. Pour chaque facture, le bouton 'Factur-X' dans votre tableau de bord génère instantanément le fichier XML conforme." },
     ],
-    ctaTitre: <>Ne laissez pas 2027<br /><span style={{ color: P }}>vous surprendre — Artisan+ est prêt</span></>,
-    ctaSous: "Artisan+ génère déjà vos factures Factur-X conformes. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
+    ctaTitre: <>Ne laissez pas 2027<br /><span style={{ color: P }}>vous surprendre — anticipez avec Artisan+</span></>,
+    ctaSous: "Artisan+ génère déjà le format Factur-X (EN 16931) et se prépare à la connexion aux PDP agréées. Essai gratuit sans carte bancaire, puis 7,99€/mois.",
   },
 };
 
@@ -2723,7 +2723,7 @@ const GENERIC_VARIANTS = {
       { icon: "📱", titre: "Sur smartphone, depuis le chantier", desc: "Pas besoin d'un ordinateur. Artisan+ fonctionne sur iPhone et Android. Créez et envoyez votre facture directement depuis votre chantier." },
       { icon: "💳", titre: "Paiement en ligne inclus", desc: "Vos clients paient directement depuis leur facture par carte bancaire. Artisan+ intègre Stripe pour un paiement sécurisé en quelques clics." },
       { icon: "🔄", titre: "Devis → Facture en 1 clic", desc: "Transformez un devis accepté en facture instantanément. Toutes les informations sont reprises automatiquement, sans ressaisie." },
-      { icon: "🏛️", titre: "Conforme réforme électronique 2026", desc: "Artisan+ génère également le fichier Factur-X XML conforme EN 16931, pour vous préparer à la réforme obligatoire dès 2026." },
+      { icon: "🏛️", titre: "Anticipez la réforme 2026", desc: "Artisan+ génère le fichier Factur-X XML (EN 16931) et se prépare à la connexion aux PDP agréées, pour vous accompagner vers la conformité." },
     ],
     pricing: "Essai gratuit complet · Puis 7,99€/mois seulement",
     faq: [
@@ -2748,7 +2748,7 @@ const GENERIC_VARIANTS = {
       { icon: "📊", titre: "Suivi chantier intégré", desc: "Suivez l'avancement de vos chantiers, ajoutez des photos, des notes vocales et des documents. Artisan+ va bien au-delà de la simple facturation." },
       { icon: "👥", titre: "Gestion équipe et sous-traitants", desc: "Donnez accès à vos ouvriers avec des permissions adaptées. Ils peuvent voir les chantiers, ajouter des photos et noter l'avancement." },
       { icon: "🌐", titre: "Mini-site vitrine inclus", desc: "Artisan+ génère automatiquement votre mini-site professionnel avec vos prestations, photos et avis clients. Votre carte de visite numérique, sans effort." },
-      { icon: "⚡", titre: "Prêt pour la réforme 2026", desc: "Artisan+ génère les fichiers Factur-X XML conformes EN 16931, obligatoires dès 2026. Vous êtes déjà prêt pour la réforme de la facturation électronique." },
+      { icon: "⚡", titre: "Anticipez la réforme 2026–2027", desc: "Artisan+ génère les fichiers Factur-X XML (EN 16931) et se prépare à la connexion aux PDP agréées pour vous accompagner vers la conformité." },
     ],
     pricing: "7,99€/mois · Essai gratuit · Annulable à tout moment",
     faq: [
@@ -2897,7 +2897,7 @@ const GENERIC_VARIANTS = {
       { icon: "📱", titre: "Fonctionnement sur smartphone : essentiel", desc: "Un artisan n'est pas derrière un bureau. L'application doit fonctionner sur smartphone, hors connexion, et être simple à utiliser d'une main. Artisan+ est conçu pour ça." },
       { icon: "⚡", titre: "Rapidité de création : critère n°1", desc: "La meilleure application est celle que vous utilisez vraiment. Artisan+ permet de créer un devis ou une facture en moins de 2 minutes depuis le chantier, grâce au catalogue de prix personnalisable." },
       { icon: "💳", titre: "Paiement en ligne : un vrai plus", desc: "Les applications qui intègrent le paiement en ligne (Stripe) vous permettent d'être payé plus vite. Artisan+ intègre Stripe pour un paiement par carte bancaire directement depuis la facture." },
-      { icon: "🏛️", titre: "Conformité légale et Factur-X 2026", desc: "Vérifiez que l'application génère des documents conformes (mentions légales, numérotation) et, pour 2026, un fichier Factur-X XML. Artisan+ est conforme sur tous ces points." },
+      { icon: "🏛️", titre: "Conformité légale et Factur-X 2026", desc: "Vérifiez que l'application génère des documents conformes (mentions légales, numérotation) et, pour 2026–2027, un fichier Factur-X XML. Artisan+ génère le format Factur-X et se prépare à la connexion aux PDP agréées." },
       { icon: "💶", titre: "Le vrai coût total de possession", desc: "Une application à 0€ mais limitée vous coûtera du temps perdu. Artisan+ à 7,99€/mois vous fait gagner en moyenne 3 à 5 heures par semaine — un ROI immédiat dès le premier mois." },
     ],
     pricing: "Artisan+ : 7,99€/mois · Essai gratuit sans carte bancaire",
@@ -2967,7 +2967,7 @@ function PageFactElecVariante({ slug }) {
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <a href="/login" onClick={e => { e.preventDefault(); navigate("/login"); }}
               style={{ background: P, color: "white", fontWeight: "800", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none" }}>
-              🚀 Créer un compte gratuit — déjà conforme
+              🚀 Créer un compte gratuit — anticipez dès maintenant
             </a>
             <a href="/facturation-electronique-obligatoire-2026" onClick={e => { e.preventDefault(); navigate("/facturation-electronique-obligatoire-2026"); }}
               style={{ background: "rgba(255,255,255,0.06)", color: "white", fontWeight: "700", fontSize: "16px", padding: "16px 28px", borderRadius: "14px", textDecoration: "none", border: "1px solid rgba(255,255,255,0.12)" }}>
