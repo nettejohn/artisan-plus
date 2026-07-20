@@ -112,10 +112,8 @@ export function usePWA() {
     const reg = window.__swRegistration;
     if (reg?.waiting) {
       reg.waiting.postMessage('SKIP_WAITING');
-      // Recharge dès que le nouveau SW prend le contrôle
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+      const onControllerChange = () => window.location.reload();
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, { once: true });
     }
   }, []);
 

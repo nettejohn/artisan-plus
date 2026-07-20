@@ -146,7 +146,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
   };
 
   // ── Lignes ─────────────────────────────────────────────────────────────────
-  const totalHT  = lignes.reduce((sum, l) => sum + parseFloat(l.quantite) * parseFloat(l.prix_unitaire), 0);
+  const totalHT  = lignes.reduce((sum, l) => sum + (parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0), 0);
   const totalTTC = appliquerTva ? totalHT * (1 + tva / 100) : totalHT;
 
   const ajouterLigne   = () => setLignes([...lignes, { description: "", quantite: 1, prix_unitaire: 0 }]);
@@ -257,6 +257,7 @@ export default function NouvelleFacture({ user, onBack, clientInitialId, modeSim
       total:         totalHT,
     });
     if (lignesError) {
+      await supabase.from("factures").delete().eq("id", factureData.id).eq("user_id", user.id);
       setMessage("❌ Erreur lignes : " + lignesError.message);
       setLoading(false);
       return;

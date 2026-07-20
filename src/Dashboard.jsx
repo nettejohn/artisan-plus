@@ -658,14 +658,14 @@ export default function Dashboard({
   const supprimerFacture = async (id) => {
     if (!window.confirm("Supprimer cette facture définitivement ?")) return;
     await supabase.from("lignes_facture").delete().eq("facture_id", id);
-    await supabase.from("factures").delete().eq("id", id);
+    await supabase.from("factures").delete().eq("id", id).eq("user_id", user.id);
     chargerDonnees();
   };
 
   const supprimerDevis = async (id) => {
     if (!window.confirm("Supprimer ce devis définitivement ?")) return;
     await supabase.from("lignes_devis").delete().eq("devis_id", id);
-    await supabase.from("devis").delete().eq("id", id);
+    await supabase.from("devis").delete().eq("id", id).eq("user_id", user.id);
     chargerDonnees();
   };
 
@@ -705,7 +705,7 @@ export default function Dashboard({
 
   const changerStatutFacture = async (facture) => {
     const nouveauStatut = facture.statut === "payee" ? "en_attente" : "payee";
-    await supabase.from("factures").update({ statut: nouveauStatut }).eq("id", facture.id);
+    await supabase.from("factures").update({ statut: nouveauStatut }).eq("id", facture.id).eq("user_id", user.id);
     chargerDonnees();
   };
 
@@ -861,10 +861,12 @@ export default function Dashboard({
   const convertirEnFacture = async (d) => {
     if (!window.confirm("Convertir ce devis en facture ?")) return;
 
-    const { data: lignes } = await supabase
+    const { data: lignes, error: lignesErr } = await supabase
       .from("lignes_devis")
       .select("*")
       .eq("devis_id", d.id);
+
+    if (lignesErr || !lignes) { alert("Erreur lors du chargement des lignes du devis"); return; }
 
     const numero = "FAC-" + Date.now();
     const { data: factureData, error } = await supabase
@@ -892,8 +894,13 @@ export default function Dashboard({
       total: l.total
     }));
 
-    await supabase.from("lignes_facture").insert(lignesFacture);
-    await supabase.from("devis").update({ statut: "accepte" }).eq("id", d.id);
+    const { error: lignesInsertErr } = await supabase.from("lignes_facture").insert(lignesFacture);
+    if (lignesInsertErr) {
+      await supabase.from("factures").delete().eq("id", factureData.id).eq("user_id", user.id);
+      alert("Erreur lors de la création des lignes — conversion annulée");
+      return;
+    }
+    await supabase.from("devis").update({ statut: "accepte" }).eq("id", d.id).eq("user_id", user.id);
 
     // Reporter la signature du devis sur la facture (preuve d'accord client)
     const { data: sigDevis } = await supabase

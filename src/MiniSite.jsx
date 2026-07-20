@@ -170,18 +170,19 @@ export default function MiniSite({ slug }) {
     });
     if (!error && profil?.email) {
       try {
+        const esc = s => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
         await fetch(`${API_URL}/api/send-email`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             to:      profil.email,
-            subject: `📩 Nouvelle demande de devis — ${devisForm.nom}`,
+            subject: `Nouvelle demande de devis — ${esc(devisForm.nom)}`,
             html: `<p>Bonjour,</p><p>Nouvelle demande de devis via votre mini-site Artisan+ :</p>
 <ul>
-  <li><strong>Nom :</strong> ${devisForm.nom}</li>
-  <li><strong>Email :</strong> ${devisForm.email}</li>
-  ${devisForm.telephone ? `<li><strong>Tél :</strong> ${devisForm.telephone}</li>` : ""}
-  ${devisForm.message ? `<li><strong>Message :</strong> ${devisForm.message}</li>` : ""}
+  <li><strong>Nom :</strong> ${esc(devisForm.nom)}</li>
+  <li><strong>Email :</strong> ${esc(devisForm.email)}</li>
+  ${devisForm.telephone ? `<li><strong>Tél :</strong> ${esc(devisForm.telephone)}</li>` : ""}
+  ${devisForm.message ? `<li><strong>Message :</strong> ${esc(devisForm.message)}</li>` : ""}
 </ul>
 <p>Connectez-vous à <a href="https://www.artisan-plus.fr">Artisan+</a> pour y répondre.</p>`,
           }),

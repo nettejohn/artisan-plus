@@ -438,9 +438,12 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   // ── Upload logo ───────────────────────────────────────
   const uploadLogo = async (fichier) => {
+    const ALLOWED = ["jpg","jpeg","png","webp","gif","svg"];
+    const ext = fichier.name.split(".").pop().toLowerCase();
+    if (!ALLOWED.includes(ext)) { alert("Format non autorisé. Utilisez JPG, PNG ou WebP."); return; }
+    if (fichier.size > 5 * 1024 * 1024) { alert("Fichier trop volumineux (max 5 Mo)."); return; }
     setLogoUploading(true);
     try {
-      const ext  = fichier.name.split(".").pop().toLowerCase();
       const path = `${user.id}/logo.${ext}`;
       const { error: errUp } = await supabase.storage
         .from("logos")
@@ -454,9 +457,12 @@ export default function Parametres({ user, onBack, isDesktop = false, initialSec
 
   // ── Upload justificatif vérification ─────────────────
   const uploadVerifDoc = async (fichier) => {
+    const ALLOWED_DOC = ["jpg","jpeg","png","webp","pdf"];
+    const ext = fichier.name.split(".").pop().toLowerCase();
+    if (!ALLOWED_DOC.includes(ext)) { setVerifMsg({ text: "❌ Format non autorisé (JPG, PNG, PDF)", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
+    if (fichier.size > 10 * 1024 * 1024) { setVerifMsg({ text: "❌ Fichier trop volumineux (max 10 Mo)", ok: false }); setTimeout(() => setVerifMsg({ text: "" }), 4000); return; }
     setVerifUploading(true);
     try {
-      const ext  = fichier.name.split(".").pop().toLowerCase();
       const path = `${user.id}/verification.${ext}`;
       const { error: errUp } = await supabase.storage
         .from("verifications")

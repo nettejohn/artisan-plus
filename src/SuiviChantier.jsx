@@ -66,13 +66,13 @@ export default function SuiviChantier({ token }) {
 
     // Charger les photos
     const { data: photosData } = await supabase
-      .storage.from("chantier-photos")
+      .storage.from("chantiers-photos")
       .list(`${data.id}`, { limit: 20, sortBy: { column: "created_at", order: "desc" } });
 
     if (photosData && photosData.length > 0) {
       const urls = photosData.map(f => {
         const { data: { publicUrl } } = supabase.storage
-          .from("chantier-photos")
+          .from("chantiers-photos")
           .getPublicUrl(`${data.id}/${f.name}`);
         return publicUrl;
       });

@@ -164,7 +164,8 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
   const [qrResult,   setQrResult]   = useState("");
   const [qrScanning, setQrScanning] = useState(false);
   const [qrError,    setQrError]    = useState("");
-  const qrRafRef     = useRef(null);
+  const qrRafRef       = useRef(null);
+  const qrScanningRef  = useRef(false);
 
   // SMS rapides
   const [smsClients, setSmsClients] = useState([]);
@@ -346,11 +347,12 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       setQrStream(stream);
       setQrScanning(true);
+      qrScanningRef.current = true;
       if (qrVideoRef.current) { qrVideoRef.current.srcObject = stream; await qrVideoRef.current.play(); }
       if ("BarcodeDetector" in window) {
         const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
         const scan = async () => {
-          if (!qrVideoRef.current || !qrScanning) return;
+          if (!qrVideoRef.current || !qrScanningRef.current) return;
           try {
             const barcodes = await detector.detect(qrVideoRef.current);
             if (barcodes.length > 0) {
@@ -368,6 +370,7 @@ export default function Outils({ user, profil, isPro = true, onUpgrade }) {
     } catch (e) { setQrError("Caméra non accessible : " + e.message); }
   };
   const stopQrScan = () => {
+    qrScanningRef.current = false;
     if (qrRafRef.current) { clearTimeout(qrRafRef.current); qrRafRef.current = null; }
     if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); setQrStream(null); }
     setQrScanning(false);

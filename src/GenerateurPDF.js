@@ -314,7 +314,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
 
   // TOTAUX
   const finalY = doc.lastAutoTable.finalY + 10;
-  const totalHT = lignes.reduce((sum, l) => sum + l.quantite * l.prix_unitaire, 0);
+  const totalHT = lignes.reduce((sum, l) => sum + (parseFloat(l.quantite) || 0) * (parseFloat(l.prix_unitaire) || 0), 0);
   const montantTVA = appliquerTva ? totalHT * (document.tva / 100) : 0;
   const totalFinal = totalHT + montantTVA;
 
@@ -449,7 +449,7 @@ function construireDoc(document, client, lignes, artisan, estDevis = false, opti
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(255, 200, 80);
-    doc.text("✓ Artisan Vérifié", 194, 287, { align: "right" });
+    doc.text("OK Artisan Verifie", 194, 287, { align: "right" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(5.5);
     doc.setTextColor(200, 160, 60);

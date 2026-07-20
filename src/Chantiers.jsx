@@ -231,8 +231,8 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
   const chargerDocs = async (clientId) => {
     if (!clientId) { setDevisFiche([]); setFactsFiche([]); return; }
     const [{ data: dv }, { data: fa }] = await Promise.all([
-      supabase.from("devis").select("id, numero, statut, total_ttc, created_at").eq("client_id", clientId).order("created_at", { ascending: false }),
-      supabase.from("factures").select("id, numero, statut, total_ttc, created_at").eq("client_id", clientId).order("created_at", { ascending: false }),
+      supabase.from("devis").select("id, numero, statut, total_ttc, created_at").eq("client_id", clientId).eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("factures").select("id, numero, statut, total_ttc, created_at").eq("client_id", clientId).eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
     setDevisFiche(dv || []);
     setFactsFiche(fa || []);
@@ -933,7 +933,7 @@ export default function Chantiers({ user, isPro = true, onUpgrade, onCreerDevis,
       setSuiviToken(token);
       // Rafraîchir la liste
       const { data } = await supabase.from("chantiers").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-      if (data) setChantiersList(data);
+      if (data) setChantiers(data);
     }
     setSuiviSaving(false);
   };
